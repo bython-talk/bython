@@ -27,7 +27,9 @@ jobs:
         platform: x64
 
     - name: Lint
-      run: cmake -D FORMAT_COMMAND=clang-format-15 -P cmake/lint.cmake
+      run: >- 
+        clang-format --version
+        cmake -D FORMAT_COMMAND=clang-format -P cmake/lint.cmake
 
     - name: Spell check
       if: false
