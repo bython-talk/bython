@@ -54,7 +54,7 @@ struct parenthesized
 namespace operators
 {
 static constexpr auto pow =
-    dsl::op<ast::binary_operation::binop::pow>(dsl::lit<"**">);
+    dsl::op<ast::binary_operation::binop::pow>(LEXY_LIT("**"));
 
 static constexpr auto unary_plus =
     dsl::op<ast::unary_operation::unop::plus>(dsl::lit_c<'+'>);
@@ -83,9 +83,9 @@ static constexpr auto bitxor_ =
     dsl::op<ast::binary_operation::binop::bitxor_>(dsl::lit_c<'^'>);
 
 static constexpr auto logical_and =
-    dsl::op<ast::binary_operation::binop::booland>(dsl::lit<"&&">);
+    dsl::op<ast::binary_operation::binop::booland>(LEXY_LIT("&&"));
 static constexpr auto logical_or =
-    dsl::op<ast::binary_operation::binop::boolor>(dsl::lit<"||">);
+    dsl::op<ast::binary_operation::binop::boolor>(LEXY_LIT("||"));
 
 }  // namespace operators
 
