@@ -31,7 +31,7 @@ jobs:
         sudo apt-get install -y clang-format-15
         for f in clang-format; do
           if [ -e /usr/bin/${f} ]; then sudo unlink /usr/bin/${f}; fi
-          sudo ln -s /usr/bin/${f}-13 /usr/bin/${f}
+          sudo ln -s /usr/bin/${f}-15 /usr/bin/${f}
         done
 
     - name: Lint
