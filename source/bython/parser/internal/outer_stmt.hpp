@@ -50,8 +50,7 @@ struct function_def
         + dsl::p<compound_body>;
   }();
 
-  static constexpr auto value = lexy::construct<ast::function_def>
-      | lexy::new_<ast::function_def, std::unique_ptr<ast::statement>>;
+  static constexpr auto value = lexy::construct<ast::function_def>;
 };
 
 struct type_def
@@ -73,18 +72,30 @@ struct type_def
         + dsl::p<grammar::symbol_identifier> + dsl::p<body>;
   }();
 
-  static constexpr auto value = lexy::construct<ast::type_definition>
-      | lexy::new_<ast::type_definition, std::unique_ptr<ast::statement>>;
+  static constexpr auto value = lexy::construct<ast::type_definition>;
 };
 
 struct outer_stmt
 {
+  template<typename T>
+  static constexpr auto new_outer_statement =
+      grammar::new_unique_ptr<T, ast::statement>;
+
+  struct outer_stmt_error
+  {
+    static constexpr auto name =
+        "Expected `def` to define a function, `struct` to define a newtype";
+  };
+
   static constexpr auto rule = []
   {
     return dsl::peek(keyword::funcdef_) >> dsl::p<function_def>
-        | dsl::peek(keyword::struct_) >> dsl::p<type_def>;
+        | dsl::peek(keyword::struct_) >> dsl::p<type_def>
+        | dsl::error<outer_stmt_error>;
   }();
-  static constexpr auto value = lexy::forward<std::unique_ptr<ast::statement>>;
+  static constexpr auto value =
+      lexy::callback(new_outer_statement<ast::function_def>,
+                     new_outer_statement<ast::type_definition>);
 };
 
-};  // namespace bython::grammar
+}  // namespace bython::grammar

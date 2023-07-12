@@ -12,21 +12,79 @@ struct expression : node
 {
 };
 
-struct binary_operation : expression
+using expressions = std::vector<std::unique_ptr<expression>>;
+
+struct unary_operation : expression
 {
-  enum class binary_operator
+  enum class unop
   {
     plus,
     minus,
+    bitnegate,
+  } op;
+
+  unary_operation(unop op_, std::unique_ptr<expression> rhs_)
+      : op {op_}
+      , rhs {std::move(rhs_)}
+  {
+  }
+
+  std::unique_ptr<expression> rhs;
+};
+
+struct binary_operation : expression
+{
+  // Ordered by C operator precedence
+  enum class binop
+  {
+    // 2
+    pow,
+
+    // 3
     multiply,
     divide,
-  } binop;
+    modulo,
 
-  binary_operation(binary_operator binop_,
-                   std::unique_ptr<expression> lhs_,
+    // 4
+    plus,
+    minus,
+
+    // 5
+    bitshift_right_,
+    bitshift_left_,
+
+    // 6
+    lsr,
+    leq,
+    geq,
+    grt,
+
+    // 7
+    eq,
+    neq,
+
+    // 8
+    bitand_,
+
+    // 9
+    bitxor_,
+
+    // 10
+    bitor_,
+
+    // 11
+    booland,
+
+    // 12
+    boolor,
+
+  } op;
+
+  binary_operation(std::unique_ptr<expression> lhs_,
+                   binop binop_,
                    std::unique_ptr<expression> rhs_)
       : expression {}
-      , binop(binop_)
+      , op(binop_)
       , lhs {std::move(lhs_)}
       , rhs {std::move(rhs_)}
   {
@@ -54,7 +112,7 @@ struct call : expression
   }
 
   std::string callee;
-  std::vector<std::unique_ptr<expression>> arguments;
+  expressions arguments;
 };
 
 }  // namespace bython::ast

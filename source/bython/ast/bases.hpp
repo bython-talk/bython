@@ -7,4 +7,4 @@ struct node
   virtual ~node() = default;
 };
 
-};  // namespace bython::ast
+}  // namespace bython::ast

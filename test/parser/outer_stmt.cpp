@@ -27,6 +27,11 @@ TEST_CASE("Function Definition")
     REQUIRE(ast.parameters.at(1).name == "b");
     REQUIRE(ast.body.empty());
   }
+
+  SECTION("Bad def keyword")
+  {
+    unwrap_failure<grammar::outer_stmt, ast::function_def>("f(a, b){}");
+  }
 }
 
 TEST_CASE("Type Definition")
