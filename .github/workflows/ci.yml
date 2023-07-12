@@ -27,7 +27,8 @@ jobs:
         platform: x64
 
     - name: Lint
-      run: >- 
+      run: |
+        update-alternatives /usr/bin/clang-format  clang-format  /usr/bin/clang-format-15
         clang-format --version
         cmake -D FORMAT_COMMAND=clang-format -P cmake/lint.cmake
 
