@@ -18,6 +18,9 @@ jobs:
       packages: read
     container:
       image: ghcr.io/bython-talk/bython
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
 
     steps:
     - uses: actions/checkout@v3
@@ -39,6 +42,9 @@ jobs:
       packages: read
     container:
       image: ghcr.io/bython-talk/bython
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
 
     # To enable coverage, delete the last line from the conditional below and
     # edit the "<name>" placeholder to your GitHub name.
@@ -77,6 +83,9 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: ghcr.io/bython-talk/bython
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
 
     steps:
     - uses: actions/checkout@v3
