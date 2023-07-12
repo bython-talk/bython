@@ -20,7 +20,7 @@ jobs:
       image: ghcr.io/bython-talk/bython
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     steps:
     - uses: actions/checkout@v3
@@ -44,7 +44,7 @@ jobs:
       image: ghcr.io/bython-talk/bython
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     # To enable coverage, delete the last line from the conditional below and
     # edit the "<name>" placeholder to your GitHub name.
@@ -85,7 +85,7 @@ jobs:
       image: ghcr.io/bython-talk/bython
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     steps:
     - uses: actions/checkout@v3
