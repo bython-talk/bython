@@ -25,9 +25,11 @@ jobs:
       uses: egor-tensin/setup-clang@v1
       with:
         version: 15
+
+    - name: "Link Clang-Format"
       run: |
-        sudo apt-get install -y clang-tidy-15 clang-format-15
-        for f in clang++ clang-tidy clang-format; do
+        sudo apt-get install -y clang-format-15
+        for f in clang-format; do
           if [ -e /usr/bin/${f} ]; then sudo unlink /usr/bin/${f}; fi
           sudo ln -s /usr/bin/${f}-13 /usr/bin/${f}
         done
