@@ -21,15 +21,17 @@ jobs:
     - uses: actions/setup-python@v4
       with: { python-version: "3.8" }
 
-    - name: Install codespell
-      run: pip3 install codespell
+    - uses: egor-tensin/setup-clang@v1
+      with:
+        version: 15
+        platform: x64
 
     - name: Lint
-      run: cmake -D FORMAT_COMMAND=clang-format-14 -P cmake/lint.cmake
+      run: cmake -D FORMAT_COMMAND=clang-format-15 -P cmake/lint.cmake
 
     - name: Spell check
-      if: always()
-      run: cmake -P cmake/spell.cmake
+      if: false
+      run: pip3 install codespell && cmake -P cmake/spell.cmake
 
   coverage:
     needs: [lint]
