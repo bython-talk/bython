@@ -125,8 +125,8 @@ jobs:
     - name: Install static analyzers
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        apt-get update
-        apt-get install cppcheck
+        sudo apt-get update
+        sudo apt-get install cppcheck
 
     - name: Setup MultiToolTask
       if: matrix.os == 'windows-2022'
