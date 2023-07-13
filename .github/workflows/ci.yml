@@ -37,28 +37,23 @@ jobs:
     needs: [lint]
 
     runs-on: ubuntu-22.04
-    permissions:
-      packages: read
-    container:
-      image: ghcr.io/bython-talk/bython
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     # To enable coverage, delete the last line from the conditional below and
     # edit the "<name>" placeholder to your GitHub name.
     # If you do not wish to use codecov, then simply delete this job from the
     # workflow.
-    if: github.repository_owner == 'bython-talk' && false
+    if: github.repository_owner == 'bython-talk'
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install LCov
-      run: apt-get update -q && apt-get install lcov -q -y
+    - name: Install LCov and make
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install cmake lcov make -q -y
 
     - name: Configure
-      run: cmake --preset=ci-coverage -Wno-error=dev -G Ninja
+      run: cmake --preset=ci-coverage -Wno-error=dev
 
     - name: Build
       run: cmake --build build/coverage -j 2
