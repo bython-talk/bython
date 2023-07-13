@@ -18,16 +18,13 @@ jobs:
       packages: read
     container:
       image: ghcr.io/bython-talk/bython
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+      
 
     steps:
     - uses: actions/checkout@v3
 
     - name: Lint
       run: |
-        clang-format --version
         cmake -D FORMAT_COMMAND=clang-format -P cmake/lint.cmake
 
     - name: Spell check
@@ -128,8 +125,17 @@ jobs:
         Add-Content "$env:GITHUB_ENV" 'UseMultiToolTask=true'
         Add-Content "$env:GITHUB_ENV" 'EnforceProcessCountAcrossBuilds=true'
 
-    - name: Configure
+    - name: Configure via PowerShell
+      if: matrix.os == 'windows-2022'
+      shell: pwsh
       run: cmake "--preset=ci-$("${{ matrix.os }}".split("-")[0])" -Wno-error=dev
+
+    - name: Configure via bash
+      if: matrix.os != 'windows-2022'
+      shell: bash
+      run: |
+        os=$(echo ${{ matrix.os }} | cut -d '-' -f 1)
+        cmake --preset=ci-$os -Wno-error=dev
 
     - name: Build
       run: cmake --build build --config Release -j 2
