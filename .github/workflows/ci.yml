@@ -49,7 +49,7 @@ jobs:
     # edit the "<name>" placeholder to your GitHub name.
     # If you do not wish to use codecov, then simply delete this job from the
     # workflow.
-    if: github.repository_owner == 'bython-talk'
+    if: github.repository_owner == 'bython-talk' && false
 
     steps:
     - uses: actions/checkout@v3
@@ -175,7 +175,6 @@ jobs:
     if: github.ref == 'refs/heads/main'
       && github.event_name == 'push'
       && github.repository_owner == 'bython-talk'
-      && false
 
     steps:
     - uses: actions/checkout@v3
