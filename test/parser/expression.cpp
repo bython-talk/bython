@@ -188,4 +188,22 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
 
     REQUIRE(matching::matches(code, code_matcher));
   }
+
+  SECTION("All the Unary Operators")
+  {
+    auto code = unwrap_grammar<grammar::expression, ast::binary_operation>(
+        "~x + +x - -x");
+    auto code_matcher = m::lift<m::binary_operation>(
+        m::lift<m::binary_operation>(
+            m::lift<m::unary_operation>(ast::unary_operator::bitnegate,
+                                        m::lift<m::variable>("x")),
+            ast::binary_operator::plus,
+            m::lift<m::unary_operation>(ast::unary_operator::plus,
+                                        m::lift<m::variable>("x"))),
+        ast::binary_operator::minus,
+        m::lift<m::unary_operation>(ast::unary_operator::minus,
+                                    m::lift<m::variable>("x")));
+
+    REQUIRE(matching::matches(code, *code_matcher));
+  }
 }
