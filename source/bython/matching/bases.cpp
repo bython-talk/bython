@@ -84,6 +84,6 @@ auto matches(std::unique_ptr<ast::node> const& ast,
 
 auto matches(ast::node const& ast, matcher const& matcher) -> bool
 {
-    return matcher.matches(ast);
+  return matcher.matches(ast);
 }
 }  // namespace bython::matching

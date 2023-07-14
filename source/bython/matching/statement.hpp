@@ -13,8 +13,7 @@ struct statement : matcher
 
 struct assignment final : matching::statement
 {
-  assignment(std::string lhs_,
-             std::unique_ptr<matching::expression> rhs_)
+  assignment(std::string lhs_, std::unique_ptr<matching::expression> rhs_)
       : lhs {std::move(lhs_)}
       , rhs {std::move(rhs_)}
   {

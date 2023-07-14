@@ -65,12 +65,13 @@ auto integer::matches(ast::node const& ast) const -> bool
   return false;
 }
 
-auto variable::matches(const ast::node &ast) const -> bool {
-    if (auto const* var_ = ast::dyn_cast<ast::variable>(&ast)) {
-        return this->identifier == var_->identifier;
-    }
+auto variable::matches(const ast::node& ast) const -> bool
+{
+  if (auto const* var_ = ast::dyn_cast<ast::variable>(&ast)) {
+    return this->identifier == var_->identifier;
+  }
 
-    return false;
+  return false;
 }
 
 }  // namespace bython::matching

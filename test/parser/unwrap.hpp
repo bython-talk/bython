@@ -10,7 +10,7 @@
 #include "bython/ast/bases.hpp"
 #include "bython/parser/top_level_grammar.hpp"
 
-template <typename T>
+template<typename T>
 auto unwrap(std::unique_ptr<bython::ast::node> node) -> T
 {
   auto ast = std::move(node);
