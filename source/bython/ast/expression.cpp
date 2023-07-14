@@ -4,7 +4,8 @@
 
 namespace bython::ast
 {
-unary_operation::unary_operation(unary_operator op_, std::unique_ptr<expression> rhs_)
+unary_operation::unary_operation(unary_operator op_,
+                                 std::unique_ptr<expression> rhs_)
     : op {op_}
     , rhs {std::move(rhs_)}
 {
@@ -29,7 +30,8 @@ auto binary_operation::visit(visitation::visitor& visitor) const -> void
   visitor.visit(*this);
 }
 
-comparison::comparison(ast::expressions operands_, std::vector<comparison_operator> ops_)
+comparison::comparison(ast::expressions operands_,
+                       std::vector<comparison_operator> ops_)
     : operands {std::move(operands_)}
     , ops {std::move(ops_)}
 {
