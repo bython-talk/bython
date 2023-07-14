@@ -1,0 +1,1 @@
+target_sources(bython_lib PRIVATE bases.cpp expression.cpp statement.cpp)

@@ -9,25 +9,27 @@ namespace bython::ast
 {
 struct compound : statement
 {
-  explicit compound(statements body_)
-      : body {std::move(body_)}
-  {
-  }
+  explicit compound(statements body_);
 
   statements body;
 };
 
-struct for_ : compound
+struct for_ final : compound
 {
+  auto visit(visitation::visitor& visitor) const -> void override;
+
+  /*auto transform(visitation::transformer& transformer) const
+      -> std::unique_ptr<node> override;*/
 };
 
-struct while_ : compound
+struct while_ final : compound
 {
+  auto visit(visitation::visitor& visitor) const -> void override;
 };
 
-struct if_ : compound
+/*struct if_ : compound
 {
-};
+};*/
 
 struct parameter
 {
@@ -36,7 +38,7 @@ struct parameter
 
 using parameters = std::vector<parameter>;
 
-struct function_def : compound
+struct function_def final : compound
 {
   function_def(std::string name_,
                std::vector<parameter> parameters_,
@@ -47,8 +49,10 @@ struct function_def : compound
   {
   }
 
+  auto visit(visitation::visitor& visitor) const -> void override;
+
   std::string name;
   std::vector<parameter> parameters;
 };
 
-};  // namespace bython::ast
+}  // namespace bython::ast

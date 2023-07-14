@@ -14,7 +14,7 @@ struct expression : node
 
 using expressions = std::vector<std::unique_ptr<expression>>;
 
-struct unary_operation : expression
+struct unary_operation final : expression
 {
   enum class unop
   {
@@ -23,16 +23,14 @@ struct unary_operation : expression
     bitnegate,
   } op;
 
-  unary_operation(unop op_, std::unique_ptr<expression> rhs_)
-      : op {op_}
-      , rhs {std::move(rhs_)}
-  {
-  }
+  unary_operation(unop op_, std::unique_ptr<expression> rhs_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
 
   std::unique_ptr<expression> rhs;
 };
 
-struct binary_operation : expression
+struct binary_operation final : expression
 {
   // Ordered by C operator precedence
   enum class binop
@@ -53,16 +51,6 @@ struct binary_operation : expression
     bitshift_right_,
     bitshift_left_,
 
-    // 6
-    lsr,
-    leq,
-    geq,
-    grt,
-
-    // 7
-    eq,
-    neq,
-
     // 8
     bitand_,
 
@@ -82,37 +70,63 @@ struct binary_operation : expression
 
   binary_operation(std::unique_ptr<expression> lhs_,
                    binop binop_,
-                   std::unique_ptr<expression> rhs_)
-      : expression {}
-      , op(binop_)
-      , lhs {std::move(lhs_)}
-      , rhs {std::move(rhs_)}
-  {
-  }
+                   std::unique_ptr<expression> rhs_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
 
   std::unique_ptr<expression> lhs, rhs;
 };
 
-struct variable : expression
+struct comparison final : expression
 {
-  explicit variable(std::string identifier_)
-      : identifier {std::move(identifier_)}
+  enum class compop
   {
-  }
+    // 6
+    lsr,
+    leq,
+    geq,
+    grt,
+
+    // 7
+    eq,
+    neq,
+  };
+
+  comparison(ast::expressions operands_, std::vector<compop> ops_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
+
+  ast::expressions operands;
+  std::vector<compop> ops;
+};
+
+struct variable final : expression
+{
+  explicit variable(std::string identifier_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
 
   std::string identifier;
 };
 
-struct call : expression
+struct call final : expression
 {
-  call(std::string callee_, std::vector<std::unique_ptr<expression>> arguments_)
-      : callee {std::move(callee_)}
-      , arguments {std::move(arguments_)}
-  {
-  }
+  call(std::string callee_,
+       std::vector<std::unique_ptr<expression>> arguments_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
 
   std::string callee;
-  expressions arguments;
+  ast::expressions arguments;
+};
+
+struct integer final : expression
+{
+  explicit integer(int64_t value_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
+
+  int64_t value;
 };
 
 }  // namespace bython::ast

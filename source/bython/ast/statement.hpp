@@ -21,25 +21,21 @@ struct type_definition_stmt
 };
 using type_definition_stmts = std::vector<type_definition_stmt>;
 
-struct type_definition : statement
+struct type_definition final : statement
 {
-  type_definition(std::string identifier_, type_definition_stmts body_)
-      : identifier {std::move(identifier_)}
-      , body {std::move(body_)}
-  {
-  }
+  type_definition(std::string identifier_, type_definition_stmts body_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
 
   std::string identifier;
   type_definition_stmts body;
 };
 
-struct assignment : statement
+struct assignment final : statement
 {
-  assignment(std::string lhs_, std::unique_ptr<expression> rhs_)
-      : lhs {std::move(lhs_)}
-      , rhs {std::move(rhs_)}
-  {
-  }
+  assignment(std::string lhs_, std::unique_ptr<expression> rhs_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
 
   std::string lhs;
   std::unique_ptr<expression> rhs;

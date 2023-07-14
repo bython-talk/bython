@@ -7,13 +7,12 @@
 
 namespace bython::ast
 {
-struct mod : node
+struct mod final : node
 {
-  explicit mod(statements body_)
-      : body {std::move(body_)}
-  {
-  }
+  explicit mod(statements body_);
+
+  auto visit(visitation::visitor& visitor) const -> void override;
 
   ast::statements body;
 };
-};  // namespace bython::ast
+}  // namespace bython::ast
