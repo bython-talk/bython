@@ -25,7 +25,7 @@ auto binary_operation::matches(const ast::node& ast) const -> bool
   return false;
 }
 
-auto comparison::chain(ast::comparison::compop op,
+auto comparison::chain(ast::comparison_operator op,
                        std::unique_ptr<matching::expression> against)
     -> comparison
 {

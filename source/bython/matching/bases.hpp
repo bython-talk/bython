@@ -18,4 +18,10 @@ struct matcher
 
 auto matches(ast::node const& ast, matcher const& matcher) -> bool;
 
+template<typename T, typename... Args>
+auto lift(Args&&... args) -> std::unique_ptr<T>
+{
+  return std::make_unique<T>(std::forward<Args>(args)...);
+}
+
 }  // namespace bython::matching

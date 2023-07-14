@@ -10,8 +10,10 @@
 
 using namespace bython;
 
+namespace m = bython::matching;
+
 auto check_binary_op(ast::binary_operation const& binary_op,
-                     ast::binary_operation::binop op)
+                     ast::binary_operator op)
 {
   CAPTURE(binary_op.op);
   CAPTURE(op);
@@ -19,7 +21,7 @@ auto check_binary_op(ast::binary_operation const& binary_op,
 }
 
 auto check_comparison_op(ast::comparison const& comp_op,
-                         std::vector<ast::comparison::compop> ops)
+                         std::vector<ast::comparison_operator> ops)
 
 {
   CAPTURE(comp_op.ops);
@@ -69,83 +71,83 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a || b");
-    check_binary_op(m, ast::binary_operation::binop::boolor);
+    check_binary_op(m, ast::binary_operator::boolor);
   }
 
   SECTION("Logical And")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a && b");
-    check_binary_op(m, ast::binary_operation::binop::booland);
+    check_binary_op(m, ast::binary_operator::booland);
   }
 
   SECTION("Bit Xor")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a ^ b");
-    check_binary_op(m, ast::binary_operation::binop::bitxor_);
+    check_binary_op(m, ast::binary_operator::bitxor_);
   }
 
   SECTION("Bit Or")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a | b");
-    check_binary_op(m, ast::binary_operation::binop::bitor_);
+    check_binary_op(m, ast::binary_operator::bitor_);
   }
 
   SECTION("Bit And")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a & b");
-    check_binary_op(m, ast::binary_operation::binop::bitand_);
+    check_binary_op(m, ast::binary_operator::bitand_);
   }
 
   SECTION("Minus")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a - b");
-    check_binary_op(m, ast::binary_operation::binop::minus);
+    check_binary_op(m, ast::binary_operator::minus);
   }
 
   SECTION("Plus")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a + b");
-    check_binary_op(m, ast::binary_operation::binop::plus);
+    check_binary_op(m, ast::binary_operator::plus);
   }
 
   SECTION("Modulo")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a % b");
-    check_binary_op(m, ast::binary_operation::binop::modulo);
+    check_binary_op(m, ast::binary_operator::modulo);
   }
 
   SECTION("Division")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a / b");
-    check_binary_op(m, ast::binary_operation::binop::divide);
+    check_binary_op(m, ast::binary_operator::divide);
   }
 
   SECTION("Multiply")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a * b");
-    check_binary_op(m, ast::binary_operation::binop::multiply);
+    check_binary_op(m, ast::binary_operator::multiply);
   }
 
   SECTION("Power")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a ** b");
-    check_binary_op(m, ast::binary_operation::binop::pow);
+    check_binary_op(m, ast::binary_operator::pow);
   }
 
   SECTION("Lesser")
   {
     auto m = unwrap_grammar<grammar::expression, ast::comparison>("a < b");
-    check_comparison_op(m, {ast::comparison::compop::lsr});
+    check_comparison_op(m, {ast::comparison_operator::lsr});
   }
 }
 
@@ -156,35 +158,34 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
     auto code =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a * b + c");
 
-    auto code_matcher = matching::binary_operation(
-        std::make_unique<matching::binary_operation>(
-            std::make_unique<matching::variable>("a"),
-            ast::binary_operation::binop::multiply,
-            std::make_unique<matching::variable>("b")),
-        ast::binary_operation::binop::plus,
-        std::make_unique<matching::variable>("c"));
+    auto code_matcher = m::binary_operation(
+        m::lift<m::binary_operation>(m::lift<m::variable>("a"),
+                                     ast::binary_operator::multiply,
+                                     m::lift<m::variable>("b")),
+        ast::binary_operator::plus,
+        m::lift<m::variable>("c"));
 
     REQUIRE(matching::matches(code, code_matcher));
   }
 
   SECTION("Power of Two Check")
   {
-    auto m = unwrap_grammar<grammar::expression, ast::comparison>(
+    auto code = unwrap_grammar<grammar::expression, ast::comparison>(
         "0 == (x & (x - 1))");
-    REQUIRE(matching::matches(
-        m,
-        matching::comparison {std::make_unique<matching::integer>(0)}.chain(
-            // =
-            ast::comparison::compop::eq,
-            // (x & ...)
-            std::make_unique<matching::binary_operation>(
-                std::make_unique<matching::variable>("x"),
-                ast::binary_operation::binop::bitand_,
 
-                // (x - 1)
-                std::make_unique<matching::binary_operation>(
-                    std::make_unique<matching::variable>("x"),
-                    ast::binary_operation::binop::minus,
-                    std::make_unique<matching::integer>(1))))));
+    auto code_matcher = m::comparison {m::lift<m::integer>(0)}.chain(
+        // =
+        ast::comparison_operator::eq,
+        // (x & ...)
+        m::lift<m::binary_operation>(
+            m::lift<m::variable>("x"),
+            ast::binary_operator::bitand_,
+
+            // (x - 1)
+            m::lift<m::binary_operation>(m::lift<m::variable>("x"),
+                                         ast::binary_operator::minus,
+                                         m::lift<m::integer>(1))));
+
+    REQUIRE(matching::matches(code, code_matcher));
   }
 }

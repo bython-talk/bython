@@ -12,7 +12,7 @@ struct expression : matcher
 
 struct unary_operation final : matching::expression
 {
-  unary_operation(ast::unary_operation::unop op_,
+  unary_operation(ast::unary_operator op_,
                   std::unique_ptr<matching::expression> rhs_matcher_)
       : op {op_}
       , rhs_matcher {std::move(rhs_matcher_)}
@@ -21,14 +21,14 @@ struct unary_operation final : matching::expression
 
   auto matches(ast::node const& ast) const -> bool override;
 
-  ast::unary_operation::unop op;
+  ast::unary_operator op;
   std::unique_ptr<matching::expression> rhs_matcher;
 };
 
 struct binary_operation final : matching::expression
 {
   binary_operation(std::unique_ptr<matching::expression> lhs_matcher_,
-                   ast::binary_operation::binop op_,
+                   ast::binary_operator op_,
                    std::unique_ptr<matching::expression> rhs_matcher_)
       : lhs_matcher {std::move(lhs_matcher_)}
       , op {op_}
@@ -39,7 +39,7 @@ struct binary_operation final : matching::expression
   auto matches(ast::node const& ast) const -> bool override;
 
   std::unique_ptr<matching::expression> lhs_matcher;
-  ast::binary_operation::binop op;
+  ast::binary_operator op;
   std::unique_ptr<matching::expression> rhs_matcher;
 };
 
@@ -50,13 +50,13 @@ struct comparison final : matching::expression
     this->operands.emplace_back(std::move(init));
   }
 
-  auto chain(ast::comparison::compop op,
+  auto chain(ast::comparison_operator op,
              std::unique_ptr<matching::expression> against) -> comparison;
 
   auto matches(ast::node const& ast) const -> bool override;
 
   std::vector<std::unique_ptr<matching::expression>> operands;
-  std::vector<ast::comparison::compop> ops;
+  std::vector<ast::comparison_operator> ops;
 };
 
 struct integer final : matching::expression

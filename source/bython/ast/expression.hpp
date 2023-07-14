@@ -14,62 +14,64 @@ struct expression : node
 
 using expressions = std::vector<std::unique_ptr<expression>>;
 
+enum class unary_operator
+{
+  plus,
+  minus,
+  bitnegate,
+};
+
 struct unary_operation final : expression
 {
-  enum class unop
-  {
-    plus,
-    minus,
-    bitnegate,
-  } op;
-
-  unary_operation(unop op_, std::unique_ptr<expression> rhs_);
+  unary_operation(unary_operator op_, std::unique_ptr<expression> rhs_);
 
   auto visit(visitation::visitor& visitor) const -> void override;
 
+  unary_operator op;
   std::unique_ptr<expression> rhs;
+};
+
+enum class binary_operator
+{
+  // 2
+  pow,
+
+  // 3
+  multiply,
+  divide,
+  modulo,
+
+  // 4
+  plus,
+  minus,
+
+  // 5
+  bitshift_right_,
+  bitshift_left_,
+
+  // 8
+  bitand_,
+
+  // 9
+  bitxor_,
+
+  // 10
+  bitor_,
+
+  // 11
+  booland,
+
+  // 12
+  boolor,
 };
 
 struct binary_operation final : expression
 {
   // Ordered by C operator precedence
-  enum class binop
-  {
-    // 2
-    pow,
-
-    // 3
-    multiply,
-    divide,
-    modulo,
-
-    // 4
-    plus,
-    minus,
-
-    // 5
-    bitshift_right_,
-    bitshift_left_,
-
-    // 8
-    bitand_,
-
-    // 9
-    bitxor_,
-
-    // 10
-    bitor_,
-
-    // 11
-    booland,
-
-    // 12
-    boolor,
-
-  } op;
+  binary_operator op;
 
   binary_operation(std::unique_ptr<expression> lhs_,
-                   binop binop_,
+                   binary_operator binop_,
                    std::unique_ptr<expression> rhs_);
 
   auto visit(visitation::visitor& visitor) const -> void override;
@@ -77,27 +79,27 @@ struct binary_operation final : expression
   std::unique_ptr<expression> lhs, rhs;
 };
 
+enum class comparison_operator
+{
+  // 6
+  lsr,
+  leq,
+  geq,
+  grt,
+
+  // 7
+  eq,
+  neq,
+};
+
 struct comparison final : expression
 {
-  enum class compop
-  {
-    // 6
-    lsr,
-    leq,
-    geq,
-    grt,
-
-    // 7
-    eq,
-    neq,
-  };
-
-  comparison(ast::expressions operands_, std::vector<compop> ops_);
+  comparison(ast::expressions operands_, std::vector<comparison_operator> ops_);
 
   auto visit(visitation::visitor& visitor) const -> void override;
 
   ast::expressions operands;
-  std::vector<compop> ops;
+  std::vector<comparison_operator> ops;
 };
 
 struct variable final : expression
