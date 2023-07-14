@@ -68,7 +68,9 @@ jobs:
     - name: Submit to codecov.io
       uses: codecov/codecov-action@v3
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         file: build/coverage/coverage.info
+        fail_ci_if_error: true
 
   sanitize:
     needs: [lint]
