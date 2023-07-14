@@ -22,6 +22,15 @@ struct nested_expression : lexy::transparent_production
   static constexpr auto value = lexy::forward<std::unique_ptr<ast::expression>>;
 };
 
+struct integer : lexy::token_production
+{
+  static constexpr auto rule =
+      LEXY_LIT("0x") >> dsl::integer<int, dsl::hex> | dsl::integer<int>;
+
+  static constexpr auto value =
+      lexy::construct<ast::integer> | new_expression<ast::integer>;
+};
+
 struct var_or_call
 {
   struct parameter_list
@@ -87,6 +96,23 @@ static constexpr auto logical_and =
 static constexpr auto logical_or =
     dsl::op<ast::binary_operation::binop::boolor>(LEXY_LIT("||"));
 
+static constexpr auto lsr = dsl::op<ast::comparison::compop::lsr>(
+    dsl::not_followed_by(dsl::lit_c<'<'>, dsl::lit_c<'='>));
+
+static constexpr auto leq =
+    dsl::op<ast::comparison::compop::leq>(LEXY_LIT("<="));
+
+static constexpr auto geq =
+    dsl::op<ast::comparison::compop::geq>(LEXY_LIT(">="));
+
+static constexpr auto grt = dsl::op<ast::comparison::compop::grt>(
+    dsl::not_followed_by(dsl::lit_c<'>'>, dsl::lit_c<'='>));
+
+static constexpr auto eq = dsl::op<ast::comparison::compop::eq>(LEXY_LIT("=="));
+
+static constexpr auto neq =
+    dsl::op<ast::comparison::compop::neq>(LEXY_LIT("!="));
+
 }  // namespace operators
 
 struct expr_prod : lexy::expression_production
@@ -98,7 +124,7 @@ struct expr_prod : lexy::expression_production
 
   static constexpr auto atom = []
   {
-    return dsl::p<var_or_call> | dsl::p<parenthesized>
+    return dsl::p<var_or_call> | dsl::p<integer> | dsl::p<parenthesized>
         | dsl::error<expression_error>;
   }();
 
@@ -158,14 +184,36 @@ struct expr_prod : lexy::expression_production
     using operand = logical_and;
   };
 
-  using operation = logical_or;
+  struct comparison : dsl::infix_op_list
+  {
+    static constexpr auto op = operators::neq / operators::eq / operators::grt
+        / operators::geq / operators::leq / operators::lsr;
+    using operand = logical_or;
+  };
+
+  using operation = comparison;
 
   static constexpr auto value =
-      lexy::callback(new_expression<ast::call>,
-                     new_expression<ast::variable>,
-                     new_expression<ast::binary_operation>,
-                     new_expression<ast::unary_operation>,
-                     lexy::forward<std::unique_ptr<ast::expression>>);
+      lexy::fold_inplace<std::unique_ptr<ast::comparison>>(
+          []
+          {
+            auto empty_comp = ast::comparison {
+                ast::expressions {}, std::vector<ast::comparison::compop> {}};
+            return std::make_unique<ast::comparison>(std::move(empty_comp));
+          },
+          [](std::unique_ptr<ast::comparison>& comparison,
+             std::unique_ptr<ast::expression> expr)
+          { comparison->operands.emplace_back(std::move(expr)); },
+          [](std::unique_ptr<ast::comparison>& comparison,
+             ast::comparison::compop cmp)
+          { comparison->ops.emplace_back(cmp); })
+      >> lexy::callback(new_expression<ast::call>,
+                        new_expression<ast::variable>,
+                        new_expression<ast::integer>,
+                        new_expression<ast::binary_operation>,
+                        new_expression<ast::unary_operation>,
+                        new_expression<ast::comparison>,
+                        lexy::forward<std::unique_ptr<ast::expression>>);
 };
 
 struct expression

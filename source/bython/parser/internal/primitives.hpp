@@ -57,4 +57,4 @@ struct type_identifier
 template<typename T, typename U>
 static constexpr auto new_unique_ptr = lexy::new_<T, std::unique_ptr<U>>;
 
-};  // namespace bython::grammar
+}  // namespace bython::grammar

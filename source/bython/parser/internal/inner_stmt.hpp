@@ -34,4 +34,4 @@ struct inner_stmt
 
   static constexpr auto value = lexy::forward<std::unique_ptr<ast::statement>>;
 };
-};  // namespace bython::grammar
+}  // namespace bython::grammar
