@@ -1,4 +1,4 @@
-/CMakeUserPresets.json
+# /CMakeUserPresets.json
 
 # Common build directories
 /build*/
