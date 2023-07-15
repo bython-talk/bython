@@ -41,10 +41,7 @@ set_property(TARGET bython_exe PROPERTY OUTPUT_NAME bython)
 target_compile_features(bython_exe PRIVATE cxx_std_17)
 target_link_libraries(bython_exe PRIVATE bython_lib)
 
-# Third-Party deps
-include(FetchContent)
-FetchContent_Declare(lexy URL https://github.com/foonathan/lexy/releases/download/v2022.12.1/lexy-src.zip)
-FetchContent_MakeAvailable(lexy)
+find_package(lexy REQUIRED)
 
 
 # ---- Install rules ----
