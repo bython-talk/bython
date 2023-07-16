@@ -25,7 +25,7 @@ struct type_definition final : statement
 {
   type_definition(std::string identifier_, type_definition_stmts body_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   std::string identifier;
   type_definition_stmts body;
@@ -35,7 +35,7 @@ struct assignment final : statement
 {
   assignment(std::string lhs_, std::unique_ptr<expression> rhs_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   std::string lhs;
   std::unique_ptr<expression> rhs;

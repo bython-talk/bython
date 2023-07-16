@@ -11,7 +11,7 @@ struct mod final : node
 {
   explicit mod(statements body_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   ast::statements body;
 };

@@ -9,17 +9,17 @@ compound::compound(statements body_)
 {
 }
 
-auto for_::visit(visitation::visitor& visitor) const -> void
+auto for_::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
 
-auto while_::visit(visitation::visitor& visitor) const -> void
+auto while_::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
 
-auto function_def::visit(visitation::visitor& visitor) const -> void
+auto function_def::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
