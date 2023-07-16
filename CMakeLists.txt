@@ -13,6 +13,12 @@ project(
 include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
 
+# --- Third Party Deps ---
+include(FetchContent)
+FetchContent_Declare(lexy URL https://github.com/foonathan/lexy/releases/download/v2022.12.1/lexy-src.zip)
+FetchContent_MakeAvailable(lexy)
+
+
 # ---- Declare library ----
 
 add_library(
@@ -40,11 +46,6 @@ set_property(TARGET bython_exe PROPERTY OUTPUT_NAME bython)
 
 target_compile_features(bython_exe PRIVATE cxx_std_17)
 target_link_libraries(bython_exe PRIVATE bython_lib)
-
-# Third-Party deps
-include(FetchContent)
-FetchContent_Declare(lexy URL https://github.com/foonathan/lexy/releases/download/v2022.12.1/lexy-src.zip)
-FetchContent_MakeAvailable(lexy)
 
 
 # ---- Install rules ----
