@@ -37,6 +37,11 @@ jobs:
     needs: [lint]
 
     runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/bython-talk/catch3-ubuntu
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     # To enable coverage, delete the last line from the conditional below and
     # edit the "<name>" placeholder to your GitHub name.
@@ -76,14 +81,18 @@ jobs:
     needs: [lint]
 
     runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/bython-talk/catch3-ubuntu
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install Build Dependencies, Tools & Sanitisers
+    - name: Install Tools & Sanitisers
       run: |
         sudo apt-get -qq update
-        sudo apt-get -qq install --no-install-recommends catch2 -y
         sudo apt-get -qq install --no-install-recommends cmake ninja-build -y
 
     - name: Configure
@@ -111,7 +120,7 @@ jobs:
       matrix:
         os: [
           #macos-12,
-          ubuntu-22.04,
+          ghcr.io/bython-talk/catch3-ubuntu,
           #windows-2022
         ]
 
