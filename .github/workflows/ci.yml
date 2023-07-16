@@ -130,10 +130,10 @@ jobs:
     - name: Install Static Analyzers & Build Tools
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        apt-get -qq update
-        apt-get -qq install --no-install-recommends cppcheck -y
-        apt-get -qq install --no-install-recommends g++ cmake make -y
-        apt-get -qq install --no-install-recommends wget unzip ca-certificates
+        sudo apt-get -qq update
+        sudo apt-get -qq install --no-install-recommends cppcheck -y
+        sudo apt-get -qq install --no-install-recommends g++ cmake make -y
+        sudo apt-get -qq install --no-install-recommends wget unzip ca-certificates
 
     - name: Install Catch2 v3
       if: matrix.os == 'ubuntu-22.04'
