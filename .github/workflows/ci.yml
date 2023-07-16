@@ -54,8 +54,7 @@ jobs:
 
     - name: Install LCov and make
       run: |
-        sudo apt-get -qq update
-        sudo apt-get -qq install cmake lcov make -y
+        apt-get -qq install cmake lcov make -y
 
     - name: Configure
       run: cmake -Wno-error=dev --preset=ci-coverage
@@ -92,8 +91,8 @@ jobs:
 
     - name: Install Tools & Sanitisers
       run: |
-        sudo apt-get -qq update
-        sudo apt-get -qq install --no-install-recommends cmake ninja-build -y
+        apt-get -qq update
+        apt-get -qq install --no-install-recommends cmake ninja-build -y
 
     - name: Configure
       run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
@@ -120,7 +119,7 @@ jobs:
       matrix:
         os: [
           #macos-12,
-          ghcr.io/bython-talk/catch3-ubuntu,
+          ubuntu-22.04,
           #windows-2022
         ]
 
@@ -131,9 +130,18 @@ jobs:
     - name: Install Static Analyzers & Build Tools
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        sudo apt-get -qq update
-        sudo apt-get -qq install --no-install-recommends cppcheck -y
-        sudo apt-get -qq install --no-install-recommends cmake ninja-build -y
+        apt-get -qq update
+        apt-get -qq install --no-install-recommends cppcheck -y
+        apt-get -qq install --no-install-recommends g++ cmake make -y
+        apt-get -qq install --no-install-recommends wget unzip ca-certificates
+
+    - name: Install Catch2 v3
+      if: matrix.os == 'ubuntu-22.04'
+      run: |
+        wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /catch2.zip && unzip /catch2.zip -d /catch2
+        (cd /catch2/Catch2-3.3.2 && cmake -E make_directory build)
+        (cd /catch2/Catch2-3.3.2/build && cmake /catch2/Catch2-3.3.2)
+        (cmake --build /catch2/Catch2-3.3.2/build -j4 && cmake --install /catch2/Catch2-3.3.2/build)
 
     - name: Setup MultiToolTask
       if: matrix.os == 'windows-2022'
