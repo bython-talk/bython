@@ -138,10 +138,10 @@ jobs:
     - name: Install Catch2 v3
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /catch2.zip && unzip /catch2.zip -d /catch2
-        (cd /catch2/Catch2-3.3.2 && cmake -E make_directory build)
-        (cd /catch2/Catch2-3.3.2/build && cmake /catch2/Catch2-3.3.2)
-        (cmake --build /catch2/Catch2-3.3.2/build -j4 && cmake --install /catch2/Catch2-3.3.2/build)
+        wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /tmp/catch2.zip && unzip /tmp/catch2.zip -d /tmp/catch2
+        (cd /tmp/catch2/Catch2-3.3.2 && cmake -E make_directory build)
+        (cd /tmp/catch2/Catch2-3.3.2/build && cmake /tmp/catch2/Catch2-3.3.2)
+        (cmake --build /tmp/catch2/Catch2-3.3.2/build -j4 && cmake --install /tmp/catch2/Catch2-3.3.2/build)
 
     - name: Setup MultiToolTask
       if: matrix.os == 'windows-2022'
