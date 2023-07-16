@@ -141,7 +141,7 @@ jobs:
         wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /tmp/catch2.zip && unzip /tmp/catch2.zip -d /tmp/catch2
         (cd /tmp/catch2/Catch2-3.3.2 && cmake -E make_directory build)
         (cd /tmp/catch2/Catch2-3.3.2/build && cmake /tmp/catch2/Catch2-3.3.2)
-        (cmake --build /tmp/catch2/Catch2-3.3.2/build -j4 && cmake --install /tmp/catch2/Catch2-3.3.2/build)
+        (cmake --build /tmp/catch2/Catch2-3.3.2/build -j4 && sudo cmake --install /tmp/catch2/Catch2-3.3.2/build)
 
     - name: Setup MultiToolTask
       if: matrix.os == 'windows-2022'
