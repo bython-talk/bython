@@ -37,6 +37,8 @@ struct visitor
 
   virtual auto visit(ast::call const& call) -> traversal;
 
+  virtual auto visit(ast::if_expression const& if_expression) -> traversal;
+
   // statement
   virtual auto visit(ast::assignment const& assignment) -> traversal;
 

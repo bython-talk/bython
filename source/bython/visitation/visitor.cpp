@@ -53,6 +53,11 @@ auto visitor::visit(ast::call const&) -> traversal
   return traversal::CONTINUE;
 }
 
+auto visitor::visit(ast::if_expression const&) -> traversal
+{
+  return traversal::CONTINUE;
+}
+
 auto visitor::visit(ast::assignment const&) -> traversal
 {
   return traversal::CONTINUE;
