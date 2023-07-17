@@ -17,7 +17,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/bython-talk/bython-dev-container
+      image: ghcr.io/bython-talk/bython-image
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
