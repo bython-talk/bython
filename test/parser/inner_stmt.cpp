@@ -1,17 +1,17 @@
 #include <bython/ast/statement.hpp>
-#include <bython/matchers.hpp>
+#include <bython/matching.hpp>
 #include <bython/parser/internal/inner_stmt.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include "unwrap.hpp"
 
-using namespace bython;
+namespace ast = bython::ast;
+namespace m = bython::matching;
 
 TEST_CASE("Assignment")
 {
-  auto ast = unwrap_grammar<grammar::inner_stmt, ast::assignment>("val x = f");
-  REQUIRE(matching::matches(
-      ast,
-      matching::assignment {std::string {"x"},
-                            std::make_unique<matching::variable>("f")}));
+  auto ast =
+      unwrap_grammar<bython::grammar::inner_stmt, ast::assignment>("val x = f");
+  REQUIRE(m::matches(
+      ast, m::assignment {std::string {"x"}, m::lift<m::variable>("f")}));
 }

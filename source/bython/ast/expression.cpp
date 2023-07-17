@@ -4,9 +4,8 @@
 
 namespace bython::ast
 {
-unary_operation::unary_operation(unary_operator op_,
-                                 std::unique_ptr<expression> rhs_)
-    : op {op_}
+unary_operation::unary_operation(unop_tag op_, std::unique_ptr<expression> rhs_)
+    : op {std::make_unique<unary_operator>(std::move(op_))}
     , rhs {std::move(rhs_)}
 {
 }
@@ -17,11 +16,11 @@ auto unary_operation::accept(visitation::visitor& visitor) const -> void
 }
 
 binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
-                                   binary_operator binop_,
+                                   binop_tag binop_,
                                    std::unique_ptr<expression> rhs_)
-    : op(binop_)
-    , lhs {std::move(lhs_)}
+    : lhs {std::move(lhs_)}
     , rhs {std::move(rhs_)}
+    , op {std::make_unique<binary_operator>(std::move(binop_))}
 {
 }
 
@@ -31,10 +30,23 @@ auto binary_operation::accept(visitation::visitor& visitor) const -> void
 }
 
 comparison::comparison(ast::expressions operands_,
-                       std::vector<comparison_operator> ops_)
+                       std::vector<comparison_operator_tag> ops_)
     : operands {std::move(operands_)}
-    , ops {std::move(ops_)}
+    , ops {}
 {
+  for (auto&& op : ops_) {
+    this->add_operator(op);
+  }
+}
+
+auto comparison::add_operator(bython::ast::comparison_operator_tag op) -> void
+{
+  this->ops.emplace_back(std::make_unique<comparison_operator>(op));
+}
+
+auto comparison::add_operand(std::unique_ptr<expression> expr) -> void
+{
+  this->operands.emplace_back(std::move(expr));
 }
 
 auto comparison::accept(visitation::visitor& visitor) const -> void

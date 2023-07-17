@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "bases.hpp"
+#include "operators.hpp"
 
 namespace bython::ast
 {
@@ -14,92 +15,40 @@ struct expression : node
 
 using expressions = std::vector<std::unique_ptr<expression>>;
 
-enum class unary_operator
-{
-  plus,
-  minus,
-  bitnegate,
-};
-
 struct unary_operation final : expression
 {
-  unary_operation(unary_operator op_, std::unique_ptr<expression> rhs_);
+  unary_operation(unop_tag op_, std::unique_ptr<expression> rhs_);
 
   auto accept(visitation::visitor& visitor) const -> void override;
 
-  unary_operator op;
+  std::unique_ptr<node> op;
   std::unique_ptr<expression> rhs;
-};
-
-enum class binary_operator
-{
-  // 2
-  pow,
-
-  // 3
-  multiply,
-  divide,
-  modulo,
-
-  // 4
-  plus,
-  minus,
-
-  // 5
-  bitshift_right_,
-  bitshift_left_,
-
-  // 8
-  bitand_,
-
-  // 9
-  bitxor_,
-
-  // 10
-  bitor_,
-
-  // 11
-  booland,
-
-  // 12
-  boolor,
 };
 
 struct binary_operation final : expression
 {
-  // Ordered by C operator precedence
-  binary_operator op;
-
   binary_operation(std::unique_ptr<expression> lhs_,
-                   binary_operator binop_,
+                   binop_tag binop_,
                    std::unique_ptr<expression> rhs_);
 
   auto accept(visitation::visitor& visitor) const -> void override;
 
   std::unique_ptr<expression> lhs, rhs;
-};
-
-enum class comparison_operator
-{
-  // 6
-  lsr,
-  leq,
-  geq,
-  grt,
-
-  // 7
-  eq,
-  neq,
+  std::unique_ptr<node> op;
 };
 
 struct comparison final : expression
 {
-  comparison(ast::expressions operands_, std::vector<comparison_operator> ops_);
+  comparison(ast::expressions operands_,
+             std::vector<comparison_operator_tag> ops_);
 
   auto accept(visitation::visitor& visitor) const -> void override;
 
+  auto add_operator(bython::ast::comparison_operator_tag op) -> void;
+  auto add_operand(std::unique_ptr<expression> expr) -> void;
+
   ast::expressions operands;
-  std::vector<comparison_operator> ops;
+  std::vector<std::unique_ptr<node>> ops;
 };
 
 struct variable final : expression

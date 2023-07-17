@@ -2,7 +2,7 @@
 #include <iterator>
 
 #include <bython/ast.hpp>
-#include <bython/matchers.hpp>
+#include <bython/matching.hpp>
 #include <bython/parser/internal/expression.hpp>
 #include <catch2/catch_test_macros.hpp>
 
@@ -10,30 +10,15 @@
 
 using namespace bython;
 
+namespace ast = bython::ast;
 namespace m = bython::matching;
-
-auto check_binary_op(ast::binary_operation const& binary_op,
-                     ast::binary_operator op)
-{
-  CAPTURE(binary_op.op);
-  CAPTURE(op);
-  REQUIRE(binary_op.op == op);
-}
-
-auto check_comparison_op(ast::comparison const& comp_op,
-                         std::vector<ast::comparison_operator> ops)
-
-{
-  CAPTURE(comp_op.ops);
-  CAPTURE(ops);
-  REQUIRE(comp_op.ops == ops);
-}
 
 TEST_CASE("Atoms", "[Variable]")
 {
   auto variable =
       unwrap_grammar<grammar::expression, ast::variable>("valid_variable");
-  REQUIRE(variable.identifier == "valid_variable");
+  auto matcher = m::lift<m::variable>("valid_variable");
+  REQUIRE(m::matches(variable, *matcher));
 }
 
 TEST_CASE("Atoms", "[Call]")
@@ -71,83 +56,131 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a || b");
-    check_binary_op(m, ast::binary_operator::boolor);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::boolor),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Logical And")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a && b");
-    check_binary_op(m, ast::binary_operator::booland);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::booland),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Bit Xor")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a ^ b");
-    check_binary_op(m, ast::binary_operator::bitxor_);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::bitxor_),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Bit Or")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a | b");
-    check_binary_op(m, ast::binary_operator::bitor_);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::bitor_),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Bit And")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a & b");
-    check_binary_op(m, ast::binary_operator::bitand_);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::bitand_),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Minus")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a - b");
-    check_binary_op(m, ast::binary_operator::minus);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::minus),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Plus")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a + b");
-    check_binary_op(m, ast::binary_operator::plus);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::plus),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Modulo")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a % b");
-    check_binary_op(m, ast::binary_operator::modulo);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::modulo),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Division")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a / b");
-    check_binary_op(m, ast::binary_operator::divide);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::divide),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Multiply")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a * b");
-    check_binary_op(m, ast::binary_operator::multiply);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::multiply),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Power")
   {
     auto m =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a ** b");
-    check_binary_op(m, ast::binary_operator::pow);
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::pow),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
   }
 
   SECTION("Lesser")
   {
     auto m = unwrap_grammar<grammar::expression, ast::comparison>("a < b");
-    check_comparison_op(m, {ast::comparison_operator::lsr});
+    auto matcher = m::comparison(m::lift<m::variable>("a"))
+                       .chain(m::lift<m::comparison_operator>(
+                                  ast::comparison_operator_tag::lsr),
+                              m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, matcher));
   }
 }
 
@@ -158,14 +191,15 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
     auto code =
         unwrap_grammar<grammar::expression, ast::binary_operation>("a * b + c");
 
-    auto code_matcher = m::binary_operation(
-        m::lift<m::binary_operation>(m::lift<m::variable>("a"),
-                                     ast::binary_operator::multiply,
-                                     m::lift<m::variable>("b")),
-        ast::binary_operator::plus,
+    auto code_matcher = m::lift<m::binary_operation>(
+        m::lift<m::binary_operation>(
+            m::lift<m::variable>("a"),
+            m::lift<m::binary_operator>(ast::binop_tag::multiply),
+            m::lift<m::variable>("b")),
+        m::lift<m::binary_operator>(ast::binop_tag::plus),
         m::lift<m::variable>("c"));
 
-    REQUIRE(matching::matches(code, code_matcher));
+    REQUIRE(matching::matches(code, *code_matcher));
   }
 
   SECTION("Power of Two Check")
@@ -174,17 +208,18 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
         "0 == (x & (x - 1))");
 
     auto code_matcher = m::comparison {m::lift<m::integer>(0)}.chain(
-        // =
-        ast::comparison_operator::eq,
+        // ==
+        m::lift<m::comparison_operator>(ast::comparison_operator_tag::eq),
         // (x & ...)
         m::lift<m::binary_operation>(
             m::lift<m::variable>("x"),
-            ast::binary_operator::bitand_,
+            m::lift<m::binary_operator>(ast::binop_tag::bitand_),
 
             // (x - 1)
-            m::lift<m::binary_operation>(m::lift<m::variable>("x"),
-                                         ast::binary_operator::minus,
-                                         m::lift<m::integer>(1))));
+            m::lift<m::binary_operation>(
+                m::lift<m::variable>("x"),
+                m::lift<m::binary_operator>(ast::binop_tag::minus),
+                m::lift<m::integer>(1))));
 
     REQUIRE(matching::matches(code, code_matcher));
   }
@@ -195,14 +230,17 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
         "~x + +x - -x");
     auto code_matcher = m::lift<m::binary_operation>(
         m::lift<m::binary_operation>(
-            m::lift<m::unary_operation>(ast::unary_operator::bitnegate,
-                                        m::lift<m::variable>("x")),
-            ast::binary_operator::plus,
-            m::lift<m::unary_operation>(ast::unary_operator::plus,
-                                        m::lift<m::variable>("x"))),
-        ast::binary_operator::minus,
-        m::lift<m::unary_operation>(ast::unary_operator::minus,
-                                    m::lift<m::variable>("x")));
+            m::lift<m::unary_operation>(
+                m::lift<m::unary_operator>(ast::unop_tag::bitnegate),
+                m::lift<m::variable>("x")),
+            m::lift<m::binary_operator>(ast::binop_tag::plus),
+            m::lift<m::unary_operation>(
+                m::lift<m::unary_operator>(ast::unop_tag::plus),
+                m::lift<m::variable>("x"))),
+        m::lift<m::binary_operator>(ast::binop_tag::minus),
+        m::lift<m::unary_operation>(
+            m::lift<m::unary_operator>(ast::unop_tag::minus),
+            m::lift<m::variable>("x")));
 
     REQUIRE(matching::matches(code, *code_matcher));
   }
