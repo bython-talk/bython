@@ -97,7 +97,7 @@ jobs:
       if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get -qq update
-        sudo apt-get -qq install --no-install-recommends llvm16-dev -y
+        sudo apt-get -qq install --no-install-recommends llvm-16-dev -y
 
     - name: Configure
       run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
@@ -143,7 +143,7 @@ jobs:
       if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get -qq update
-        sudo apt-get -qq install --no-install-recommends llvm16-dev -y
+        sudo apt-get -qq install --no-install-recommends llvm-16-dev -y
 
 
     - name: Install Catch2 v3
