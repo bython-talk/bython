@@ -1,11 +1,12 @@
 #include "expression.hpp"
 
+#include <bython/ast/statement.hpp>
 #include <bython/visitation.hpp>
 
 namespace bython::ast
 {
 unary_operation::unary_operation(unop_tag op_, std::unique_ptr<expression> rhs_)
-    : op {std::make_unique<unary_operator>(std::move(op_))}
+    : op {std::make_unique<unary_operator>(op_)}
     , rhs {std::move(rhs_)}
 {
 }
@@ -20,7 +21,7 @@ binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
                                    std::unique_ptr<expression> rhs_)
     : lhs {std::move(lhs_)}
     , rhs {std::move(rhs_)}
-    , op {std::make_unique<binary_operator>(std::move(binop_))}
+    , op {std::make_unique<binary_operator>(binop_)}
 {
 }
 
@@ -82,6 +83,22 @@ integer::integer(int64_t value_)
 }
 
 auto integer::accept(visitation::visitor& visitor) const -> void
+{
+  visitor.visit(*this);
+}
+
+if_expression::if_expression(std::unique_ptr<expression> condition_,
+                             std::vector<std::unique_ptr<statement>> nonvalues_,
+                             std::unique_ptr<expression> value_,
+                             std::unique_ptr<expression> orelse_)
+    : condition {std::move(condition_)}
+    , nonvalues {std::move(nonvalues_)}
+    , value {std::move(value_)}
+    , orelse {std::move(orelse_)}
+{
+}
+
+auto if_expression::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }

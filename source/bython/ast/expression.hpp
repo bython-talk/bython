@@ -80,4 +80,33 @@ struct integer final : expression
   int64_t value;
 };
 
+struct statement;
+
+struct if_expression final : expression
+{
+  if_expression(std::unique_ptr<expression> condition_,
+                std::vector<std::unique_ptr<statement>> nonvalues_,
+                std::unique_ptr<expression> value_,
+                std::unique_ptr<expression> orelse_ = nullptr);
+
+  auto accept(visitation::visitor& visitor) const -> void override;
+
+  std::unique_ptr<expression> condition;
+  std::vector<std::unique_ptr<statement>> nonvalues;
+  std::unique_ptr<expression> value;
+
+  std::unique_ptr<expression> orelse;
+};
+
+struct else_expression final : expression
+{
+  else_expression(std::vector<std::unique_ptr<statement>> nonvalues_,
+                  std::unique_ptr<expression> value_);
+
+  auto accept(visitation::visitor& visitor) const -> void override;
+
+  std::vector<std::unique_ptr<statement>> nonvalues;
+  std::unique_ptr<expression> value;
+};
+
 }  // namespace bython::ast
