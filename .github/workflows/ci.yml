@@ -17,7 +17,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/bython-talk/bython
+      image: ghcr.io/bython-talk/bython-dev-container
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -93,6 +93,11 @@ jobs:
       run: |
         apt-get -qq update
         apt-get -qq install --no-install-recommends cmake ninja-build -y
+    - name: Install LLVM
+      if: matrix.os == 'ubuntu-22.04'
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get -qq install --no-install-recommends llvm16-dev -y
 
     - name: Configure
       run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
@@ -134,6 +139,12 @@ jobs:
         sudo apt-get -qq install --no-install-recommends cppcheck -y
         sudo apt-get -qq install --no-install-recommends g++ cmake make -y
         sudo apt-get -qq install --no-install-recommends wget unzip ca-certificates
+    - name: Install LLVM
+      if: matrix.os == 'ubuntu-22.04'
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get -qq install --no-install-recommends llvm16-dev -y
+
 
     - name: Install Catch2 v3
       if: matrix.os == 'ubuntu-22.04'
