@@ -79,6 +79,11 @@ static constexpr auto modulo = dsl::op<ast::binop_tag::modulo>(dsl::lit_c<'%'>);
 static constexpr auto add = dsl::op<ast::binop_tag::plus>(dsl::lit_c<'+'>);
 static constexpr auto minus = dsl::op<ast::binop_tag::minus>(dsl::lit_c<'-'>);
 
+static constexpr auto bitshift_right =
+    dsl::op<ast::binop_tag::bitshift_right_>(LEXY_LIT(">>"));
+static constexpr auto bitshift_left =
+    dsl::op<ast::binop_tag::bitshift_left_>(LEXY_LIT("<<"));
+
 static constexpr auto bitand_ = dsl::op<ast::binop_tag::bitand_>(
     dsl::not_followed_by(LEXY_LIT("&"), dsl::lit_c<'&'>));
 static constexpr auto bitor_ = dsl::op<ast::binop_tag::bitor_>(
@@ -150,10 +155,17 @@ struct expr_prod : lexy::expression_production
     using operand = math_product;
   };
 
+  struct bitshift : dsl::infix_op_left
+  {
+    static constexpr auto op =
+        operators::bitshift_right / operators::bitshift_left;
+    using operand = math_sum;
+  };
+
   struct bit_and : dsl::infix_op_left
   {
     static constexpr auto op = operators::bitand_;
-    using operand = math_sum;
+    using operand = bitshift;
   };
 
   struct bit_or : dsl::infix_op_left
