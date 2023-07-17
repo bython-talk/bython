@@ -18,6 +18,11 @@ include(FetchContent)
 FetchContent_Declare(lexy URL https://github.com/foonathan/lexy/releases/download/v2022.12.1/lexy-src.zip)
 FetchContent_MakeAvailable(lexy)
 
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
 
 # ---- Declare library ----
 
@@ -31,9 +36,10 @@ target_include_directories(
     PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
 )
+llvm_map_components_to_libnames(llvm_libs support core irreader)
 
 target_compile_features(bython_lib PUBLIC cxx_std_17)
-target_link_libraries(bython_lib PUBLIC foonathan::lexy)
+target_link_libraries(bython_lib PUBLIC foonathan::lexy ${llvm_libs})
 
 
 # ---- Declare executable ----
