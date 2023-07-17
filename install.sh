@@ -2,7 +2,7 @@ rm -rf build/
 rm CMakeCache.txt
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./source
+cmake .. -DCMAKE_INSTALL_PREFIX=./
 make
 make install
 make clean
