@@ -107,6 +107,28 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
     REQUIRE(m::matches(m, *matcher));
   }
 
+  SECTION("Bitshift Right")
+  {
+    auto m =
+        unwrap_grammar<grammar::expression, ast::binary_operation>("a >> b");
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::bitshift_right_),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
+  }
+
+  SECTION("Bitshift Left")
+  {
+    auto m =
+        unwrap_grammar<grammar::expression, ast::binary_operation>("a << b");
+    auto matcher = m::lift<m::binary_operation>(
+        m::lift<m::variable>("a"),
+        m::lift<m::binary_operator>(ast::binop_tag::bitshift_left_),
+        m::lift<m::variable>("b"));
+    REQUIRE(m::matches(m, *matcher));
+  }
+
   SECTION("Minus")
   {
     auto m =
