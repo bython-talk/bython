@@ -1,9 +1,8 @@
 #pragma once
 
+#include <bython/ast.hpp>
 #include <lexy/callback.hpp>
 #include <lexy/dsl.hpp>
-
-#include <bython/ast.hpp>
 
 namespace bython::grammar
 {
@@ -273,9 +272,10 @@ struct assignment
 {
   static constexpr auto rule = []
   {
-    return keyword::variable_ + dsl::whitespace(dsl::ascii::space)
+    auto introduced = dsl::whitespace(dsl::ascii::space)
         + dsl::p<grammar::symbol_identifier>
         + LEXY_LIT("=") + dsl::p<expression>;
+    return keyword::variable_ >> introduced;
   }();
 
   static constexpr auto value = lexy::construct<ast::assignment>
@@ -284,8 +284,7 @@ struct assignment
 
 struct inner_stmt
 {
-  static constexpr auto rule = []
-  { return dsl::peek(keyword::variable_) >> dsl::p<assignment>; }();
+  static constexpr auto rule = [] { return dsl::p<assignment>; }();
 
   static constexpr auto value = lexy::forward<std::unique_ptr<ast::statement>>;
 };
@@ -324,9 +323,9 @@ struct function_def
 
   static constexpr auto rule = []
   {
-    return keyword::funcdef_ + dsl::whitespace(dsl::ascii::space)
-        + dsl::p<grammar::symbol_identifier> + dsl::p<parameters>
+    auto introduced = dsl::p<grammar::symbol_identifier> + dsl::p<parameters>
         + dsl::p<compound_body>;
+    return keyword::funcdef_ >> introduced;
   }();
 
   static constexpr auto value = lexy::construct<ast::function_def>;
@@ -347,8 +346,8 @@ struct type_def
 
   static constexpr auto rule = []
   {
-    return keyword::struct_ + dsl::whitespace(dsl::ascii::space)
-        + dsl::p<grammar::symbol_identifier> + dsl::p<body>;
+    auto introduced = dsl::p<grammar::symbol_identifier> + dsl::p<body>;
+    return keyword::struct_ >> introduced;
   }();
 
   static constexpr auto value = lexy::construct<ast::type_definition>;
@@ -368,8 +367,7 @@ struct outer_stmt
 
   static constexpr auto rule = []
   {
-    return dsl::peek(keyword::funcdef_) >> dsl::p<function_def>
-        | dsl::peek(keyword::struct_) >> dsl::p<type_def>
+    return dsl::p<function_def> | dsl::p<type_def>
         | dsl::error<outer_stmt_error>;
   }();
   static constexpr auto value =
