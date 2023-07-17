@@ -1,16 +1,52 @@
 #pragma once
 
-#include <memory>
-#include <string>
-
 #include <lexy/callback.hpp>
 #include <lexy/dsl.hpp>
 
-#include "bython/ast/expression.hpp"
-#include "primitives.hpp"
+#include <bython/ast.hpp>
 
 namespace bython::grammar
 {
+
+namespace dsl = lexy::dsl;
+
+namespace internal
+{
+static constexpr auto identifier = dsl::identifier(
+    dsl::ascii::alpha_underscore, dsl::ascii::alpha_digit_underscore);
+
+}  // namespace internal
+
+namespace keyword
+{
+static constexpr auto funcdef_ = LEXY_KEYWORD("def", internal::identifier);
+static constexpr auto return_ = LEXY_KEYWORD("return", internal::identifier);
+static constexpr auto variable_ = LEXY_KEYWORD("val", internal::identifier);
+static constexpr auto struct_ = LEXY_KEYWORD("struct", internal::identifier);
+}  // namespace keyword
+
+namespace internal
+{
+static constexpr auto reserved_identifier = identifier.reserve(
+    keyword::funcdef_, keyword::return_, keyword::variable_, keyword::struct_);
+}
+
+struct symbol_identifier
+{
+  static constexpr auto rule = internal::reserved_identifier;
+  static constexpr auto value = lexy::as_string<std::string>;
+};
+
+struct type_identifier
+{
+  static constexpr auto rule = internal::reserved_identifier;
+  static constexpr auto value = lexy::as_string<std::string>;
+};
+
+template<typename T, typename U>
+static constexpr auto new_unique_ptr = lexy::new_<T, std::unique_ptr<U>>;
+
+/* === Expressions === */
 
 template<typename T>
 static constexpr auto new_expression =
@@ -229,5 +265,127 @@ struct expression
 {
   static constexpr auto rule = dsl::p<expr_prod>;
   static constexpr auto value = lexy::forward<std::unique_ptr<ast::expression>>;
+};
+
+/* === Inner Statements === */
+
+struct assignment
+{
+  static constexpr auto rule = []
+  {
+    return keyword::variable_ + dsl::whitespace(dsl::ascii::space)
+        + dsl::p<grammar::symbol_identifier>
+        + LEXY_LIT("=") + dsl::p<expression>;
+  }();
+
+  static constexpr auto value = lexy::construct<ast::assignment>
+      | lexy::new_<ast::assignment, std::unique_ptr<ast::statement>>;
+};
+
+struct inner_stmt
+{
+  static constexpr auto rule = []
+  { return dsl::peek(keyword::variable_) >> dsl::p<assignment>; }();
+
+  static constexpr auto value = lexy::forward<std::unique_ptr<ast::statement>>;
+};
+
+/* === Outer Statements === */
+
+struct compound_body
+{
+  static constexpr auto rule = []
+  {
+    auto terminator = dsl::terminator(dsl::semicolon).limit(dsl::lit_c<'}'>);
+    return dsl::curly_bracketed.opt_list(terminator(dsl::p<inner_stmt>));
+  }();
+
+  static constexpr auto value = lexy::as_list<ast::statements>;
+};
+
+struct function_def
+{
+  struct parameter
+  {
+    static constexpr auto rule = [] { return dsl::p<symbol_identifier>; }();
+    static constexpr auto value = lexy::construct<ast::parameter>;
+  };
+
+  struct parameters
+  {
+    static constexpr auto rule = []
+    {
+      return dsl::round_bracketed.opt_list(dsl::p<parameter>,
+                                           dsl::trailing_sep(dsl::comma));
+    }();
+
+    static constexpr auto value = lexy::as_list<ast::parameters>;
+  };
+
+  static constexpr auto rule = []
+  {
+    return keyword::funcdef_ + dsl::whitespace(dsl::ascii::space)
+        + dsl::p<grammar::symbol_identifier> + dsl::p<parameters>
+        + dsl::p<compound_body>;
+  }();
+
+  static constexpr auto value = lexy::construct<ast::function_def>;
+};
+
+struct type_def
+{
+  struct body
+  {
+    static constexpr auto rule = []
+    {
+      return dsl::curly_bracketed.opt_list(dsl::p<type_identifier>,
+                                           dsl::trailing_sep(dsl::comma));
+    }();
+
+    static constexpr auto value = lexy::as_list<ast::type_definition_stmts>;
+  };
+
+  static constexpr auto rule = []
+  {
+    return keyword::struct_ + dsl::whitespace(dsl::ascii::space)
+        + dsl::p<grammar::symbol_identifier> + dsl::p<body>;
+  }();
+
+  static constexpr auto value = lexy::construct<ast::type_definition>;
+};
+
+struct outer_stmt
+{
+  template<typename T>
+  static constexpr auto new_outer_statement =
+      grammar::new_unique_ptr<T, ast::statement>;
+
+  struct outer_stmt_error
+  {
+    static constexpr auto name =
+        "Expected `def` to define a function, `struct` to define a newtype";
+  };
+
+  static constexpr auto rule = []
+  {
+    return dsl::peek(keyword::funcdef_) >> dsl::p<function_def>
+        | dsl::peek(keyword::struct_) >> dsl::p<type_def>
+        | dsl::error<outer_stmt_error>;
+  }();
+  static constexpr auto value =
+      lexy::callback(new_outer_statement<ast::function_def>,
+                     new_outer_statement<ast::type_definition>);
+};
+
+struct mod
+{
+  static constexpr auto rule = []
+  {
+    // top-level statements are separated by newline
+    return dsl::terminator(dsl::newline).list(dsl::p<outer_stmt>);
+  }();
+
+  static constexpr auto value =
+      lexy::as_list<ast::statements> >> lexy::construct<ast::mod>;
 };
 }  // namespace bython::grammar
