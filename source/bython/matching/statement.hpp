@@ -13,7 +13,7 @@ struct statement : matcher
 
 struct assignment final : matching::statement
 {
-  assignment(std::string lhs_, std::unique_ptr<matching::expression> rhs_)
+  assignment(std::string lhs_, std::unique_ptr<matching::matcher> rhs_)
       : lhs {std::move(lhs_)}
       , rhs {std::move(rhs_)}
   {
@@ -22,6 +22,6 @@ struct assignment final : matching::statement
   auto matches(ast::node const& ast) const -> bool override;
 
   std::string lhs;
-  std::unique_ptr<matching::expression> rhs;
+  std::unique_ptr<matching::matcher> rhs;
 };
 }  // namespace bython::matching

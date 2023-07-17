@@ -19,9 +19,9 @@ struct matcher
 auto matches(ast::node const& ast, matcher const& matcher) -> bool;
 
 template<typename T, typename... Args>
-auto lift(Args&&... args) -> std::unique_ptr<T>
+auto lift(Args&&... args) -> std::unique_ptr<matcher>
 {
-  return std::make_unique<T>(std::forward<Args>(args)...);
+  return std::move(std::make_unique<T>(std::forward<Args>(args)...));
 }
 
 }  // namespace bython::matching
