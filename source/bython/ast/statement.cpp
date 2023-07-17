@@ -10,7 +10,7 @@ assignment::assignment(std::string lhs_, std::unique_ptr<expression> rhs_)
 {
 }
 
-auto assignment::visit(visitation::visitor& visitor) const -> void
+auto assignment::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
@@ -22,7 +22,7 @@ type_definition::type_definition(std::string identifier_,
 {
 }
 
-auto type_definition::visit(visitation::visitor& visitor) const -> void
+auto type_definition::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }

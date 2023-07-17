@@ -8,56 +8,56 @@ auto visitor::visit(const ast::mod&) -> visitor::traversal
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::variable const& variable) -> traversal
+auto visitor::visit(ast::variable const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::integer const& integer) -> traversal
+auto visitor::visit(ast::integer const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::comparison const& comparison) -> traversal
+auto visitor::visit(ast::comparison const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::binary_operation const& binary_op) -> traversal
+auto visitor::visit(ast::binary_operation const&) -> traversal
 {
   return traversal::CONTINUE;
 }
-auto visitor::visit(ast::unary_operation const& unary_operation) -> traversal
-{
-  return traversal::CONTINUE;
-}
-
-auto visitor::visit(ast::call const& call) -> traversal
+auto visitor::visit(ast::unary_operation const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::assignment const& assignment) -> traversal
+auto visitor::visit(ast::call const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::type_definition const& type_definition) -> traversal
+auto visitor::visit(ast::assignment const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::for_ const& for_) -> traversal
+auto visitor::visit(ast::type_definition const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::while_ const& while_) -> traversal
+auto visitor::visit(ast::for_ const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::function_def const& function) -> traversal
+auto visitor::visit(ast::while_ const&) -> traversal
+{
+  return traversal::CONTINUE;
+}
+
+auto visitor::visit(ast::function_def const&) -> traversal
 {
   return traversal::CONTINUE;
 }

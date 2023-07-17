@@ -11,7 +11,7 @@ unary_operation::unary_operation(unary_operator op_,
 {
 }
 
-auto unary_operation::visit(visitation::visitor& visitor) const -> void
+auto unary_operation::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
@@ -25,7 +25,7 @@ binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
 {
 }
 
-auto binary_operation::visit(visitation::visitor& visitor) const -> void
+auto binary_operation::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
@@ -37,7 +37,7 @@ comparison::comparison(ast::expressions operands_,
 {
 }
 
-auto comparison::visit(visitation::visitor& visitor) const -> void
+auto comparison::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
@@ -49,7 +49,7 @@ call::call(std::string callee_,
 {
 }
 
-auto call::visit(visitation::visitor& visitor) const -> void
+auto call::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
@@ -59,7 +59,7 @@ variable::variable(std::string identifier_)
 {
 }
 
-auto variable::visit(visitation::visitor& visitor) const -> void
+auto variable::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
@@ -69,7 +69,7 @@ integer::integer(int64_t value_)
 {
 }
 
-auto integer::visit(visitation::visitor& visitor) const -> void
+auto integer::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }

@@ -16,7 +16,7 @@ struct compound : statement
 
 struct for_ final : compound
 {
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   /*auto transform(visitation::transformer& transformer) const
       -> std::unique_ptr<node> override;*/
@@ -24,7 +24,7 @@ struct for_ final : compound
 
 struct while_ final : compound
 {
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 };
 
 /*struct if_ : compound
@@ -49,7 +49,7 @@ struct function_def final : compound
   {
   }
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   std::string name;
   std::vector<parameter> parameters;

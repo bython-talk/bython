@@ -14,8 +14,8 @@ struct node
 {
   virtual ~node() = default;
 
-  virtual auto visit(visitation::visitor& visitor) const -> void = 0;
-  /*virtual auto transform(visitation::transformer& transformer) const
+  virtual auto accept(visitation::visitor& visitor) const -> void = 0;
+  /*virtual auto accept(visitation::transformer& transformer) const
       -> std::unique_ptr<node> = 0;*/
 };
 

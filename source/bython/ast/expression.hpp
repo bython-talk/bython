@@ -25,7 +25,7 @@ struct unary_operation final : expression
 {
   unary_operation(unary_operator op_, std::unique_ptr<expression> rhs_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   unary_operator op;
   std::unique_ptr<expression> rhs;
@@ -74,7 +74,7 @@ struct binary_operation final : expression
                    binary_operator binop_,
                    std::unique_ptr<expression> rhs_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   std::unique_ptr<expression> lhs, rhs;
 };
@@ -96,7 +96,7 @@ struct comparison final : expression
 {
   comparison(ast::expressions operands_, std::vector<comparison_operator> ops_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   ast::expressions operands;
   std::vector<comparison_operator> ops;
@@ -106,7 +106,7 @@ struct variable final : expression
 {
   explicit variable(std::string identifier_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   std::string identifier;
 };
@@ -116,7 +116,7 @@ struct call final : expression
   call(std::string callee_,
        std::vector<std::unique_ptr<expression>> arguments_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   std::string callee;
   ast::expressions arguments;
@@ -126,7 +126,7 @@ struct integer final : expression
 {
   explicit integer(int64_t value_);
 
-  auto visit(visitation::visitor& visitor) const -> void override;
+  auto accept(visitation::visitor& visitor) const -> void override;
 
   int64_t value;
 };
