@@ -22,9 +22,16 @@ struct visitor
 
   virtual auto visit(ast::integer const& integer) -> traversal;
 
-  virtual auto visit(ast::comparison const& binop) -> traversal;
+  virtual auto visit(ast::comparison_operator const& comparison_operator)
+      -> traversal;
+
+  virtual auto visit(ast::comparison const& comparison) -> traversal;
+
+  virtual auto visit(ast::binary_operator const& binary_operator) -> traversal;
 
   virtual auto visit(ast::binary_operation const& binop) -> traversal;
+
+  virtual auto visit(ast::unary_operator const& unary_operator) -> traversal;
 
   virtual auto visit(ast::unary_operation const& unop) -> traversal;
 

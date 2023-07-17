@@ -62,56 +62,52 @@ struct parenthesized
 
 namespace operators
 {
-static constexpr auto pow = dsl::op<ast::binary_operator::pow>(LEXY_LIT("**"));
+static constexpr auto pow = dsl::op<ast::binop_tag::pow>(LEXY_LIT("**"));
 
 static constexpr auto unary_plus =
-    dsl::op<ast::unary_operator::plus>(dsl::lit_c<'+'>);
+    dsl::op<ast::unop_tag::plus>(dsl::lit_c<'+'>);
 static constexpr auto unary_minus =
-    dsl::op<ast::unary_operator::minus>(dsl::lit_c<'-'>);
+    dsl::op<ast::unop_tag::minus>(dsl::lit_c<'-'>);
 static constexpr auto unary_bitnegate =
-    dsl::op<ast::unary_operator::bitnegate>(dsl::lit_c<'~'>);
+    dsl::op<ast::unop_tag::bitnegate>(dsl::lit_c<'~'>);
 
-static constexpr auto mul = dsl::op<ast::binary_operator::multiply>(
+static constexpr auto mul = dsl::op<ast::binop_tag::multiply>(
     dsl::not_followed_by(LEXY_LIT("*"), dsl::lit_c<'*'>));
-static constexpr auto div =
-    dsl::op<ast::binary_operator::divide>(dsl::lit_c<'/'>);
-static constexpr auto modulo =
-    dsl::op<ast::binary_operator::modulo>(dsl::lit_c<'%'>);
+static constexpr auto div = dsl::op<ast::binop_tag::divide>(dsl::lit_c<'/'>);
+static constexpr auto modulo = dsl::op<ast::binop_tag::modulo>(dsl::lit_c<'%'>);
 
-static constexpr auto add =
-    dsl::op<ast::binary_operator::plus>(dsl::lit_c<'+'>);
-static constexpr auto minus =
-    dsl::op<ast::binary_operator::minus>(dsl::lit_c<'-'>);
+static constexpr auto add = dsl::op<ast::binop_tag::plus>(dsl::lit_c<'+'>);
+static constexpr auto minus = dsl::op<ast::binop_tag::minus>(dsl::lit_c<'-'>);
 
-static constexpr auto bitand_ = dsl::op<ast::binary_operator::bitand_>(
+static constexpr auto bitand_ = dsl::op<ast::binop_tag::bitand_>(
     dsl::not_followed_by(LEXY_LIT("&"), dsl::lit_c<'&'>));
-static constexpr auto bitor_ = dsl::op<ast::binary_operator::bitor_>(
+static constexpr auto bitor_ = dsl::op<ast::binop_tag::bitor_>(
     dsl::not_followed_by(LEXY_LIT("|"), dsl::lit_c<'|'>));
 static constexpr auto bitxor_ =
-    dsl::op<ast::binary_operator::bitxor_>(dsl::lit_c<'^'>);
+    dsl::op<ast::binop_tag::bitxor_>(dsl::lit_c<'^'>);
 
 static constexpr auto logical_and =
-    dsl::op<ast::binary_operator::booland>(LEXY_LIT("&&"));
+    dsl::op<ast::binop_tag::booland>(LEXY_LIT("&&"));
 static constexpr auto logical_or =
-    dsl::op<ast::binary_operator::boolor>(LEXY_LIT("||"));
+    dsl::op<ast::binop_tag::boolor>(LEXY_LIT("||"));
 
-static constexpr auto lsr = dsl::op<ast::comparison_operator::lsr>(
+static constexpr auto lsr = dsl::op<ast::comparison_operator_tag::lsr>(
     dsl::not_followed_by(dsl::lit_c<'<'>, dsl::lit_c<'='>));
 
 static constexpr auto leq =
-    dsl::op<ast::comparison_operator::leq>(LEXY_LIT("<="));
+    dsl::op<ast::comparison_operator_tag::leq>(LEXY_LIT("<="));
 
 static constexpr auto geq =
-    dsl::op<ast::comparison_operator::geq>(LEXY_LIT(">="));
+    dsl::op<ast::comparison_operator_tag::geq>(LEXY_LIT(">="));
 
-static constexpr auto grt = dsl::op<ast::comparison_operator::grt>(
+static constexpr auto grt = dsl::op<ast::comparison_operator_tag::grt>(
     dsl::not_followed_by(dsl::lit_c<'>'>, dsl::lit_c<'='>));
 
 static constexpr auto eq =
-    dsl::op<ast::comparison_operator::eq>(LEXY_LIT("=="));
+    dsl::op<ast::comparison_operator_tag::eq>(LEXY_LIT("=="));
 
 static constexpr auto neq =
-    dsl::op<ast::comparison_operator::neq>(LEXY_LIT("!="));
+    dsl::op<ast::comparison_operator_tag::neq>(LEXY_LIT("!="));
 
 }  // namespace operators
 
@@ -197,16 +193,17 @@ struct expr_prod : lexy::expression_production
       lexy::fold_inplace<std::unique_ptr<ast::comparison>>(
           []
           {
-            auto empty_comp = ast::comparison {
-                ast::expressions {}, std::vector<ast::comparison_operator> {}};
+            auto empty_comp =
+                ast::comparison {ast::expressions {},
+                                 std::vector<ast::comparison_operator_tag> {}};
             return std::make_unique<ast::comparison>(std::move(empty_comp));
           },
           [](std::unique_ptr<ast::comparison>& comparison,
              std::unique_ptr<ast::expression> expr)
-          { comparison->operands.emplace_back(std::move(expr)); },
+          { comparison->add_operand(std::move(expr)); },
           [](std::unique_ptr<ast::comparison>& comparison,
-             ast::comparison_operator cmp)
-          { comparison->ops.emplace_back(cmp); })
+             ast::comparison_operator_tag cmp)
+          { comparison->add_operator(std::move(cmp)); })
       >> lexy::callback(new_expression<ast::call>,
                         new_expression<ast::variable>,
                         new_expression<ast::integer>,

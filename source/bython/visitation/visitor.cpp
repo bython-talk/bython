@@ -23,11 +23,27 @@ auto visitor::visit(ast::comparison const&) -> traversal
   return traversal::CONTINUE;
 }
 
+auto visitor::visit(ast::comparison_operator const&) -> traversal
+{
+  return traversal::CONTINUE;
+}
+
 auto visitor::visit(ast::binary_operation const&) -> traversal
 {
   return traversal::CONTINUE;
 }
+
+auto visitor::visit(ast::binary_operator const&) -> traversal
+{
+  return traversal::CONTINUE;
+}
+
 auto visitor::visit(ast::unary_operation const&) -> traversal
+{
+  return traversal::CONTINUE;
+}
+
+auto visitor::visit(ast::unary_operator const&) -> traversal
 {
   return traversal::CONTINUE;
 }
