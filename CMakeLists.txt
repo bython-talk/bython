@@ -7,7 +7,7 @@ project(
     VERSION 0.1.0
     DESCRIPTION "Short description"
     HOMEPAGE_URL "https://example.com/"
-    LANGUAGES CXX
+    LANGUAGES  C CXX
 )
 
 include(cmake/project-is-top-level.cmake)
@@ -23,7 +23,7 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
-
+llvm_map_components_to_libnames(llvm_libs support core irreader)
 # ---- Declare library ----
 
 add_library(
@@ -31,12 +31,12 @@ add_library(
     source/lib.cpp
 )
 
+
 target_include_directories(
     bython_lib ${warning_guard}
     PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
 )
-llvm_map_components_to_libnames(llvm_libs support core irreader)
 
 target_compile_features(bython_lib PUBLIC cxx_std_17)
 target_link_libraries(bython_lib PUBLIC foonathan::lexy ${llvm_libs})
@@ -51,7 +51,7 @@ add_subdirectory(source)
 set_property(TARGET bython_exe PROPERTY OUTPUT_NAME bython)
 
 target_compile_features(bython_exe PRIVATE cxx_std_17)
-target_link_libraries(bython_exe PRIVATE bython_lib)
+target_link_libraries(bython_exe PRIVATE bython_lib ${llvm_libs})
 
 
 # ---- Install rules ----
