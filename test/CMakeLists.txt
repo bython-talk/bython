@@ -10,6 +10,8 @@ find_package(Catch2 3 REQUIRED)
 # ---- Tests ----
 
 add_executable(bython_test)
+
+add_subdirectory(matching)
 add_subdirectory(parser)
 
 target_link_libraries(bython_test PRIVATE
