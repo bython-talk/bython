@@ -37,12 +37,15 @@ struct visitor
 
   virtual auto visit(ast::call const& call) -> traversal;
 
-  virtual auto visit(ast::if_expression const& if_expression) -> traversal;
-
   // statement
   virtual auto visit(ast::assignment const& assignment) -> traversal;
 
   virtual auto visit(ast::type_definition const& type_definition) -> traversal;
+
+  // branching
+  virtual auto visit(ast::if_expression const& if_expression) -> traversal;
+  virtual auto visit(ast::else_expression const& else_expression) -> traversal;
+  virtual auto visit(ast::branching_body const& branching_body) -> traversal;
 
   // compound statement
   virtual auto visit(ast::for_ const& for_) -> traversal;

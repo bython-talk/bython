@@ -88,17 +88,28 @@ auto integer::accept(visitation::visitor& visitor) const -> void
 }
 
 if_expression::if_expression(std::unique_ptr<expression> condition_,
-                             std::vector<std::unique_ptr<statement>> nonvalues_,
-                             std::unique_ptr<expression> value_,
+                             branching_body body_,
                              std::unique_ptr<expression> orelse_)
     : condition {std::move(condition_)}
-    , nonvalues {std::move(nonvalues_)}
-    , value {std::move(value_)}
+    , body {std::make_unique<branching_body>(std::move(body_))}
     , orelse {std::move(orelse_)}
 {
 }
 
 auto if_expression::accept(visitation::visitor& visitor) const -> void
+{
+  visitor.visit(*this);
+}
+
+branching_body::branching_body(
+    std::vector<std::unique_ptr<statement>> statements_,
+    std::unique_ptr<expression> terminator_)
+    : statements {std::move(statements_)}
+    , terminator {std::move(terminator_)}
+{
+}
+
+auto branching_body::accept(visitation::visitor& visitor) const -> void
 {
   visitor.visit(*this);
 }
