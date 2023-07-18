@@ -61,7 +61,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: {context}/docker/LLVM
+          file: docker/LLVM
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -116,7 +116,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: {context}/docker/Catch
+          file: docker/Catch
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -170,7 +170,7 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v4
           context: .
-          file: {context}/docker/Devcontainer
+          file: docker/Devcontainer
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
