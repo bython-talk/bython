@@ -38,6 +38,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/alpine-llvm:latest
+          tags: |
+              type=raw,value=latest,enable=true
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
@@ -45,6 +47,7 @@ jobs:
           push: true
           file: docker/LLVM
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
   build-catch-container:
     needs: [build-llvm-container]
     runs-on: ubuntu-latest
@@ -71,6 +74,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/alpine-catch:latest
+          tags: |
+              type=raw,value=latest,enable=true
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
@@ -78,6 +83,7 @@ jobs:
           push: true
           file: docker/Catch
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
   build-dev-container:
     needs: [build-catch-container]
     runs-on: ubuntu-latest
@@ -103,7 +109,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/devcontainer:latest
+          images: ${{ env.REGISTRY }}/devcontainer
+          tags: |
+              type=raw,value=latest,enable=true
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
@@ -111,3 +119,4 @@ jobs:
           context: .
           file: docker/Devcontainer
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
