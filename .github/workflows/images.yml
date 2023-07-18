@@ -37,7 +37,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/alpine-llvm:latest
+          images: ${{ env.REGISTRY }}/alpine-llvm
           tags: |
               type=raw,value=latest,enable=true
       - name: Build and push
@@ -73,7 +73,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/alpine-catch:latest
+          images: ${{ env.REGISTRY }}/alpine-catch
           tags: |
               type=raw,value=latest,enable=true
       - name: Build and push
