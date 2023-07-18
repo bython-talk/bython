@@ -1,0 +1,6 @@
+FROM alpine:3.18 as llvm
+WORKDIR /
+
+RUN apk add --no-cache llvm16-dev clang16-dev clang16-extra-tools clang16-bash-completion
+
+ENTRYPOINT [ "/bin/sh" ]

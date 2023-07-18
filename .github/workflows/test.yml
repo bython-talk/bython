@@ -1,0 +1,72 @@
+name: Testing
+
+on:
+  push:
+    branches:
+    - main
+    - develop
+
+  pull_request:
+    branches:
+    - main
+    - develop
+
+jobs:
+  test:
+    needs: [lint,build-dev-container]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [
+          #macos-12,
+          ubuntu-22.04,
+          #windows-2022
+        ]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Static Analyzers & Build Tools
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get -qq install --no-install-recommends cppcheck -y
+        sudo apt-get -qq install --no-install-recommends g++ cmake make -y
+        sudo apt-get -qq install --no-install-recommends wget unzip ca-certificates
+
+    - name: Install Catch2 v3
+      if: matrix.os == 'ubuntu-22.04'
+      run: |
+        wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /tmp/catch2.zip && unzip /tmp/catch2.zip -d /tmp/catch2
+        (cd /tmp/catch2/Catch2-3.3.2 && cmake -E make_directory build)
+        (cd /tmp/catch2/Catch2-3.3.2/build && cmake /tmp/catch2/Catch2-3.3.2)
+        (cmake --build /tmp/catch2/Catch2-3.3.2/build -j4 && sudo cmake --install /tmp/catch2/Catch2-3.3.2/build)
+
+    - name: Setup MultiToolTask
+      if: matrix.os == 'windows-2022'
+      run: |
+        Add-Content "$env:GITHUB_ENV" 'UseMultiToolTask=true'
+        Add-Content "$env:GITHUB_ENV" 'EnforceProcessCountAcrossBuilds=true'
+
+    - name: Configure via PowerShell
+      if: matrix.os == 'windows-2022'
+      shell: pwsh
+      run: cmake "--preset=ci-$("${{ matrix.os }}".split("-")[0])"
+
+    - name: Configure via bash
+      if: matrix.os != 'windows-2022'
+      shell: bash
+      run: |
+        os=$(echo ${{ matrix.os }} | cut -d '-' -f 1)
+        cmake -Wno-error=dev --preset=ci-$os
+
+    - name: Build
+      run: cmake --build build --config Release -j 2
+
+    - name: Install
+      run: cmake --install build --config Release --prefix prefix
+
+    - name: Test
+      working-directory: build
+      run: ctest --output-on-failure --no-tests=error -C Release -j 2
