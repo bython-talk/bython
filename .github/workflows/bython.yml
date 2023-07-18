@@ -206,7 +206,7 @@ jobs:
       run: cmake "-DPROJECT_SOURCE_DIR=$PWD" "-DPROJECT_BINARY_DIR=$PWD/build"
         -P cmake/docs-ci.cmake
 
-    - name: Deploy docscontainer:
+    - name: Deploy docs
       image: ghcr.io/bython-talk/devcontainer:main
       credentials:
         username: ${{ github.actor }}
