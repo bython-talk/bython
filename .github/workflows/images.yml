@@ -37,6 +37,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          push: true
           file: docker/LLVM
           push: ${{ github.event_name != 'pull_request' }}
           tags: alpine-llvm:latest
@@ -67,6 +68,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          push: true
           file: docker/Catch
           push: ${{ github.event_name != 'pull_request' }}
           tags: alpine-catch:latest
@@ -97,6 +99,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          push: true
           file: docker/Devcontainer
           push: ${{ github.event_name != 'pull_request' }}
           tags: devcontainer:latest
