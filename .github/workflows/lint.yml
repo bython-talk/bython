@@ -12,6 +12,7 @@ on:
     - develop
 jobs:
   lint:
+    needs: [build-dev-container]
     runs-on: ubuntu-22.04
     permissions:
       packages: read
