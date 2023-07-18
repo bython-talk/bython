@@ -10,8 +10,8 @@
 #include <lexy/input/string_input.hpp>
 #include <lexy_ext/report_error.hpp>
 
-#include "top_level_grammar.hpp"
 #include "grammar.hpp"
+#include "top_level_grammar.hpp"
 
 namespace bython::parser
 {

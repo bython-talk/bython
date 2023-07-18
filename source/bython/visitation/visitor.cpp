@@ -63,7 +63,6 @@ auto visitor::visit(ast::unconditional_branch const&) -> traversal
   return traversal::CONTINUE;
 }
 
-
 auto visitor::visit(ast::assignment const&) -> traversal
 {
   return traversal::CONTINUE;

@@ -13,16 +13,17 @@ namespace grammar = bython::grammar;
 TEST_CASE("Assignment")
 {
   auto ast = unwrap_grammar<g::inner_stmt, ast::assignment>("val x = f;");
-  REQUIRE(m::matches(
-      ast, m::assignment {std::string {"x"}, m::lift<m::variable>("f")}));
+  auto matcher =
+      m::lift<m::assignment>(std::string {"x"}, m::lift<m::variable>("f"));
+  REQUIRE(m::matches(ast, *matcher));
 }
 
 TEST_CASE("If Statement")
 {
   SECTION("Empty If")
   {
-    auto ast = unwrap_grammar<g::inner_stmt, ast::conditional_branch>(
-        "if x { };");
+    auto ast =
+        unwrap_grammar<g::inner_stmt, ast::conditional_branch>("if x { };");
   }
 
   SECTION("Single If")
@@ -76,5 +77,4 @@ if x {
 }
 )");
   }
-
 }
