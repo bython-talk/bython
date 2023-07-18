@@ -54,7 +54,6 @@ jobs:
     - name: Install LLVM
       if: matrix.os == 'ubuntu-22.04'
       run: |
-      run: |
         sudo apt-get -qq update
         sudo apt-get -qq install --no-install-recommends wget -y
         sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
