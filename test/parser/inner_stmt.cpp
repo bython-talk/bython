@@ -6,12 +6,12 @@
 #include "unwrap.hpp"
 
 namespace ast = bython::ast;
+namespace g = bython::grammar;
 namespace m = bython::matching;
 
 TEST_CASE("Assignment")
 {
-  auto ast =
-      unwrap_grammar<bython::grammar::inner_stmt, ast::assignment>("val x = f");
+  auto ast = unwrap_grammar<g::inner_stmt, ast::assignment>("val x = f");
   REQUIRE(m::matches(
       ast, m::assignment {std::string {"x"}, m::lift<m::variable>("f")}));
 }
