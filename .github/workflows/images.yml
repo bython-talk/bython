@@ -9,6 +9,8 @@ on:
     branches:
       - main
       - develop
+env:
+  REGISTRY: ghcr.io
 
 jobs:
   build-llvm-container:
@@ -31,13 +33,19 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/alpine-llvm:latest
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           file: docker/LLVM
-          tags: alpine-llvm:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
   build-catch-container:
     needs: [build-llvm-container]
     runs-on: ubuntu-latest
@@ -59,13 +67,19 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/alpine-catch:latest
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           file: docker/Catch
-          tags: alpine-catch:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
   build-dev-container:
     needs: [build-catch-container]
     runs-on: ubuntu-latest
@@ -87,6 +101,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/devcontainer:latest
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
