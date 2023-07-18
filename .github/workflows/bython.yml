@@ -3,13 +3,13 @@ name: Bython
 on:
   push:
     branches:
-    - main
-    - develop
+      - main
+      - develop
 
   pull_request:
     branches:
-    - main
-    - develop
+      - main
+      - develop
 
 env:
   REGISTRY: ghcr.io
@@ -27,15 +27,15 @@ jobs:
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Lint
-      run: |
-        cmake -D FORMAT_COMMAND=clang-format -P cmake/lint.cmake
+      - name: Lint
+        run: |
+          cmake -D FORMAT_COMMAND=clang-format -P cmake/lint.cmake
 
-    - name: Spell check
-      if: false
-      run: pip3 install codespell && cmake -P cmake/spell.cmake
+      - name: Spell check
+        if: false
+        run: pip3 install codespell && cmake -P cmake/spell.cmake
   sanitize:
     needs: [lint]
 
@@ -47,36 +47,35 @@ jobs:
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Install Tools & Sanitisers
-      run: |
-        apk add cmake ninja-build -y
-    - name: Configure
-      run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
+      - name: Install Tools & Sanitisers
+        run: |
+          apk add cmake ninja-build -y
+      - name: Configure
+        run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
 
-    - name: Build
-      run: cmake --build build/sanitize -j 2
+      - name: Build
+        run: cmake --build build/sanitize -j 2
 
-    - name: Test
-      working-directory: build/sanitize
-      env:
-        ASAN_OPTIONS: "strict_string_checks=1:\
-          detect_stack_use_after_return=1:\
-          check_initialization_order=1:\
-          strict_init_order=1:\
-          detect_leaks=1"
-        UBSAN_OPTIONS: print_stacktrace=1
-      run: ctest --output-on-failure --no-tests=error -j 2
+      - name: Test
+        working-directory: build/sanitize
+        env:
+          ASAN_OPTIONS: "strict_string_checks=1:\
+            detect_stack_use_after_return=1:\
+            check_initialization_order=1:\
+            strict_init_order=1:\
+            detect_leaks=1"
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: ctest --output-on-failure --no-tests=error -j 2
   coverage:
     needs: [lint]
-
-    runs-on: devcontainer:main
-    container:
-      image: ghcr.io/bython-talk/devcontainer:main
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+    runs-on: [devcontainer:main]
+      container:
+        image: ghcr.io/bython-talk/devcontainer:main
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     # To enable coverage, delete the last line from the conditional below and
     # edit the "<name>" placeholder to your GitHub name.
@@ -85,82 +84,80 @@ jobs:
     if: github.repository_owner == 'bython-talk'
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install LCov and make
-      run: |
-        apk add cmake lcov make -y
+      - uses: actions/checkout@v3
+      - name: Install LCov and make
+        run: |
+          apk add cmake lcov make -y
 
-    - name: Configure
-      run: cmake -Wno-error=dev --preset=ci-coverage
+      - name: Configure
+        run: cmake -Wno-error=dev --preset=ci-coverage
 
-    - name: Build
-      run: cmake --build build/coverage -j 2
+      - name: Build
+        run: cmake --build build/coverage -j 2
 
-    - name: Test
-      working-directory: build/coverage
-      run: ctest --output-on-failure --no-tests=error -j 2
+      - name: Test
+        working-directory: build/coverage
+        run: ctest --output-on-failure --no-tests=error -j 2
 
-    - name: Process coverage info
-      run: cmake --build build/coverage -t coverage
+      - name: Process coverage info
+        run: cmake --build build/coverage -t coverage
 
-    - name: Submit to codecov.io
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: build/coverage/coverage.info
-        fail_ci_if_error: true
+      - name: Submit to codecov.io
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: build/coverage/coverage.info
+          fail_ci_if_error: true
   test:
     needs: [lint]
 
     strategy:
       fail-fast: false
       matrix:
-        os: [
-          ubuntu-22.04,
-        ]
+        os: [ubuntu-22.04]
 
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Install Static Analyzers & Build Tools
-      run: |
-        apk add cppcheck g++ cmake make wget unzip ca-certificates
+      - name: Install Static Analyzers & Build Tools
+        run: |
+          apk add cppcheck g++ cmake make wget unzip ca-certificates
 
-    - name: Install Catch2 v3
-      run: |
-        wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /tmp/catch2.zip && unzip /tmp/catch2.zip -d /tmp/catch2
-        (cd /tmp/catch2/Catch2-3.3.2 && cmake -E make_directory build)
-        (cd /tmp/catch2/Catch2-3.3.2/build && cmake /tmp/catch2/Catch2-3.3.2)
-        (cmake --build /tmp/catch2/Catch2-3.3.2/build -j4 && sudo cmake --install /tmp/catch2/Catch2-3.3.2/build)
+      - name: Install Catch2 v3
+        run: |
+          wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /tmp/catch2.zip && unzip /tmp/catch2.zip -d /tmp/catch2
+          (cd /tmp/catch2/Catch2-3.3.2 && cmake -E make_directory build)
+          (cd /tmp/catch2/Catch2-3.3.2/build && cmake /tmp/catch2/Catch2-3.3.2)
+          (cmake --build /tmp/catch2/Catch2-3.3.2/build -j4 && sudo cmake --install /tmp/catch2/Catch2-3.3.2/build)
 
-    - name: Setup MultiToolTask
-      if: matrix.os == 'windows-2022'
-      run: |
-        Add-Content "$env:GITHUB_ENV" 'UseMultiToolTask=true'
-        Add-Content "$env:GITHUB_ENV" 'EnforceProcessCountAcrossBuilds=true'
+      - name: Setup MultiToolTask
+        if: matrix.os == 'windows-2022'
+        run: |
+          Add-Content "$env:GITHUB_ENV" 'UseMultiToolTask=true'
+          Add-Content "$env:GITHUB_ENV" 'EnforceProcessCountAcrossBuilds=true'
 
-    - name: Configure via PowerShell
-      if: matrix.os == 'windows-2022'
-      shell: pwsh
-      run: cmake "--preset=ci-$("${{ matrix.os }}".split("-")[0])"
+      - name: Configure via PowerShell
+        if: matrix.os == 'windows-2022'
+        shell: pwsh
+        run: cmake "--preset=ci-$("${{ matrix.os }}".split("-")[0])"
 
-    - name: Configure via bash
-      if: matrix.os != 'windows-2022'
-      shell: bash
-      run: |
-        os=$(echo ${{ matrix.os }} | cut -d '-' -f 1)
-        cmake -Wno-error=dev --preset=ci-$os
+      - name: Configure via bash
+        if: matrix.os != 'windows-2022'
+        shell: bash
+        run: |
+          os=$(echo ${{ matrix.os }} | cut -d '-' -f 1)
+          cmake -Wno-error=dev --preset=ci-$os
 
-    - name: Build
-      run: cmake --build build --config Release -j 2
+      - name: Build
+        run: cmake --build build --config Release -j 2
 
-    - name: Install
-      run: cmake --install build --config Release --prefix prefix
+      - name: Install
+        run: cmake --install build --config Release --prefix prefix
 
-    - name: Test
-      working-directory: build
-      run: ctest --output-on-failure --no-tests=error -C Release -j 2
+      - name: Test
+        working-directory: build
+        run: ctest --output-on-failure --no-tests=error -C Release -j 2
   docs:
     # Deploy docs only when builds succeed
     needs: [sanitize, test]
@@ -191,23 +188,23 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v4
-      with: { python-version: "3.8" }
+      - uses: actions/setup-python@v4
+        with: { python-version: "3.8" }
 
-    - name: Install m.css dependencies
-      run: pip3 install jinja2 Pygments
+      - name: Install m.css dependencies
+        run: pip3 install jinja2 Pygments
 
-    - name: Install Doxygen
-      run:  apk add doxygen
+      - name: Install Doxygen
+        run: apk add doxygen
 
-    - name: Build docs
-      run: cmake "-DPROJECT_SOURCE_DIR=$PWD" "-DPROJECT_BINARY_DIR=$PWD/build"
-        -P cmake/docs-ci.cmake
+      - name: Build docs
+        run: cmake "-DPROJECT_SOURCE_DIR=$PWD" "-DPROJECT_BINARY_DIR=$PWD/build"
+          -P cmake/docs-ci.cmake
 
-    - name: Deploy docs
-      image: ghcr.io/bython-talk/devcontainer:main
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+      - name: Deploy docs
+        image: ghcr.io/bython-talk/devcontainer:main
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
