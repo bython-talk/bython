@@ -8,15 +8,14 @@
 
 #include "unwrap.hpp"
 
-using namespace bython;
-
 namespace ast = bython::ast;
+namespace g = bython::grammar;
 namespace m = bython::matching;
 
 TEST_CASE("Atoms", "[Variable]")
 {
   auto variable =
-      unwrap_grammar<grammar::expression, ast::variable>("valid_variable");
+      unwrap_grammar<g::expression, ast::variable>("valid_variable");
   auto matcher = m::lift<m::variable>("valid_variable");
   REQUIRE(m::matches(variable, *matcher));
 }
@@ -25,7 +24,7 @@ TEST_CASE("Atoms", "[Call]")
 {
   SECTION("Without Arguments")
   {
-    auto call = unwrap_grammar<grammar::expression, ast::call>("valid_name()");
+    auto call = unwrap_grammar<g::expression, ast::call>("valid_name()");
 
     REQUIRE(call.callee == "valid_name");
     REQUIRE(call.arguments.empty());
@@ -33,8 +32,7 @@ TEST_CASE("Atoms", "[Call]")
 
   SECTION("With Arguments")
   {
-    auto call =
-        unwrap_grammar<grammar::expression, ast::call>("valid_name(a,b,)");
+    auto call = unwrap_grammar<g::expression, ast::call>("valid_name(a,b,)");
 
     REQUIRE(call.callee == "valid_name");
     REQUIRE(call.arguments.size() == 2);
@@ -42,7 +40,7 @@ TEST_CASE("Atoms", "[Call]")
 
   SECTION("With Nested Calls")
   {
-    auto call = unwrap_grammar<grammar::expression, ast::call>(
+    auto call = unwrap_grammar<g::expression, ast::call>(
         "valid_name(inner_callee(),b,)");
 
     REQUIRE(call.callee == "valid_name");
@@ -54,8 +52,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 {
   SECTION("Logical Or")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a || b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a || b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::boolor),
@@ -65,8 +62,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Logical And")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a && b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a && b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::booland),
@@ -76,8 +72,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Bit Xor")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a ^ b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a ^ b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::bitxor_),
@@ -87,8 +82,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Bit Or")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a | b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a | b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::bitor_),
@@ -98,8 +92,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Bit And")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a & b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a & b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::bitand_),
@@ -109,8 +102,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Bitshift Right")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a >> b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a >> b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::bitshift_right_),
@@ -120,8 +112,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Bitshift Left")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a << b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a << b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::bitshift_left_),
@@ -131,8 +122,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Minus")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a - b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a - b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::minus),
@@ -142,8 +132,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Plus")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a + b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a + b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::plus),
@@ -153,8 +142,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Modulo")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a % b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a % b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::modulo),
@@ -164,8 +152,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Division")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a / b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a / b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::divide),
@@ -175,8 +162,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Multiply")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a * b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a * b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::multiply),
@@ -186,8 +172,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Power")
   {
-    auto m =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a ** b");
+    auto m = unwrap_grammar<g::expression, ast::binary_operation>("a ** b");
     auto matcher = m::lift<m::binary_operation>(
         m::lift<m::variable>("a"),
         m::lift<m::binary_operator>(ast::binop_tag::pow),
@@ -197,7 +182,7 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
 
   SECTION("Lesser")
   {
-    auto m = unwrap_grammar<grammar::expression, ast::comparison>("a < b");
+    auto m = unwrap_grammar<g::expression, ast::comparison>("a < b");
     auto matcher = m::comparison(m::lift<m::variable>("a"))
                        .chain(m::lift<m::comparison_operator>(
                                   ast::comparison_operator_tag::lsr),
@@ -211,7 +196,7 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
   SECTION("Product and Sum")
   {
     auto code =
-        unwrap_grammar<grammar::expression, ast::binary_operation>("a * b + c");
+        unwrap_grammar<g::expression, ast::binary_operation>("a * b + c");
 
     auto code_matcher = m::lift<m::binary_operation>(
         m::lift<m::binary_operation>(
@@ -221,13 +206,13 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
         m::lift<m::binary_operator>(ast::binop_tag::plus),
         m::lift<m::variable>("c"));
 
-    REQUIRE(matching::matches(code, *code_matcher));
+    REQUIRE(m::matches(code, *code_matcher));
   }
 
   SECTION("Power of Two Check")
   {
-    auto code = unwrap_grammar<grammar::expression, ast::comparison>(
-        "0 == (x & (x - 1))");
+    auto code =
+        unwrap_grammar<g::expression, ast::comparison>("0 == (x & (x - 1))");
 
     auto code_matcher = m::comparison {m::lift<m::integer>(0)}.chain(
         // ==
@@ -243,13 +228,13 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
                 m::lift<m::binary_operator>(ast::binop_tag::minus),
                 m::lift<m::integer>(1))));
 
-    REQUIRE(matching::matches(code, code_matcher));
+    REQUIRE(m::matches(code, code_matcher));
   }
 
   SECTION("All the Unary Operators")
   {
-    auto code = unwrap_grammar<grammar::expression, ast::binary_operation>(
-        "~x + +x - -x");
+    auto code =
+        unwrap_grammar<g::expression, ast::binary_operation>("~x + +x - -x");
     auto code_matcher = m::lift<m::binary_operation>(
         m::lift<m::binary_operation>(
             m::lift<m::unary_operation>(
@@ -264,6 +249,6 @@ TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")
             m::lift<m::unary_operator>(ast::unop_tag::minus),
             m::lift<m::variable>("x")));
 
-    REQUIRE(matching::matches(code, *code_matcher));
+    REQUIRE(m::matches(code, *code_matcher));
   }
 }

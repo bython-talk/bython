@@ -6,33 +6,34 @@
 #include "unwrap.hpp"
 
 namespace ast = bython::ast;
+namespace g = bython::grammar;
 namespace m = bython::matching;
 namespace grammar = bython::grammar;
 
 TEST_CASE("Assignment")
 {
-  auto ast = unwrap_grammar<grammar::inner_stmt, ast::assignment>("val x = f;");
-  auto matcher = m::lift<m::assignment>("x", m::lift<m::variable>("f"));
-  REQUIRE(m::matches(ast, *matcher));
+  auto ast = unwrap_grammar<g::inner_stmt, ast::assignment>("val x = f;");
+  REQUIRE(m::matches(
+      ast, m::assignment {std::string {"x"}, m::lift<m::variable>("f")}));
 }
 
 TEST_CASE("If Statement")
 {
   SECTION("Empty If")
   {
-    auto ast = unwrap_grammar<grammar::inner_stmt, ast::conditional_branch>(
+    auto ast = unwrap_grammar<g::inner_stmt, ast::conditional_branch>(
         "if x { };");
   }
 
   SECTION("Single If")
   {
-    auto ast = unwrap_grammar<grammar::inner_stmt, ast::conditional_branch>(
+    auto ast = unwrap_grammar<g::inner_stmt, ast::conditional_branch>(
         "if x { val y = x; val z = y; };");
   }
 
   SECTION("If + Elif")
   {
-    auto ast = unwrap_grammar<grammar::inner_stmt, ast::conditional_branch>(R"(
+    auto ast = unwrap_grammar<g::inner_stmt, ast::conditional_branch>(R"(
 if x {
   val y = 2;
 } elif a {
@@ -43,7 +44,7 @@ if x {
 
   SECTION("If + Elif + Elif")
   {
-    auto ast = unwrap_grammar<grammar::inner_stmt, ast::conditional_branch>(R"(
+    auto ast = unwrap_grammar<g::inner_stmt, ast::conditional_branch>(R"(
 if x {
   val y = 2;
 } elif a {
@@ -56,7 +57,7 @@ if x {
 
   SECTION("If + Else")
   {
-    auto ast = unwrap_grammar<grammar::inner_stmt, ast::conditional_branch>(R"(
+    auto ast = unwrap_grammar<g::inner_stmt, ast::conditional_branch>(R"(
 if x {
   val y = 2;
 } else {
@@ -67,7 +68,7 @@ if x {
 
   SECTION("Missing Semicolon")
   {
-    unwrap_grammar_failure<grammar::inner_stmt, ast::conditional_branch>(R"(
+    unwrap_grammar_failure<g::inner_stmt, ast::conditional_branch>(R"(
 if x {
   val y = 2;
 } elif z {
@@ -75,4 +76,5 @@ if x {
 }
 )");
   }
+
 }
