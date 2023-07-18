@@ -20,12 +20,6 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
@@ -39,7 +33,6 @@ jobs:
           context: .
           push: true
           file: docker/LLVM
-          push: ${{ github.event_name != 'pull_request' }}
           tags: alpine-llvm:latest
   build-catch-container:
     needs: [build-llvm-container]
@@ -51,14 +44,7 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GHCR
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -82,12 +68,6 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
@@ -101,5 +81,4 @@ jobs:
           push: true
           context: .
           file: docker/Devcontainer
-          push: ${{ github.event_name != 'pull_request' }}
           tags: devcontainer:latest
