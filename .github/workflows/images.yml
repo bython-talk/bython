@@ -10,7 +10,7 @@ on:
       - main
       - develop
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: ghcr.io/bython-talk
 
 jobs:
   build-llvm-container:
