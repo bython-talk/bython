@@ -101,12 +101,11 @@ jobs:
         apt-get -qq update
         apt-get -qq install --no-install-recommends cmake ninja-build -y
     - name: Install LLVM
-      if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get -qq update
         sudo apt-get -qq install --no-install-recommends wget -y
         sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-        chmod +x llvm.sh
+        chmod +x ./llvm.sh
         sudo ./llvm.sh 16
     - name: Configure
       run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
@@ -149,12 +148,11 @@ jobs:
         sudo apt-get -qq install --no-install-recommends g++ cmake make -y
         sudo apt-get -qq install --no-install-recommends wget unzip ca-certificates
     - name: Install LLVM
-      if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get -qq update
         sudo apt-get -qq install --no-install-recommends wget -y
         sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-        chmod +x llvm.sh
+        chmod +x ./llvm.sh
         sudo ./llvm.sh 16
 
     - name: Install Catch2 v3
@@ -226,12 +224,11 @@ jobs:
     - name: Install m.css dependencies
       run: pip3 install jinja2 Pygments
     - name: Install LLVM
-      if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get -qq update
         sudo apt-get -qq install --no-install-recommends wget -y
         sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-        chmod +x llvm.sh
+        chmod +x ./llvm.sh
         sudo ./llvm.sh 16
 
     - name: Install Doxygen
