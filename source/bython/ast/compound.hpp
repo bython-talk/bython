@@ -27,9 +27,22 @@ struct while_ final : compound
   auto accept(visitation::visitor& visitor) const -> void override;
 };
 
-/*struct if_ : compound
+struct conditional_branch final : compound
 {
-};*/
+    conditional_branch(std::unique_ptr<expression> condition_, statements body_);
+    conditional_branch(std::unique_ptr<expression> condition_, statements body_, std::unique_ptr<compound> orelse_);
+
+    auto accept(visitation::visitor& visitor) const -> void override;
+
+    std::unique_ptr<node> condition;
+    std::unique_ptr<node> orelse;
+};
+
+struct unconditional_branch final : compound {
+    explicit unconditional_branch(statements body_);
+
+    auto accept(visitation::visitor& visitor) const -> void override;
+};
 
 struct parameter
 {

@@ -53,20 +53,16 @@ auto visitor::visit(ast::call const&) -> traversal
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::if_expression const&) -> traversal
+auto visitor::visit(ast::conditional_branch const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::else_expression const&) -> traversal
+auto visitor::visit(ast::unconditional_branch const&) -> traversal
 {
   return traversal::CONTINUE;
 }
 
-auto visitor::visit(ast::branching_body const&) -> traversal
-{
-  return traversal::CONTINUE;
-}
 
 auto visitor::visit(ast::assignment const&) -> traversal
 {
