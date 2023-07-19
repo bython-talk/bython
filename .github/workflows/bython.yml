@@ -50,7 +50,7 @@ jobs:
 
       - name: Install Tools & Sanitisers
         run: |
-          apk add cmake ninja-build -y
+          apk add cmake ninja-build
       - name: Configure
         run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
 
@@ -87,7 +87,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install LCov and make
         run: |
-          apk add cmake lcov make -y
+          apk add cmake lcov make
 
       - name: Configure
         run: cmake -Wno-error=dev --preset=ci-coverage
@@ -125,9 +125,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Configure via bash
+      - name: Configure via sh
         if: matrix.os != 'windows-2022'
-        shell: bash
+        shell: /bin/sh
         run: |
           os=$(echo ${{ matrix.os }} | cut -d '-' -f 1)
           cmake -Wno-error=dev --preset=ci-$os
