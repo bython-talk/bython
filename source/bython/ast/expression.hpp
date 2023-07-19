@@ -80,40 +80,4 @@ struct integer final : expression
   int64_t value;
 };
 
-struct statement;
-
-struct branching_body final : expression
-{
-  branching_body(std::vector<std::unique_ptr<statement>> statements_,
-                 std::unique_ptr<expression> terminator_);
-
-  auto accept(visitation::visitor& visitor) const -> void override;
-
-  std::vector<std::unique_ptr<statement>> statements;
-  std::unique_ptr<expression> terminator;
-};
-
-struct if_expression final : expression
-{
-  if_expression(std::unique_ptr<expression> condition_,
-                branching_body body_,
-                std::unique_ptr<expression> orelse_ = nullptr);
-
-  auto accept(visitation::visitor& visitor) const -> void override;
-
-  std::unique_ptr<expression> condition;
-  std::unique_ptr<expression> body;
-
-  std::unique_ptr<expression> orelse;
-};
-
-struct else_expression final : expression
-{
-  explicit else_expression(branching_body body_);
-
-  auto accept(visitation::visitor& visitor) const -> void override;
-
-  std::unique_ptr<expression> body;
-};
-
 }  // namespace bython::ast
