@@ -1,6 +1,6 @@
 FROM alpine:3.18 as llvm
 WORKDIR /
 
-RUN apk add --no-cache gcc alpine-sdk llvm16-dev llvm16-libs llvm16-static clang16-dev clang16-extra-tools clang16-bash-completion
+RUN apk add --no-cache build-base alpine-sdk llvm16-dev llvm16-libs llvm16-static clang16-dev clang16-extra-tools clang16-bash-completion
 
 ENTRYPOINT [ "/bin/sh" ]
