@@ -17,7 +17,7 @@ env:
 
 jobs:
   lint:
-    runs-on: devcontainer:latest
+    runs-on: ubuntu-22.04
     permissions:
       packages: read
     container:
@@ -38,8 +38,7 @@ jobs:
         run: pip3 install codespell && cmake -P cmake/spell.cmake
   sanitize:
     needs: [lint]
-
-    runs-on: devcontainer:latest
+    runs-on: ubuntu-22.04
     container:
       image: ghcr.io/bython-talk/devcontainer:latest
       credentials:
@@ -61,21 +60,22 @@ jobs:
       - name: Test
         working-directory: build/sanitize
         env:
-          ASAN_OPTIONS: "strict_string_checks=1:\
-            detect_stack_use_after_return=1:\
-            check_initialization_order=1:\
-            strict_init_order=1:\
-            detect_leaks=1"
+          ASAN_OPTIONS:  |
+            strict_string_checks=1:
+            detect_stack_use_after_return=1:
+            check_initialization_order=1:
+            strict_init_order=1:
+            detect_leaks=1
           UBSAN_OPTIONS: print_stacktrace=1
         run: ctest --output-on-failure --no-tests=error -j 2
   coverage:
     needs: [lint]
-    runs-on: [devcontainer:latest]
-      container:
-        image: ghcr.io/bython-talk/devcontainer:latest
-        credentials:
-          username: ${{ github.actor }}
-          password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/bython-talk/devcontainer:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     # To enable coverage, delete the last line from the conditional below and
     # edit the "<name>" placeholder to your GitHub name.
@@ -162,7 +162,7 @@ jobs:
     # Deploy docs only when builds succeed
     needs: [sanitize, test]
 
-    runs-on: devcontainer:latest
+    runs-on: ubuntu-22.04
     container:
       image: ghcr.io/bython-talk/devcontainer:latest
       credentials:
@@ -204,7 +204,7 @@ jobs:
           -P cmake/docs-ci.cmake
 
       - name: Deploy docs
-        image: ghcr.io/bython-talk/devcontainer:latest
-        credentials:
-          username: ${{ github.actor }}
-          password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/docs/html
