@@ -1,4 +1,4 @@
-FROM bython-talk/alpine-catch:latest AS catch2-dev
+FROM ghcr.io/bython-talk/alpine-catch:latest AS catch2-dev
 WORKDIR /
 
 FROM catch2-dev AS lexy-catch2-dev
