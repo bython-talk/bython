@@ -127,7 +127,7 @@ jobs:
 
       - name: Configure via sh
         if: matrix.os != 'windows-2022'
-        shell: /bin/sh
+        shell: sh
         run: |
           os=$(echo ${{ matrix.os }} | cut -d '-' -f 1)
           cmake -Wno-error=dev --preset=ci-$os
