@@ -117,30 +117,13 @@ jobs:
         os: [ubuntu-22.04]
 
     runs-on: ${{ matrix.os }}
+    container:
+      image: ghcr.io/bython-talk/devcontainer:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install Static Analyzers & Build Tools
-        run: |
-          apk add cppcheck g++ cmake make wget unzip ca-certificates
-
-      - name: Install Catch2 v3
-        run: |
-          wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /tmp/catch2.zip && unzip /tmp/catch2.zip -d /tmp/catch2
-          (cd /tmp/catch2/Catch2-3.3.2 && cmake -E make_directory build)
-          (cd /tmp/catch2/Catch2-3.3.2/build && cmake /tmp/catch2/Catch2-3.3.2)
-          (cmake --build /tmp/catch2/Catch2-3.3.2/build -j4 && sudo cmake --install /tmp/catch2/Catch2-3.3.2/build)
-
-      - name: Setup MultiToolTask
-        if: matrix.os == 'windows-2022'
-        run: |
-          Add-Content "$env:GITHUB_ENV" 'UseMultiToolTask=true'
-          Add-Content "$env:GITHUB_ENV" 'EnforceProcessCountAcrossBuilds=true'
-
-      - name: Configure via PowerShell
-        if: matrix.os == 'windows-2022'
-        shell: pwsh
-        run: cmake "--preset=ci-$("${{ matrix.os }}".split("-")[0])"
 
       - name: Configure via bash
         if: matrix.os != 'windows-2022'
