@@ -17,11 +17,11 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-22.04
+    runs-on: devcontainer:latest
     permissions:
       packages: read
     container:
-      image: ghcr.io/bython-talk/devcontainer:main
+      image: ghcr.io/bython-talk/devcontainer:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -39,9 +39,9 @@ jobs:
   sanitize:
     needs: [lint]
 
-    runs-on: devcontainer:main
+    runs-on: devcontainer:latest
     container:
-      image: ghcr.io/bython-talk/devcontainer:main
+      image: ghcr.io/bython-talk/devcontainer:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -70,9 +70,9 @@ jobs:
         run: ctest --output-on-failure --no-tests=error -j 2
   coverage:
     needs: [lint]
-    runs-on: [devcontainer:main]
+    runs-on: [devcontainer:latest]
       container:
-        image: ghcr.io/bython-talk/devcontainer:main
+        image: ghcr.io/bython-talk/devcontainer:latest
         credentials:
           username: ${{ github.actor }}
           password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -162,9 +162,9 @@ jobs:
     # Deploy docs only when builds succeed
     needs: [sanitize, test]
 
-    runs-on: devcontainer:main
+    runs-on: devcontainer:latest
     container:
-      image: ghcr.io/bython-talk/devcontainer:main
+      image: ghcr.io/bython-talk/devcontainer:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -204,7 +204,7 @@ jobs:
           -P cmake/docs-ci.cmake
 
       - name: Deploy docs
-        image: ghcr.io/bython-talk/devcontainer:main
+        image: ghcr.io/bython-talk/devcontainer:latest
         credentials:
           username: ${{ github.actor }}
           password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
