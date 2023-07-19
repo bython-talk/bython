@@ -25,6 +25,6 @@ RUN cmake --install .
 FROM lexy-catch2-dev AS bython-dev
 
 WORKDIR /
-RUN apk add --no-cache gdb cppcheck samurai libxml2-dev
+RUN apk add --no-cache gdb cppcheck samurai libxml2-dev gzip
 
 ENTRYPOINT [ "/bin/sh" ]
