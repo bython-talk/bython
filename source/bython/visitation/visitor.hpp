@@ -42,6 +42,10 @@ struct visitor
 
   virtual auto visit(ast::type_definition const& type_definition) -> traversal;
 
+  // branching
+  virtual auto visit(ast::conditional_branch const& branch) -> traversal;
+  virtual auto visit(ast::unconditional_branch const& branch) -> traversal;
+
   // compound statement
   virtual auto visit(ast::for_ const& for_) -> traversal;
 
