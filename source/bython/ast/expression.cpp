@@ -11,11 +11,6 @@ unary_operation::unary_operation(unop_tag op_, std::unique_ptr<expression> rhs_)
 {
 }
 
-auto unary_operation::accept(visitation::visitor& visitor) const -> void
-{
-  visitor.visit(*this);
-}
-
 binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
                                    binop_tag binop_,
                                    std::unique_ptr<expression> rhs_)
@@ -23,11 +18,6 @@ binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
     , rhs {std::move(rhs_)}
     , op {std::make_unique<binary_operator>(binop_)}
 {
-}
-
-auto binary_operation::accept(visitation::visitor& visitor) const -> void
-{
-  visitor.visit(*this);
 }
 
 comparison::comparison(ast::expressions operands_,
@@ -50,11 +40,6 @@ auto comparison::add_operand(std::unique_ptr<expression> expr) -> void
   this->operands.emplace_back(std::move(expr));
 }
 
-auto comparison::accept(visitation::visitor& visitor) const -> void
-{
-  visitor.visit(*this);
-}
-
 call::call(std::string callee_,
            std::vector<std::unique_ptr<expression>> arguments_)
     : callee {std::move(callee_)}
@@ -62,29 +47,14 @@ call::call(std::string callee_,
 {
 }
 
-auto call::accept(visitation::visitor& visitor) const -> void
-{
-  visitor.visit(*this);
-}
-
 variable::variable(std::string identifier_)
     : identifier {std::move(identifier_)}
 {
 }
 
-auto variable::accept(visitation::visitor& visitor) const -> void
-{
-  visitor.visit(*this);
-}
-
 integer::integer(int64_t value_)
     : value {value_}
 {
-}
-
-auto integer::accept(visitation::visitor& visitor) const -> void
-{
-  visitor.visit(*this);
 }
 
 }  // namespace bython::ast

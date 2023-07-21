@@ -2,21 +2,13 @@
 
 #include <memory>
 
-namespace bython::visitation
-{
-struct visitor;
-struct transformer;
-}  // namespace bython::visitation
+#include <bython/visitation/visitor.hpp>
 
 namespace bython::ast
 {
-struct node
-{
-  virtual ~node() = default;
 
-  virtual auto accept(visitation::visitor& visitor) const -> void = 0;
-  /*virtual auto accept(visitation::transformer& transformer) const
-      -> std::unique_ptr<node> = 0;*/
+struct node : visitation::visitable<node>
+{
 };
 
 template<typename T>
@@ -26,9 +18,9 @@ auto isa(node const* ast) -> bool
 }
 
 template<typename T>
-auto isa(node* ast) -> bool
+auto isa(node const& ast) -> bool
 {
-  return dynamic_cast<T*>(ast) != nullptr;
+  return dynamic_cast<T*>(&ast) != nullptr;
 }
 
 template<typename T>

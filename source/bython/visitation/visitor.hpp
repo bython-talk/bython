@@ -1,56 +1,35 @@
 #pragma once
 
-#include <bython/ast.hpp>
+#include <type_traits>
 
 namespace bython::visitation
 {
+
+template<typename Derived, typename RetTy>
 struct visitor
 {
-  enum class traversal
-  {
-    CONTINUE,
-    TERMINATE,
-  };
+  using derived = Derived;
+  using ret_ty = RetTy;
 
   virtual ~visitor() = default;
 
-  // module
-  virtual auto visit(ast::mod const& module) -> traversal;
+  virtual auto visit(derived const&) const -> ret_ty = 0;
+};
 
-  // expression
-  virtual auto visit(ast::variable const& variable) -> traversal;
+template<typename Derived>
+struct visitable
+{
+  virtual ~visitable() = default;
 
-  virtual auto visit(ast::integer const& integer) -> traversal;
+  using derived = Derived;
 
-  virtual auto visit(ast::comparison_operator const& comparison_operator)
-      -> traversal;
-
-  virtual auto visit(ast::comparison const& comparison) -> traversal;
-
-  virtual auto visit(ast::binary_operator const& binary_operator) -> traversal;
-
-  virtual auto visit(ast::binary_operation const& binop) -> traversal;
-
-  virtual auto visit(ast::unary_operator const& unary_operator) -> traversal;
-
-  virtual auto visit(ast::unary_operation const& unop) -> traversal;
-
-  virtual auto visit(ast::call const& call) -> traversal;
-
-  // statement
-  virtual auto visit(ast::assignment const& assignment) -> traversal;
-
-  virtual auto visit(ast::type_definition const& type_definition) -> traversal;
-
-  // branching
-  virtual auto visit(ast::conditional_branch const& branch) -> traversal;
-  virtual auto visit(ast::unconditional_branch const& branch) -> traversal;
-
-  // compound statement
-  virtual auto visit(ast::for_ const& for_) -> traversal;
-
-  virtual auto visit(ast::while_ const& while_) -> traversal;
-
-  virtual auto visit(ast::function_def const& function) -> traversal;
+  template<typename Visitor>
+  auto accept(Visitor& visitor) const
+  {
+    // Purposely don't specify return type and let
+    // auto do it's work to deduce template usages
+    auto const* downcast = static_cast<derived const*>(*this);
+    return visitor.visit(*downcast);
+  }
 };
 }  // namespace bython::visitation
