@@ -21,7 +21,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/bython-talk/bython
+      image: ghcr.io/bython-talk/devcontainer:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -86,7 +86,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install LCov and make
         run: |
-          apk add --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing cmake lcov make
+          apt install -qq -y cmake lcov make
 
       - name: Configure
         run: cmake -Wno-error=dev --preset=ci-coverage
@@ -179,7 +179,7 @@ jobs:
         run: pip3 install jinja2 Pygments
 
       - name: Install Doxygen
-        run: apk add doxygen
+        run: apt install -y doxygen
 
       - name: Build docs
         run: cmake "-DPROJECT_SOURCE_DIR=$PWD" "-DPROJECT_BINARY_DIR=$PWD/build"

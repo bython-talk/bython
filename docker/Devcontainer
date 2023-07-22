@@ -25,6 +25,6 @@ RUN cmake --install .
 FROM lexy-catch3-dev AS bython-dev
 
 WORKDIR /
-RUN apt update && apt install -qq -y gdb cppcheck ninja-build libxml2-dev gzip && apt-get clean all
+RUN apt update && apt install -qq -y gdb clang-format cppcheck ninja-build libxml2-dev gzip && apt-get clean all
 
 ENTRYPOINT [ "/bin/sh" ]
