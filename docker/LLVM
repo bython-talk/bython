@@ -1,6 +1,8 @@
-FROM alpine:3.18 as llvm
+FROM ubuntu:latest as llvm
 WORKDIR /
+RUN apt update && apt install -qq -y build-essential wget gpg software-properties-common gnupg && apt-get clean all
 
-RUN apk add --no-cache build-base alpine-sdk llvm16-dev llvm16-libs llvm16-static clang16-dev clang16-extra-tools clang16-bash-completion
-
+RUN wget https://apt.llvm.org/llvm.sh
+RUN chmod +x llvm.sh
+RUN /llvm.sh 16
 ENTRYPOINT [ "/bin/sh" ]

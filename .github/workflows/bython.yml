@@ -41,7 +41,7 @@ jobs:
 
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/bython-talk/catch3-ubuntu
+      image: ghcr.io/bython-talk/bython-catch3
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}

@@ -1,7 +1,7 @@
-FROM ghcr.io/bython-talk/alpine-catch:latest AS catch2-dev
+FROM ghcr.io/bython-talk/bython-catch3:latest AS catch3-dev
 WORKDIR /
 
-FROM catch2-dev AS lexy-catch2-dev
+FROM catch3-dev AS lexy-catch3-dev
 
 WORKDIR /
 RUN wget https://github.com/foonathan/lexy/archive/refs/tags/v2022.12.1.zip -O /lexy.zip && unzip /lexy.zip -d /lexy
@@ -22,9 +22,9 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=/usr/lib/ \
 RUN cmake --build . -j4
 RUN cmake --install .
 
-FROM lexy-catch2-dev AS bython-dev
+FROM lexy-catch3-dev AS bython-dev
 
 WORKDIR /
-RUN apk add --no-cache gdb cppcheck samurai libxml2-dev gzip gcompat libstdc++
+RUN apt update && apt install -qq -y gdb cppcheck ninja-build libxml2-dev gzip && apt-get clean all
 
 ENTRYPOINT [ "/bin/sh" ]
