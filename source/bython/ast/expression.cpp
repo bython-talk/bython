@@ -1,11 +1,12 @@
 #include "expression.hpp"
 
+#include <bython/ast/statement.hpp>
 #include <bython/visitation.hpp>
 
 namespace bython::ast
 {
 unary_operation::unary_operation(unop_tag op_, std::unique_ptr<expression> rhs_)
-    : op {std::make_unique<unary_operator>(std::move(op_))}
+    : op {std::make_unique<unary_operator>(op_)}
     , rhs {std::move(rhs_)}
 {
 }
@@ -20,7 +21,7 @@ binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
                                    std::unique_ptr<expression> rhs_)
     : lhs {std::move(lhs_)}
     , rhs {std::move(rhs_)}
-    , op {std::make_unique<binary_operator>(std::move(binop_))}
+    , op {std::make_unique<binary_operator>(binop_)}
 {
 }
 
