@@ -21,7 +21,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/bython-talk/devcontainer:latest
+      image: ghcr.io/bython-talk/bython
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -33,9 +33,6 @@ jobs:
         run: |
           cmake -D FORMAT_COMMAND=clang-format -P cmake/lint.cmake
 
-      - name: Spell check
-        if: false
-        run: pip3 install codespell && cmake -P cmake/spell.cmake
   sanitize:
     needs: [lint]
 
