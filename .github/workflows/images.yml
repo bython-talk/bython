@@ -6,9 +6,8 @@ on:
       - docker/**
 
   pull_request:
-    branches:
-      - main
-      - develop
+    paths:
+      - docker/**
 env:
   REGISTRY: ghcr.io/bython-talk
 
