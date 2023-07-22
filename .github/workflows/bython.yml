@@ -38,36 +38,38 @@ jobs:
         run: pip3 install codespell && cmake -P cmake/spell.cmake
   sanitize:
     needs: [lint]
+
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/bython-talk/devcontainer:latest
+      image: ghcr.io/bython-talk/catch3-ubuntu
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
-      - name: Install Tools & Sanitisers
-        run: |
-          apk add cmake ninja-build
-      - name: Configure
-        run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
+    - name: Install Tools & Sanitisers
+      run: |
+        apt-get -qq update
+        apt-get -qq install --no-install-recommends cmake ninja-build -y
 
-      - name: Build
-        run: cmake --build build/sanitize -j 2
+    - name: Configure
+      run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
 
-      - name: Test
-        working-directory: build/sanitize
-        env:
-          ASAN_OPTIONS:  |
-            strict_string_checks=1:
-            detect_stack_use_after_return=1:
-            check_initialization_order=1:
-            strict_init_order=1:
-            detect_leaks=1
-          UBSAN_OPTIONS: print_stacktrace=1
-        run: ctest --output-on-failure --no-tests=error -j 2
+    - name: Build
+      run: cmake --build build/sanitize -j 2
+
+    - name: Test
+      working-directory: build/sanitize
+      env:
+        ASAN_OPTIONS: "strict_string_checks=1:\
+          detect_stack_use_after_return=1:\
+          check_initialization_order=1:\
+          strict_init_order=1:\
+          detect_leaks=1"
+        UBSAN_OPTIONS: print_stacktrace=1
+      run: ctest --output-on-failure --no-tests=error -j 2
   coverage:
     needs: [lint]
     runs-on: ubuntu-22.04
