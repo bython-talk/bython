@@ -63,6 +63,8 @@ jobs:
       matrix:
         container_kind: [ci, dev]
 
+    name: Build ${{ matrix.container_kind }} Image
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
