@@ -21,7 +21,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/bython-talk/devcontainer:latest
+      image: ghcr.io/bython-talk/bython-dev:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -38,7 +38,7 @@ jobs:
 
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/bython-talk/bython-catch3
+      image: ghcr.io/bython-talk/bython-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -71,7 +71,7 @@ jobs:
     needs: [lint]
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/bython-talk/devcontainer:latest
+      image: ghcr.io/bython-talk/bython-dev:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     container:
-      image: ghcr.io/bython-talk/devcontainer:latest
+      image: ghcr.io/bython-talk/bython-dev:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -146,7 +146,7 @@ jobs:
 
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/bython-talk/devcontainer:latest
+      image: ghcr.io/bython-talk/bython-dev:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
