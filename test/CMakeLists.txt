@@ -13,6 +13,7 @@ add_executable(bython_test)
 
 add_subdirectory(matching)
 add_subdirectory(parser)
+add_subdirectory(visitation)
 
 target_link_libraries(bython_test PRIVATE
         bython_lib
