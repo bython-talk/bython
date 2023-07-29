@@ -1,7 +1,5 @@
 #include "compound.hpp"
 
-#include <bython/visitation.hpp>
-
 namespace bython::ast
 {
 compound::compound(statements body_)

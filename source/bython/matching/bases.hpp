@@ -4,7 +4,6 @@
 #include <numeric>
 
 #include <bython/ast/bases.hpp>
-#include <bython/visitation/visitor.hpp>
 
 namespace bython::matching
 {

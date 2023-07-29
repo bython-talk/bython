@@ -1,7 +1,5 @@
 #include "statement.hpp"
 
-#include <bython/visitation.hpp>
-
 namespace bython::ast
 {
 assignment::assignment(std::string lhs_, std::unique_ptr<expression> rhs_)

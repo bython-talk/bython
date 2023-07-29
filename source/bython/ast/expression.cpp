@@ -1,7 +1,6 @@
 #include "expression.hpp"
 
 #include <bython/ast/statement.hpp>
-#include <bython/visitation.hpp>
 
 namespace bython::ast
 {

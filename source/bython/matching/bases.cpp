@@ -1,7 +1,5 @@
 #include "bases.hpp"
 
-#include <bython/visitation/visitor.hpp>
-
 namespace bython::matching
 {
 
