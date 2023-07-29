@@ -12,7 +12,7 @@ env:
   REGISTRY: ghcr.io/bython-talk
 
 jobs:
-  build-containers:
+  build-base-container:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,7 +41,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/bython-llvm
+          images: ${{ env.REGISTRY }}/bython-base
           tags: |
               type=raw,value=latest,enable=true
 
@@ -50,6 +50,53 @@ jobs:
         with:
           context: docker/
           push: ${{ github.event_name != 'pull_request' }}
-          file: docker/Dockerfile
+          file: docker/base.dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  build-derivate-containers:
+    needs: [build-base-container]
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        container_kind: [ci, dev]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/bython-${{ matrix.container_kind }}
+          tags: |
+            type=raw,value=latest,enable=true
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          file: docker/${{ matrix.container_kind }}.dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

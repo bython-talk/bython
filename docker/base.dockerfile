@@ -27,7 +27,7 @@ RUN cmake --install .
 
 
 
-FROM llvm16-catch3 AS bython-ci
+FROM llvm16-catch3 AS bython-base
 ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /
@@ -50,10 +50,3 @@ RUN cmake --build . -j4
 RUN cmake --install .
 
 ENTRYPOINT [ "/bin/bash" ]
-
-
-FROM bython-ci AS bython-dev
-
-WORKDIR /
-RUN apt-get -q -y update
-RUN apt-get -q -y install --no-install-recommends gdb clang-format cppcheck ninja-build libxml2-dev gzip && apt-get clean all
