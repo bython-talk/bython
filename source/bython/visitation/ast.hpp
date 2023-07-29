@@ -13,7 +13,7 @@ namespace bython::ast
   }
 
 #define BYTHON_VISITOR_DELEGATE(CLASS, DELEGATE_TO, INST, RET) \
-  auto visit_##CLASS(struct CLASS const& INST)->RET \
+  virtual auto visit_##CLASS(struct CLASS const& INST)->RET \
   { \
     BYTHON_DELEGATE(DELEGATE_TO, INST); \
   }
@@ -142,6 +142,6 @@ struct visitor
 #undef BYTHON_MAKE_VISITOR_METHODS
 #undef BYTHON_VISITOR_DOWNCAST_AND_DISPATCH
 
-#define BYTHON_VISITOR_IMPL(CLASS, INST, Body) \
-  auto visit_##CLASS(CLASS const& INST)->return_type Body
+#define BYTHON_VISITOR_IMPL(CLASS, INST) \
+  auto visit_##CLASS(CLASS const& INST)->return_type final
 }  // namespace bython::ast
