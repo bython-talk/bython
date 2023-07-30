@@ -9,4 +9,5 @@ RUN apt-get -q -y install --no-install-recommends \
 RUN update-alternatives \
     --install /usr/bin/clang          clang         /usr/bin/clang-16 160 \
     --slave   /usr/bin/clang++        clang++       /usr/bin/clang++-16 \
-    --slave   /usr/bin/clang-format   clang-format  /usr/bin/clang-format-16
+    --slave   /usr/bin/clang-format   clang-format  /usr/bin/clang-format-16 \
+    --slave   /usr/bin/lldb           lldb          /usr/bin/lldb-16
