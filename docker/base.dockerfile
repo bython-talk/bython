@@ -6,7 +6,7 @@ RUN apt-get -q update
 
 RUN apt-get -q -y install --no-install-recommends \
     build-essential wget gpg software-properties-common gnupg \
-    libedit-dev libzstd-dev libcurl4-openssl-dev libxml2-dev
+    libedit-dev libzstd-dev zlib1g-dev libcurl4-openssl-dev libxml2-dev
 
 RUN wget https://apt.llvm.org/llvm.sh
 RUN chmod +x /llvm.sh
