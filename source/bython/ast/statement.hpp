@@ -17,11 +17,6 @@ using statements = std::vector<std::unique_ptr<statement>>;
 
 struct type_definition_stmt
 {
-  explicit type_definition_stmt(std::string identifier_)
-      : identifier {std::move(identifier_)}
-  {
-  }
-
   std::string identifier;
 };
 using type_definition_stmts = std::vector<type_definition_stmt>;
