@@ -15,7 +15,7 @@ include(cmake/variables.cmake)
 
 # --- Third Party Deps ---
 find_package(lexy REQUIRED)
-find_package(LLVM REQUIRED)
+find_package(LLVM REQUIRED CONFIG)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -44,7 +44,7 @@ target_link_directories(bython_lib PRIVATE foonathan::lexy)
 
 # Configure LLVM
 #target_include_directories(bython_lib PRIVATE ${LLVM_INCLUDE_DIRS})
-target_link_libraries(bython_lib PRIVATE ${LLVM_AVAILABLE_LIBS})
+target_link_libraries(bython_lib PRIVATE LLVMCore;LLVMSystem;LLVMSupport)
 #target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
 #target_link_options(bython_lib PRIVATE "LINKER:${LLVM_LDFLAGS}")
 
