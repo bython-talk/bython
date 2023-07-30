@@ -1,7 +1,5 @@
 #include "module.hpp"
 
-#include <bython/visitation.hpp>
-
 namespace bython::ast
 {
 mod::mod(statements body_)
@@ -9,8 +7,4 @@ mod::mod(statements body_)
 {
 }
 
-auto mod::accept(visitation::visitor& visitor) const -> void
-{
-  visitor.visit(*this);
-}
 }  // namespace bython::ast

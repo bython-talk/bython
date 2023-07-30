@@ -11,8 +11,6 @@ struct mod final : node
 {
   explicit mod(statements body_);
 
-  auto accept(visitation::visitor& visitor) const -> void override;
-
   ast::statements body;
 };
 }  // namespace bython::ast

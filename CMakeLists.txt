@@ -42,7 +42,7 @@ target_compile_features(bython_lib PUBLIC cxx_std_17)
 target_link_directories(bython_lib PRIVATE foonathan::lexy)
 
 # Configure LLVM
-#target_include_directories(bython_lib PRIVATE ${LLVM_INCLUDE_DIRS})
+target_include_directories(bython_lib SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(bython_lib PRIVATE LLVMCore LLVMSupport)
 #target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
 #target_link_options(bython_lib PRIVATE "LINKER:${LLVM_LDFLAGS}")

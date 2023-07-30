@@ -19,8 +19,6 @@ struct unary_operator final : node
   {
   }
 
-  auto accept(visitation::visitor& visitor) const -> void override;
-
   unop_tag op;
 };
 
@@ -65,8 +63,6 @@ struct binary_operator final : node
   {
   }
 
-  auto accept(visitation::visitor& visitor) const -> void override;
-
   binop_tag op;
 };
 
@@ -89,8 +85,6 @@ struct comparison_operator final : node
       : op {op_}
   {
   }
-
-  auto accept(visitation::visitor& visitor) const -> void override;
 
   comparison_operator_tag op;
 };
