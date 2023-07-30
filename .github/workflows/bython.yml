@@ -31,7 +31,7 @@ jobs:
 
       - name: Lint
         run: |
-          cmake -D FORMAT_COMMAND=clang-format -P cmake/lint.cmake
+          cmake -D FORMAT_COMMAND=clang-format-16 -P cmake/lint.cmake
 
   sanitize:
     needs: [lint]
