@@ -26,7 +26,6 @@ message(STATUS LLVM_DEFINITIONS: ${LLVM_DEFINITIONS})
 message(STATUS LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS})
 
 # ---- Declare library ----
-
 add_library(
     bython_lib OBJECT
     source/lib.cpp
@@ -44,7 +43,7 @@ target_link_directories(bython_lib PRIVATE foonathan::lexy)
 
 # Configure LLVM
 #target_include_directories(bython_lib PRIVATE ${LLVM_INCLUDE_DIRS})
-target_link_libraries(bython_lib PRIVATE LLVMCore;LLVMSystem;LLVMSupport)
+target_link_libraries(bython_lib PRIVATE LLVMCore LLVMSupport)
 #target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
 #target_link_options(bython_lib PRIVATE "LINKER:${LLVM_LDFLAGS}")
 
