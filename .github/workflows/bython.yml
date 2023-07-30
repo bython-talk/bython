@@ -21,7 +21,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/bython-talk/bython-dev:latest
+      image: ghcr.io/bython-talk/bython-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -46,11 +46,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install Tools & Sanitisers
-      run: |
-        apt-get -qq update
-        apt-get -qq install --no-install-recommends cmake ninja-build -y
-
     - name: Configure
       run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
 
@@ -71,7 +66,7 @@ jobs:
     needs: [lint]
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/bython-talk/bython-dev:latest
+      image: ghcr.io/bython-talk/bython-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -84,10 +79,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Install LCov and make
-        run: |
-          apt install -qq -y cmake lcov make
-
       - name: Configure
         run: cmake -Wno-error=dev --preset=ci-coverage
 
@@ -117,7 +108,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     container:
-      image: ghcr.io/bython-talk/bython-dev:latest
+      image: ghcr.io/bython-talk/bython-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
@@ -143,14 +134,6 @@ jobs:
   docs:
     # Deploy docs only when builds succeed
     needs: [sanitize, test]
-
-    runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/bython-talk/bython-dev:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
-
     # To enable, first you have to create an orphaned gh-pages branch:
     #
     #    git switch --orphan gh-pages
@@ -166,6 +149,8 @@ jobs:
       && github.event_name == 'push'
       && github.repository_owner == 'bython-talk'
 
+    runs-on: ubuntu-22.04
+
     permissions:
       contents: write
 
@@ -178,8 +163,8 @@ jobs:
       - name: Install m.css dependencies
         run: pip3 install jinja2 Pygments
 
-      - name: Install Doxygen
-        run: apt install -y doxygen
+      - name: Install Doxygen and CMake for Documentation
+        run: apt-get install -y doxygen cmake
 
       - name: Build docs
         run: cmake "-DPROJECT_SOURCE_DIR=$PWD" "-DPROJECT_BINARY_DIR=$PWD/build"
