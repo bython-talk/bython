@@ -15,13 +15,16 @@ include(cmake/variables.cmake)
 
 # --- Third Party Deps ---
 find_package(lexy REQUIRED)
+find_package(LLVM REQUIRED)
 
-find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
-execute_process(COMMAND llvm-config --libs all OUTPUT_VARIABLE llvm_libraries)
+
+message(STATUS LLVM_INCLUDE_DIRS: ${LLVM_INCLUDE_DIRS})
+message(STATUS LLVM_LIBRARY_DIRS: ${LLVM_LIBRARY_DIRS})
+message(STATUS LLVM_DEFINITIONS: ${LLVM_DEFINITIONS})
+message(STATUS LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS})
+
 # ---- Declare library ----
 
 add_library(
@@ -37,7 +40,14 @@ target_include_directories(
 )
 
 target_compile_features(bython_lib PUBLIC cxx_std_17)
-target_link_libraries(bython_lib PUBLIC foonathan::lexy ${llvm_libraries})
+target_link_directories(bython_lib PRIVATE foonathan::lexy)
+
+# Configure LLVM
+#target_include_directories(bython_lib PRIVATE ${LLVM_INCLUDE_DIRS})
+target_link_libraries(bython_lib PRIVATE ${LLVM_AVAILABLE_LIBS})
+#target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
+#target_link_options(bython_lib PRIVATE "LINKER:${LLVM_LDFLAGS}")
+
 
 
 # ---- Declare executable ----
@@ -49,7 +59,7 @@ add_subdirectory(source)
 set_property(TARGET bython_exe PROPERTY OUTPUT_NAME bython)
 
 target_compile_features(bython_exe PRIVATE cxx_std_17)
-target_link_libraries(bython_exe PRIVATE bython_lib ${llvm_libraries})
+target_link_libraries(bython_exe PRIVATE bython_lib)
 
 
 # ---- Install rules ----
