@@ -108,7 +108,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     container:
-      image: ghcr.io/bython-talk/bython-ci:latest
+      image: ghcr.io/bython-talk/bython-dev:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
