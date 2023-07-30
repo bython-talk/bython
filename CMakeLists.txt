@@ -7,16 +7,14 @@ project(
     VERSION 0.1.0
     DESCRIPTION "Short description"
     HOMEPAGE_URL "https://example.com/"
-    LANGUAGES  C CXX
+    LANGUAGES C CXX
 )
 
 include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
 
 # --- Third Party Deps ---
-include(FetchContent)
-FetchContent_Declare(lexy URL https://github.com/foonathan/lexy/releases/download/v2022.12.1/lexy-src.zip)
-FetchContent_MakeAvailable(lexy)
+find_package(lexy REQUIRED)
 
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -39,7 +37,7 @@ target_include_directories(
 )
 
 target_compile_features(bython_lib PUBLIC cxx_std_17)
-target_link_libraries(bython_lib PUBLIC foonathan::lexy ${llvm_libs})
+target_link_libraries(bython_lib PUBLIC foonathan::lexy ${llvm_libraries})
 
 
 # ---- Declare executable ----
@@ -51,7 +49,7 @@ add_subdirectory(source)
 set_property(TARGET bython_exe PROPERTY OUTPUT_NAME bython)
 
 target_compile_features(bython_exe PRIVATE cxx_std_17)
-target_link_libraries(bython_exe PRIVATE bython_lib ${llvm_libs})
+target_link_libraries(bython_exe PRIVATE bython_lib ${llvm_libraries})
 
 
 # ---- Install rules ----
