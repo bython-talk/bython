@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cassert>
+#include <stdexcept>
 
 namespace bython::ast
 {
@@ -78,7 +78,8 @@ struct visitor
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(call, inst)
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(integer, inst)
 
-    assert(0);
+    throw std::logic_error(
+        "Unexpected expression type; could not downcast and dispatch");
   }
 
   // Statement classes
@@ -94,7 +95,8 @@ struct visitor
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(type_definition, inst)
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(assignment, inst)
 
-    assert(0);
+    throw std::logic_error(
+        "Unexpected statement type; could not downcast and dispatch");
   }
 
   // Compound classes
@@ -122,7 +124,8 @@ struct visitor
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(conditional_branch, inst)
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(unconditional_branch, inst)
 
-    assert(0);
+    throw std::logic_error(
+        "Unexpected compound statement type; could not downcast and dispatch");
   }
 
   // Misc. TODO: make downcast methods
