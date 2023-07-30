@@ -3,7 +3,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /
 RUN apt-get -q update
-RUN apt-get -q -y install --no-install-recommends build-essential wget gpg software-properties-common gnupg
+
+RUN apt-get -q -y install --no-install-recommends \
+    build-essential wget gpg software-properties-common gnupg \
+    libedit-dev libzstd-dev zlib1g-dev libcurl4-openssl-dev libxml2-dev
 
 RUN wget https://apt.llvm.org/llvm.sh
 RUN chmod +x /llvm.sh
@@ -48,5 +51,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=/usr/lib/ \
 
 RUN cmake --build . -j4
 RUN cmake --install .
+
+WORKDIR /
 
 ENTRYPOINT [ "/bin/bash" ]
