@@ -120,7 +120,7 @@ jobs:
         shell: sh
         run: |
           os=$(echo ${{ matrix.os }} | cut -d '-' -f 1)
-          cmake -Wno-error=dev --preset=ci-$os
+          cmake -Wno-error=dev --preset=ci-$os -G Ninja
 
       - name: Build
         run: cmake --build build --config Release -j 2
