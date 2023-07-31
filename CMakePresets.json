@@ -33,7 +33,7 @@
       "name": "cppcheck",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_CXX_CPPCHECK": "cppcheck;--inline-suppr;${sourceDir}"
+        "CMAKE_CXX_CPPCHECK": "cppcheck;--inline-suppr"
       }
     },
     {
