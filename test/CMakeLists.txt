@@ -11,6 +11,7 @@ find_package(Catch2 3 REQUIRED)
 
 add_executable(bython_test)
 
+add_subdirectory(codegen)
 add_subdirectory(matching)
 add_subdirectory(parser)
 add_subdirectory(visitation)
