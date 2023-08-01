@@ -30,7 +30,7 @@ RUN cmake --install .
 
 
 
-FROM llvm16-catch3 AS bython-base
+FROM llvm16-catch3 AS llvm16-catch3-lexy
 ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /
@@ -53,5 +53,12 @@ RUN cmake --build . -j4
 RUN cmake --install .
 
 WORKDIR /
+
+
+FROM llvm16-catch3-lexy AS bython-base
+
+RUN apt-get -q -y update
+RUN apt-get -q -y install --no-install-recommends pipx && apt-get clean all
+RUN pipx ensurepath && pipx install lit
 
 ENTRYPOINT [ "/bin/bash" ]
