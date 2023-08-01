@@ -15,8 +15,7 @@ auto one_of::matches(const ast::node& ast) const -> bool
 {
   return std::any_of(this->matchers.begin(),
                      this->matchers.end(),
-                     [&](auto const& match)
-                     { return matching::matches(ast, *match); });
+                     [&](auto const& match) { return matching::matches(ast, *match); });
 }
 
 auto operator|(std::unique_ptr<matcher> lhs, std::unique_ptr<matcher> rhs)
@@ -26,10 +25,9 @@ auto operator|(std::unique_ptr<matcher> lhs, std::unique_ptr<matcher> rhs)
   auto* rhs_one_of_inst = dynamic_cast<one_of*>(&*rhs);
 
   if (lhs_one_of_inst != nullptr && rhs_one_of_inst != nullptr) {
-    lhs_one_of_inst->matchers.insert(
-        lhs_one_of_inst->matchers.end(),
-        std::make_move_iterator(rhs_one_of_inst->matchers.begin()),
-        std::make_move_iterator(rhs_one_of_inst->matchers.end()));
+    lhs_one_of_inst->matchers.insert(lhs_one_of_inst->matchers.end(),
+                                     std::make_move_iterator(rhs_one_of_inst->matchers.begin()),
+                                     std::make_move_iterator(rhs_one_of_inst->matchers.end()));
     return std::make_unique<one_of>(std::move(*lhs_one_of_inst));
   }
 

@@ -11,8 +11,8 @@ namespace dsl = lexy::dsl;
 
 namespace internal
 {
-static constexpr auto identifier = dsl::identifier(
-    dsl::ascii::alpha_underscore, dsl::ascii::alpha_digit_underscore);
+static constexpr auto identifier =
+    dsl::identifier(dsl::ascii::alpha_underscore, dsl::ascii::alpha_digit_underscore);
 
 }  // namespace internal
 
@@ -30,14 +30,13 @@ static constexpr auto else_ = LEXY_KEYWORD("else", internal::identifier);
 
 namespace internal
 {
-static constexpr auto reserved_identifier =
-    identifier.reserve(keyword::funcdef_,
-                       keyword::return_,
-                       keyword::variable_,
-                       keyword::struct_,
-                       keyword::if_,
-                       keyword::elif_,
-                       keyword::else_);
+static constexpr auto reserved_identifier = identifier.reserve(keyword::funcdef_,
+                                                               keyword::return_,
+                                                               keyword::variable_,
+                                                               keyword::struct_,
+                                                               keyword::if_,
+                                                               keyword::elif_,
+                                                               keyword::else_);
 }  // namespace internal
 
 struct symbol_identifier
@@ -58,8 +57,7 @@ static constexpr auto new_unique_ptr = lexy::new_<T, std::unique_ptr<U>>;
 /* === Expressions === */
 
 template<typename T>
-static constexpr auto new_expression =
-    grammar::new_unique_ptr<T, ast::expression>;
+static constexpr auto new_expression = grammar::new_unique_ptr<T, ast::expression>;
 
 struct nested_expression : lexy::transparent_production
 {
@@ -69,11 +67,9 @@ struct nested_expression : lexy::transparent_production
 
 struct integer : lexy::token_production
 {
-  static constexpr auto rule =
-      LEXY_LIT("0x") >> dsl::integer<int, dsl::hex> | dsl::integer<int>;
+  static constexpr auto rule = LEXY_LIT("0x") >> dsl::integer<int, dsl::hex> | dsl::integer<int>;
 
-  static constexpr auto value =
-      lexy::construct<ast::integer> | new_expression<ast::integer>;
+  static constexpr auto value = lexy::construct<ast::integer> | new_expression<ast::integer>;
 };
 
 struct var_or_call
@@ -92,15 +88,14 @@ struct var_or_call
   static constexpr auto rule = []
   { return dsl::p<symbol_identifier> >> dsl::if_(dsl::p<parameter_list>); }();
 
-  static constexpr auto value = lexy::callback(
-      lexy::construct<ast::variable> | new_expression<ast::variable>,
-      lexy::construct<ast::call> | new_expression<ast::call>);
+  static constexpr auto value =
+      lexy::callback(lexy::construct<ast::variable> | new_expression<ast::variable>,
+                     lexy::construct<ast::call> | new_expression<ast::call>);
 };
 
 struct parenthesized
 {
-  static constexpr auto rule = []
-  { return dsl::parenthesized(dsl::p<nested_expression>); }();
+  static constexpr auto rule = [] { return dsl::parenthesized(dsl::p<nested_expression>); }();
 
   static constexpr auto value = lexy::forward<std::unique_ptr<ast::expression>>;
 };
@@ -109,55 +104,43 @@ namespace operators
 {
 static constexpr auto pow = dsl::op<ast::binop_tag::pow>(LEXY_LIT("**"));
 
-static constexpr auto unary_plus =
-    dsl::op<ast::unop_tag::plus>(dsl::lit_c<'+'>);
-static constexpr auto unary_minus =
-    dsl::op<ast::unop_tag::minus>(dsl::lit_c<'-'>);
-static constexpr auto unary_bitnegate =
-    dsl::op<ast::unop_tag::bitnegate>(dsl::lit_c<'~'>);
+static constexpr auto unary_plus = dsl::op<ast::unop_tag::plus>(dsl::lit_c<'+'>);
+static constexpr auto unary_minus = dsl::op<ast::unop_tag::minus>(dsl::lit_c<'-'>);
+static constexpr auto unary_bitnegate = dsl::op<ast::unop_tag::bitnegate>(dsl::lit_c<'~'>);
 
-static constexpr auto mul = dsl::op<ast::binop_tag::multiply>(
-    dsl::not_followed_by(LEXY_LIT("*"), dsl::lit_c<'*'>));
+static constexpr auto mul =
+    dsl::op<ast::binop_tag::multiply>(dsl::not_followed_by(LEXY_LIT("*"), dsl::lit_c<'*'>));
 static constexpr auto div = dsl::op<ast::binop_tag::divide>(dsl::lit_c<'/'>);
 static constexpr auto modulo = dsl::op<ast::binop_tag::modulo>(dsl::lit_c<'%'>);
 
 static constexpr auto add = dsl::op<ast::binop_tag::plus>(dsl::lit_c<'+'>);
 static constexpr auto minus = dsl::op<ast::binop_tag::minus>(dsl::lit_c<'-'>);
 
-static constexpr auto bitshift_right =
-    dsl::op<ast::binop_tag::bitshift_right_>(LEXY_LIT(">>"));
-static constexpr auto bitshift_left =
-    dsl::op<ast::binop_tag::bitshift_left_>(LEXY_LIT("<<"));
+static constexpr auto bitshift_right = dsl::op<ast::binop_tag::bitshift_right_>(LEXY_LIT(">>"));
+static constexpr auto bitshift_left = dsl::op<ast::binop_tag::bitshift_left_>(LEXY_LIT("<<"));
 
-static constexpr auto bitand_ = dsl::op<ast::binop_tag::bitand_>(
-    dsl::not_followed_by(LEXY_LIT("&"), dsl::lit_c<'&'>));
-static constexpr auto bitor_ = dsl::op<ast::binop_tag::bitor_>(
-    dsl::not_followed_by(LEXY_LIT("|"), dsl::lit_c<'|'>));
-static constexpr auto bitxor_ =
-    dsl::op<ast::binop_tag::bitxor_>(dsl::lit_c<'^'>);
+static constexpr auto bitand_ =
+    dsl::op<ast::binop_tag::bitand_>(dsl::not_followed_by(LEXY_LIT("&"), dsl::lit_c<'&'>));
+static constexpr auto bitor_ =
+    dsl::op<ast::binop_tag::bitor_>(dsl::not_followed_by(LEXY_LIT("|"), dsl::lit_c<'|'>));
+static constexpr auto bitxor_ = dsl::op<ast::binop_tag::bitxor_>(dsl::lit_c<'^'>);
 
-static constexpr auto logical_and =
-    dsl::op<ast::binop_tag::booland>(LEXY_LIT("&&"));
-static constexpr auto logical_or =
-    dsl::op<ast::binop_tag::boolor>(LEXY_LIT("||"));
+static constexpr auto logical_and = dsl::op<ast::binop_tag::booland>(LEXY_LIT("&&"));
+static constexpr auto logical_or = dsl::op<ast::binop_tag::boolor>(LEXY_LIT("||"));
 
 static constexpr auto lsr = dsl::op<ast::comparison_operator_tag::lsr>(
     dsl::not_followed_by(dsl::lit_c<'<'>, dsl::lit_c<'='>));
 
-static constexpr auto leq =
-    dsl::op<ast::comparison_operator_tag::leq>(LEXY_LIT("<="));
+static constexpr auto leq = dsl::op<ast::comparison_operator_tag::leq>(LEXY_LIT("<="));
 
-static constexpr auto geq =
-    dsl::op<ast::comparison_operator_tag::geq>(LEXY_LIT(">="));
+static constexpr auto geq = dsl::op<ast::comparison_operator_tag::geq>(LEXY_LIT(">="));
 
 static constexpr auto grt = dsl::op<ast::comparison_operator_tag::grt>(
     dsl::not_followed_by(dsl::lit_c<'>'>, dsl::lit_c<'='>));
 
-static constexpr auto eq =
-    dsl::op<ast::comparison_operator_tag::eq>(LEXY_LIT("=="));
+static constexpr auto eq = dsl::op<ast::comparison_operator_tag::eq>(LEXY_LIT("=="));
 
-static constexpr auto neq =
-    dsl::op<ast::comparison_operator_tag::neq>(LEXY_LIT("!="));
+static constexpr auto neq = dsl::op<ast::comparison_operator_tag::neq>(LEXY_LIT("!="));
 
 }  // namespace operators
 
@@ -182,15 +165,14 @@ struct expr_prod : lexy::expression_production
 
   struct unary_operation : dsl::prefix_op
   {
-    static constexpr auto op = operators::unary_plus / operators::unary_minus
-        / operators::unary_bitnegate;
+    static constexpr auto op =
+        operators::unary_plus / operators::unary_minus / operators::unary_bitnegate;
     using operand = math_power;
   };
 
   struct math_product : dsl::infix_op_right
   {
-    static constexpr auto op =
-        operators::mul / operators::div / operators::modulo;
+    static constexpr auto op = operators::mul / operators::div / operators::modulo;
     using operand = unary_operation;
   };
 
@@ -202,8 +184,7 @@ struct expr_prod : lexy::expression_production
 
   struct bitshift : dsl::infix_op_left
   {
-    static constexpr auto op =
-        operators::bitshift_right / operators::bitshift_left;
+    static constexpr auto op = operators::bitshift_right / operators::bitshift_left;
     using operand = math_sum;
   };
 
@@ -239,8 +220,8 @@ struct expr_prod : lexy::expression_production
 
   struct comparison : dsl::infix_op_list
   {
-    static constexpr auto op = operators::neq / operators::eq / operators::grt
-        / operators::geq / operators::leq / operators::lsr;
+    static constexpr auto op = operators::neq / operators::eq / operators::grt / operators::geq
+        / operators::leq / operators::lsr;
     using operand = logical_or;
   };
 
@@ -251,15 +232,12 @@ struct expr_prod : lexy::expression_production
           []
           {
             auto empty_comp =
-                ast::comparison {ast::expressions {},
-                                 std::vector<ast::comparison_operator_tag> {}};
+                ast::comparison {ast::expressions {}, std::vector<ast::comparison_operator_tag> {}};
             return std::make_unique<ast::comparison>(std::move(empty_comp));
           },
-          [](std::unique_ptr<ast::comparison>& comparison,
-             std::unique_ptr<ast::expression> expr)
+          [](std::unique_ptr<ast::comparison>& comparison, std::unique_ptr<ast::expression> expr)
           { comparison->add_operand(std::move(expr)); },
-          [](std::unique_ptr<ast::comparison>& comparison,
-             ast::comparison_operator_tag cmp)
+          [](std::unique_ptr<ast::comparison>& comparison, ast::comparison_operator_tag cmp)
           { comparison->add_operator(std::move(cmp)); })
       >> lexy::callback(new_expression<ast::call>,
                         new_expression<ast::variable>,
@@ -278,12 +256,10 @@ struct expression
 
 /* === Statements === */
 template<typename T>
-static constexpr auto new_statement =
-    grammar::new_unique_ptr<T, ast::statement>;
+static constexpr auto new_statement = grammar::new_unique_ptr<T, ast::statement>;
 
 template<typename T>
-static constexpr auto new_compound_statement =
-    grammar::new_unique_ptr<T, ast::compound>;
+static constexpr auto new_compound_statement = grammar::new_unique_ptr<T, ast::compound>;
 
 /* === Inner Statements === */
 
@@ -304,11 +280,10 @@ struct dependent_branch
     return keyword::elif_ >> another_elif | keyword::else_ >> terminating_else;
   }();
 
-  static constexpr auto value =
-      lexy::callback(lexy::construct<ast::conditional_branch>
-                         | new_compound_statement<ast::conditional_branch>,
-                     lexy::construct<ast::unconditional_branch>
-                         | new_compound_statement<ast::unconditional_branch>);
+  static constexpr auto value = lexy::callback(
+      lexy::construct<ast::conditional_branch> | new_compound_statement<ast::conditional_branch>,
+      lexy::construct<ast::unconditional_branch>
+          | new_compound_statement<ast::unconditional_branch>);
 };
 
 struct conditional_branch
@@ -317,16 +292,13 @@ struct conditional_branch
   {
     auto alt_condition = dsl::p<dependent_branch>;
 
-    auto introduced = dsl::p<nested_expression> + dsl::p<branch_body>
-        + dsl::opt(alt_condition);
+    auto introduced = dsl::p<nested_expression> + dsl::p<branch_body> + dsl::opt(alt_condition);
     return keyword::if_ >> introduced;
   }();
 
   static constexpr auto value =
-      lexy::bind(lexy::construct<ast::conditional_branch>,
-                 lexy::_1,
-                 lexy::_2,
-                 lexy::_3.or_default())
+      lexy::bind(
+          lexy::construct<ast::conditional_branch>, lexy::_1, lexy::_2, lexy::_3.or_default())
       | new_compound_statement<ast::conditional_branch>;
 };
 
@@ -334,13 +306,11 @@ struct assignment
 {
   static constexpr auto rule = []
   {
-    auto introduced =
-        dsl::p<grammar::symbol_identifier> + LEXY_LIT("=") + dsl::p<expression>;
+    auto introduced = dsl::p<grammar::symbol_identifier> + LEXY_LIT("=") + dsl::p<expression>;
     return keyword::variable_ >> introduced;
   }();
 
-  static constexpr auto value =
-      lexy::construct<ast::assignment> | new_statement<ast::assignment>;
+  static constexpr auto value = lexy::construct<ast::assignment> | new_statement<ast::assignment>;
 };
 
 struct inner_stmt
@@ -394,18 +364,15 @@ struct function_def
   struct parameters
   {
     static constexpr auto rule = []
-    {
-      return dsl::round_bracketed.opt_list(dsl::p<parameter>,
-                                           dsl::trailing_sep(dsl::comma));
-    }();
+    { return dsl::round_bracketed.opt_list(dsl::p<parameter>, dsl::trailing_sep(dsl::comma)); }();
 
     static constexpr auto value = lexy::as_list<ast::parameters>;
   };
 
   static constexpr auto rule = []
   {
-    auto introduced = dsl::p<grammar::symbol_identifier> + dsl::p<parameters>
-        + dsl::p<outer_compound_body>;
+    auto introduced =
+        dsl::p<grammar::symbol_identifier> + dsl::p<parameters> + dsl::p<outer_compound_body>;
     return keyword::funcdef_ >> introduced;
   }();
 
@@ -416,10 +383,8 @@ struct type_def
 {
   struct body
   {
-    static constexpr auto rule = []
-    {
-      return dsl::curly_bracketed.opt_list(dsl::p<type_identifier>,
-                                           dsl::trailing_sep(dsl::comma));
+    static constexpr auto rule = [] {
+      return dsl::curly_bracketed.opt_list(dsl::p<type_identifier>, dsl::trailing_sep(dsl::comma));
     }();
 
     static constexpr auto value = lexy::as_list<ast::type_definition_stmts>;
@@ -437,8 +402,7 @@ struct type_def
 struct outer_stmt
 {
   template<typename T>
-  static constexpr auto new_outer_statement =
-      grammar::new_unique_ptr<T, ast::statement>;
+  static constexpr auto new_outer_statement = grammar::new_unique_ptr<T, ast::statement>;
 
   struct outer_stmt_error
   {
@@ -447,13 +411,9 @@ struct outer_stmt
   };
 
   static constexpr auto rule = []
-  {
-    return dsl::p<function_def> | dsl::p<type_def>
-        | dsl::error<outer_stmt_error>;
-  }();
-  static constexpr auto value =
-      lexy::callback(new_outer_statement<ast::function_def>,
-                     new_outer_statement<ast::type_definition>);
+  { return dsl::p<function_def> | dsl::p<type_def> | dsl::error<outer_stmt_error>; }();
+  static constexpr auto value = lexy::callback(new_outer_statement<ast::function_def>,
+                                               new_outer_statement<ast::type_definition>);
 };
 
 struct mod
@@ -464,7 +424,6 @@ struct mod
     return dsl::list(dsl::p<outer_stmt>, dsl::sep(dsl::newline));
   }();
 
-  static constexpr auto value =
-      lexy::as_list<ast::statements> >> lexy::construct<ast::mod>;
+  static constexpr auto value = lexy::as_list<ast::statements> >> lexy::construct<ast::mod>;
 };
 }  // namespace bython::grammar

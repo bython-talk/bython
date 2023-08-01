@@ -8,8 +8,7 @@ assignment::assignment(std::string lhs_, std::unique_ptr<expression> rhs_)
 {
 }
 
-type_definition::type_definition(std::string identifier_,
-                                 bython::ast::type_definition_stmts body_)
+type_definition::type_definition(std::string identifier_, bython::ast::type_definition_stmts body_)
     : identifier {std::move(identifier_)}
     , body {std::move(body_)}
 {

@@ -9,8 +9,7 @@ namespace bython::matching
 auto assignment::matches(ast::node const& ast) const -> bool
 {
   if (auto const* assgn = ast::dyn_cast<ast::assignment>(&ast)) {
-    return this->lhs == assgn->lhs
-        && matching::matches(*assgn->rhs, *this->rhs);
+    return this->lhs == assgn->lhs && matching::matches(*assgn->rhs, *this->rhs);
   }
 
   return false;

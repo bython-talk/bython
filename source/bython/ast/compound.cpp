@@ -7,8 +7,7 @@ compound::compound(statements body_)
 {
 }
 
-conditional_branch::conditional_branch(std::unique_ptr<expression> condition_,
-                                       statements body_)
+conditional_branch::conditional_branch(std::unique_ptr<expression> condition_, statements body_)
     : compound {std::move(body_)}
     , condition {std::move(condition_)}
     , orelse {nullptr}

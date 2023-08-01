@@ -24,8 +24,7 @@ TEST_CASE("Unary Operation", "[Visitation]")
 
 TEST_CASE("Binary Operation", "[Visitation]")
 {
-  struct binary_operation_visitor final
-      : visitor<binary_operation_visitor, bool>
+  struct binary_operation_visitor final : visitor<binary_operation_visitor, bool>
   {
     BYTHON_VISITOR_IMPL(binary_operation, /*_*/)
     {
@@ -37,8 +36,7 @@ TEST_CASE("Binary Operation", "[Visitation]")
     }
   };
 
-  auto node = binary_operation {std::make_unique<variable>("lhs"),
-                                binop_tag::plus,
-                                std::make_unique<variable>("rhs")};
+  auto node = binary_operation {
+      std::make_unique<variable>("lhs"), binop_tag::plus, std::make_unique<variable>("rhs")};
   REQUIRE(binary_operation_visitor {}.visit(node));
 }

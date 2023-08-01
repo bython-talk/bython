@@ -49,9 +49,7 @@ using parameters = std::vector<parameter>;
 
 struct function_def final : compound
 {
-  function_def(std::string name_,
-               std::vector<parameter> parameters_,
-               statements body_)
+  function_def(std::string name_, std::vector<parameter> parameters_, statements body_)
       : compound(std::move(body_))
       , name(std::move(name_))
       , parameters(std::move(parameters_))

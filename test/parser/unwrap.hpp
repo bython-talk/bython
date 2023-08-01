@@ -31,8 +31,8 @@ auto unwrap_grammar(std::string_view code) -> T
 {
   CAPTURE(code);
 
-  auto expression_ast = lexy::parse<bython::grammar::top_level<Grammar>>(
-      lexy::string_input(code), lexy_ext::report_error);
+  auto expression_ast = lexy::parse<bython::grammar::top_level<Grammar>>(lexy::string_input(code),
+                                                                         lexy_ext::report_error);
 
   INFO("Errors: " << expression_ast.errors());
   REQUIRE(expression_ast.is_success());
@@ -43,8 +43,8 @@ auto unwrap_grammar(std::string_view code) -> T
 template<typename Grammar, typename T>
 auto unwrap_grammar_failure(std::string_view code) -> void
 {
-  auto expression_ast = lexy::parse<bython::grammar::top_level<Grammar>>(
-      lexy::string_input(code), lexy_ext::report_error);
+  auto expression_ast = lexy::parse<bython::grammar::top_level<Grammar>>(lexy::string_input(code),
+                                                                         lexy_ext::report_error);
   if (expression_ast.is_success()) {
     FAIL(code << " should not parse!");
   }
