@@ -59,6 +59,8 @@ FROM llvm16-catch3-lexy AS bython-base
 
 RUN apt-get -q -y update
 RUN apt-get -q -y install --no-install-recommends pipx && apt-get clean all
-RUN pipx ensurepath && pipx install lit
+
+RUN pipx install lit
+ENV PATH="${PATH}:/root/.local/bin"
 
 ENTRYPOINT [ "/bin/bash" ]
