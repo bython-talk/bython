@@ -1,0 +1,10 @@
+{
+	"image": "ghcr.io/bython-talk/bython-dev:latest",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools-extension-pack"
+			]
+		}
+	}
+}
