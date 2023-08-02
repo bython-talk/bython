@@ -344,8 +344,7 @@ struct outer_compound_body
 {
   static constexpr auto rule = []
   {
-    auto terminator = dsl::terminator(dsl::semicolon).limit(dsl::lit_c<'}'>);
-    return dsl::curly_bracketed.opt_list(terminator(dsl::p<inner_stmt>));
+    return dsl::curly_bracketed.opt_list(dsl::p<inner_stmt>);
   }();
 
   static constexpr auto value = lexy::as_list<ast::statements>;
