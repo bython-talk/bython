@@ -30,11 +30,8 @@ message(STATUS LLVM_DEFINITIONS: ${LLVM_DEFINITIONS})
 message(STATUS LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS})
 
 # ---- Declare library ----
-add_library(
-    bython_lib OBJECT
-    source/lib.cpp
-)
-
+add_library(bython_lib OBJECT source/bython/lib.cpp)
+add_subdirectory(source)
 
 target_include_directories(
     bython_lib ${warning_guard}
@@ -46,23 +43,26 @@ target_compile_features(bython_lib PUBLIC cxx_std_17)
 target_include_directories(bython_lib PRIVATE foonathan::lexy)
 
 target_include_directories(bython_lib SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
-target_link_libraries(bython_lib PRIVATE LLVMCore LLVMSupport)
+target_link_libraries(bython_lib PRIVATE LLVMCore)
 #target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
 #target_link_options(bython_lib PRIVATE "LINKER:${LLVM_LDFLAGS}")
 
 
 
-# ---- Declare executable ----
+# ---- Declare executables ----
 
-add_executable(bython_exe source/main.cpp)
-add_executable(bython::exe ALIAS bython_exe)
-add_subdirectory(source)
+foreach(VARIATION IN ITEMS repl compiler jit)
+  add_executable(bython_${VARIATION} source/${VARIATION}.cpp)
+  add_executable(bython::${VARIATION} ALIAS bython_${VARIATION})
 
-set_property(TARGET bython_exe PROPERTY OUTPUT_NAME bython)
+  target_compile_features(bython_${VARIATION} PRIVATE cxx_std_17)
 
-target_compile_features(bython_exe PRIVATE cxx_std_17)
-target_link_libraries(bython_exe PRIVATE bython_lib cxxopts::cxxopts)
+  # Use command line parser given by LLVM
+  target_include_directories(bython_${VARIATION} SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+  target_link_libraries(bython_${VARIATION} PRIVATE bython_lib LLVMSupport)
 
+  set_property(TARGET bython_${VARIATION} PROPERTY OUTPUT_NAME bython-${VARIATION})
+endforeach()
 
 # ---- Install rules ----
 

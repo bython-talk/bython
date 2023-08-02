@@ -1,6 +1,4 @@
-target_sources(bython_lib PRIVATE
-    lib.cpp
-)
+target_sources(bython_lib PRIVATE bython/lib.cpp)
 add_subdirectory(bython/ast)
 add_subdirectory(bython/codegen)
 add_subdirectory(bython/matching)
