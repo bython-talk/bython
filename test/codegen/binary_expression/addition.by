@@ -1,3 +1,6 @@
-// RUN: %jit --inpath %s | grep -e "3"
-val x = 1 + 2;
-print(x);
+# RUN: %jit --inpath %s | grep -e "-1"
+def main()
+{
+    val x = 1 + 2;
+    val _ = print(x);
+}
