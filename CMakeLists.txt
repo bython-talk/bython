@@ -27,7 +27,7 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS LLVM_INCLUDE_DIRS: ${LLVM_INCLUDE_DIRS})
 message(STATUS LLVM_LIBRARY_DIRS: ${LLVM_LIBRARY_DIRS})
 message(STATUS LLVM_DEFINITIONS: ${LLVM_DEFINITIONS})
-message(STATUS LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS})
+# message(STATUS LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS})
 
 # ---- Declare library ----
 add_library(bython_lib OBJECT source/bython/lib.cpp)
