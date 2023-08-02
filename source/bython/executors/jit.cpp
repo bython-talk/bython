@@ -7,7 +7,7 @@
 #include <bython/parser/grammar.hpp>
 #include <bython/parser/top_level_grammar.hpp>
 #include <lexy/action/parse.hpp>
-#include <lexy/input/file.hpp>  
+#include <lexy/input/file.hpp>
 #include <lexy_ext/report_error.hpp>
 #include <llvm/ExecutionEngine/MCJIT.h>
 
@@ -28,7 +28,8 @@ struct jit_compiler::jit_compiler_pimpl
     }
 
     auto contents = file.buffer();
-    auto parsed = lexy::parse<grammar::top_level<grammar::mod>>(contents, lexy_ext::report_error);
+    auto parsed = lexy::parse<grammar::top_level<grammar::mod>>(
+        contents, lexy_ext::report_error.path(input_file.c_str()));
     if (parsed.is_error()) {
       std::cerr << parsed.errors() << "\n";
       return -1;
@@ -39,19 +40,19 @@ struct jit_compiler::jit_compiler_pimpl
 
     std::string error;
     auto engine = llvm::EngineBuilder(std::move(codegen))
-        .setErrorStr(&error)
-        .setEngineKind(llvm::EngineKind::JIT)
-        .setVerifyModules(true)
-        // .setOptLevel
-        .create();
+                      .setErrorStr(&error)
+                      .setEngineKind(llvm::EngineKind::JIT)
+                      .setVerifyModules(true)
+                      // .setOptLevel
+                      .create();
     if (!engine) {
-        std::cerr << "JIT Error: " << error << "\n";
-        return -1;
+      std::cerr << "JIT Error: " << error << "\n";
+      return -1;
     }
     engine->finalizeObject();
 
     // Assume signature of function
-    using main_signature = void(*)(void);
+    using main_signature = void (*)(void);
 
     auto main_function_addr = engine->getFunctionAddress("main");
     auto mainptr = reinterpret_cast<main_signature>(main_function_addr);
@@ -74,4 +75,4 @@ auto jit_compiler::execute(std::filesystem::path const& input_file) -> int
 {
   return this->impl->execute(input_file);
 }
-}  // namespace bython::codegen
+}  // namespace bython::executor
