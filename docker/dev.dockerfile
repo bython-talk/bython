@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get -q -y update
 RUN apt-get -q -y install --no-install-recommends \
     ninja-build gdb cppcheck \
-    clang-format-16 \
+    clang-format-16 git \
     && apt-get clean all
 
 RUN update-alternatives \

@@ -5,12 +5,14 @@ if(BUILD_TESTING)
   add_subdirectory(test)
 endif()
 
-add_custom_target(
-    run-exe
-    COMMAND bython_exe
-    VERBATIM
-)
-add_dependencies(run-exe bython_exe)
+add_custom_target(run-repl COMMAND bython-repl VERBATIM)
+add_dependencies(run-repl bython_repl)
+
+add_custom_target(run-compiler COMMAND bython-compiler VERBATIM)
+add_dependencies(run-compiler bython_compiler)
+
+add_custom_target(run-jit COMMAND bython-jit VERBATIM)
+add_dependencies(run-jit bython_jit)
 
 option(BUILD_MCSS_DOCS "Build documentation using Doxygen and m.css" OFF)
 if(BUILD_MCSS_DOCS)

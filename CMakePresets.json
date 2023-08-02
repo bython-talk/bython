@@ -176,6 +176,38 @@
         "ci-win64",
         "dev-mode"
       ]
+    },
+    {
+      "name": "prod-build",
+      "binaryDir": "${sourceDir}/build/prod",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "prod-ubuntu",
+      "inherits": [
+        "prod-build",
+        "ci-linux"
+      ]
+    },
+    {
+      "name": "dev-build",
+      "binaryDir": "${sourceDir}/build/dev",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "dev-ubuntu",
+      "inherits": [
+        "dev-build",
+        "ci-linux",
+        "cppcheck",
+        "dev-mode"
+      ]
     }
   ]
 }
