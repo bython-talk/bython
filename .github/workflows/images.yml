@@ -3,7 +3,9 @@ name: Images
 on:
   pull_request:
     branches: develop
-    paths: docker/**
+    paths: 
+      - docker/*
+      - .github/workflows/images.yml
 
 env:
   REGISTRY: ghcr.io/bython-talk
