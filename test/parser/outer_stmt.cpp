@@ -33,6 +33,16 @@ TEST_CASE("Function Definition")
   {
     unwrap_grammar_failure<g::outer_stmt, ast::function_def>("f(a, b){}");
   }
+
+  SECTION("Multi-Body")
+  {
+    auto ast = unwrap_grammar<g::outer_stmt, ast::function_def>(R"(
+def f() {
+  val x = 1 + 2;
+  val y = 1 - 2;
+}
+)");
+  }
 }
 
 TEST_CASE("Type Definition")
