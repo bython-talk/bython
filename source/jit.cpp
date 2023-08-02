@@ -2,6 +2,8 @@
 #include <memory>
 #include <string>
 
+#include <bython/executors/jit.hpp>
+
 #include <llvm/Support/CommandLine.h>
 
 enum class opt_level
@@ -35,4 +37,7 @@ auto main(int argc, char* argv[]) -> int
                                   cl::init(opt_level::off));
 
   cl::ParseCommandLineOptions(argc, argv, "bython-jit");
+
+  auto jit = bython::executor::jit_compiler{};
+  return jit.execute(inpath.getValue());
 }
