@@ -7,7 +7,7 @@
 #include <lexy/action/parse.hpp>
 #include <lexy_ext/report_error.hpp>
 #include <lexy_ext/shell.hpp>
-namespace bython::codegen
+namespace bython::executor
 {
 
 struct interpreter::interpreter_pimpl

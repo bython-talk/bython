@@ -5,7 +5,7 @@
 
 #include <bython/ast/bases.hpp>
 
-namespace bython::codegen
+namespace bython::executor
 {
 struct interpreter
 {
