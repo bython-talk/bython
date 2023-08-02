@@ -7,14 +7,9 @@ project(bythonTests LANGUAGES CXX)
 
 find_package(Catch2 3 REQUIRED)
 
-# ---- Tests ----
+# ---- Catch2 Tests ----
 
 add_executable(bython_test)
-
-add_subdirectory(matching)
-add_subdirectory(parser)
-add_subdirectory(visitation)
-
 target_link_libraries(bython_test PRIVATE
         bython_lib
         Catch2::Catch2WithMain)
@@ -25,6 +20,12 @@ include(Catch)
 catch_discover_tests(bython_test)
 
 add_test(NAME bython_test COMMAND bython_test)
+set_tests_properties(bython_test PROPERTIES FIXTURES_SETUP bython_frontend)
+
+add_subdirectory(codegen)
+add_subdirectory(matching)
+add_subdirectory(parser)
+add_subdirectory(visitation)
 
 # ---- End-of-file commands ----
 
