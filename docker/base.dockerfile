@@ -13,49 +13,54 @@ RUN chmod +x /llvm.sh
 RUN /llvm.sh 16 && apt-get clean all
 
 
-FROM llvm16 AS llvm16-catch3
+FROM llvm16 AS llvm16-cmake-deps
 ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get -q -y install --no-install-recommends gcc unzip cmake make pkg-config
 
-RUN apt-get -q update
-RUN apt-get -q -y install --no-install-recommends gcc unzip cmake make && apt-get clean all
+
+### Catch2
 RUN wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.3.2.zip -O /catch2.zip && unzip /catch2.zip -d /catch2
+ARG CATCH2_BUILD_DIR=/catch2/Catch2-3.3.2/build
 
-WORKDIR /catch2/Catch2-3.3.2
-RUN cmake -E make_directory build
-
-WORKDIR /catch2/Catch2-3.3.2/build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=/usr/lib/ /catch2/Catch2-3.3.2
-RUN cmake --build . -j4
-RUN cmake --install .
+RUN cmake -DCMAKE_BUILD_TYPE=Release -S /catch2/Catch2-3.3.2 -B ${CATCH2_BUILD_DIR}
+RUN cmake --build ${CATCH2_BUILD_DIR} -j4 && cmake --install ${CATCH2_BUILD_DIR} --config Release
+RUN rm -r /catch2 /catch2.zip
 
 
-
-FROM llvm16-catch3 AS llvm16-catch3-lexy
-ENV DEBIAN_FRONTEND=noninteractive
-
-WORKDIR /
+### lexy
 RUN wget https://github.com/foonathan/lexy/archive/refs/tags/v2022.12.1.zip -O /lexy.zip && unzip /lexy.zip -d /lexy
+ARG LEXY_BUILD_DIR=/lexy/lexy-2022.12.1/build
 
-WORKDIR /lexy/lexy-2022.12.1/
-RUN cmake -E make_directory build
-
-WORKDIR /lexy/lexy-2022.12.1/build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=/usr/lib/ \
+RUN cmake -DCMAKE_BUILD_TYPE=Release \
     -DLEXY_BUILD_BENCHMARKS=OFF \
     -DLEXY_BUILD_EXAMPLES=OFF \
     -DLEXY_BUILD_TESTS=OFF \
     -DLEXY_BUILD_DOCS=OFF \
     -DLEXY_BUILD_PACKAGE=OFF \
-    -DLEXY_ENABLE_INSTALL=ON \
-    /lexy/lexy-2022.12.1
+    -DLEXY_ENABLE_INSTALL=ON \ 
+    -S /lexy/lexy-2022.12.1 -B ${LEXY_BUILD_DIR}
+RUN cmake --build ${LEXY_BUILD_DIR} -j4 && cmake --install ${LEXY_BUILD_DIR} --config RELEASE
+RUN rm -r /lexy /lexy.zip
 
-RUN cmake --build . -j4
-RUN cmake --install .
+### cxxopts
+RUN wget https://github.com/jarro2783/cxxopts/archive/refs/tags/v3.1.1.zip -O /cxxopts.zip && unzip /cxxopts.zip -d /cxxopts
+ARG CXXOPTS_BUILD_DIR=/cxxopts/cxxopts-3.1.1/build
 
-WORKDIR /
+RUN cmake -DCMAKE_BUILD_TYPE=Release \
+    -DCXXOPTS_STANDALONE_PROJECT=OFF \
+    -DCXXOPTS_BUILD_EXAMPLES=OFF \
+    -DCXXOPTS_BUILD_TESTS=OFF \
+    -DCXXOPTS_ENABLE_WARNINGS=OFF \
+    -DCXXOPTS_USE_UNICODE_HELP=ON \
+    -DCXXOPTS_ENABLE_INSTALL=ON \
+    -S /cxxopts/cxxopts-3.1.1 -B ${CXXOPTS_BUILD_DIR}
+RUN cmake --build ${CXXOPTS_BUILD_DIR} -j4 && cmake --install ${CXXOPTS_BUILD_DIR} --config RELEASE
+RUN rm -r /cxxopts /cxxopts.zip
 
 
-FROM llvm16-catch3-lexy AS bython-base
+
+
+FROM llvm16-cmake-deps AS bython-base
 
 RUN apt-get -q -y update
 RUN apt-get -q -y install --no-install-recommends pipx && apt-get clean all
