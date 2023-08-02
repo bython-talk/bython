@@ -47,6 +47,9 @@ struct visitor
 
   virtual ~visitor() = default;
 
+  BYTHON_VISITOR_DIRECT(mod, inst, return_type)
+  BYTHON_VISITOR_DELEGATE(mod, node, inst, return_type)
+
   // Expression classes
   BYTHON_VISITOR_DIRECT(unary_operation, inst, return_type)
   BYTHON_VISITOR_DELEGATE(unary_operation, expression, inst, return_type)
@@ -93,6 +96,7 @@ struct visitor
   {
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(type_definition, inst)
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(assignment, inst)
+    BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(function_def, inst)
 
     throw std::logic_error("Unexpected statement type; could not downcast and dispatch");
   }
@@ -138,6 +142,7 @@ struct visitor
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(compound, inst)
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(statement, inst)
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(expression, inst)
+    BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(mod, inst)
 
     throw std::logic_error("Unexpected node type; could not downcast and dispatch");
   }
