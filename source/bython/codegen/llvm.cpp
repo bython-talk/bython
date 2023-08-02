@@ -31,6 +31,33 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   {
   }
 
+  BYTHON_VISITOR_IMPL(mod, m)
+  {
+    for (auto&& stmt : m.body) {
+      this->visit(*stmt);
+    }
+
+    // TODO: This should never be used; read from module attribute instead
+    return nullptr;
+  }
+
+  BYTHON_VISITOR_IMPL(function_def, fdef)
+  {
+    auto function_type =
+        llvm::FunctionType::get(llvm::Type::getVoidTy(this->context), {}, /*isVarArg=*/false);
+    auto function = llvm::Function::Create(
+        function_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, fdef.name, *this->module_);
+
+    auto entry_into_function = llvm::BasicBlock::Create(this->context, "entry", function);
+    this->builder.SetInsertPoint(entry_into_function);
+
+    for (auto&& stmt : fdef.body) {
+      this->visit(*stmt);
+    }
+
+    return function;
+  }
+
   BYTHON_VISITOR_IMPL(variable, var)
   {
     auto lookup = this->symbol_mapping.get(var.identifier);
@@ -38,6 +65,11 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
     auto* load = this->builder.CreateLoad(type, mem_loc, var.identifier);
     return load;
+  }
+
+  BYTHON_VISITOR_IMPL(integer, instance)
+  {
+    return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(this->context), instance.value);
   }
 
   BYTHON_VISITOR_IMPL(assignment, assgn)
@@ -76,12 +108,17 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(call, instance)
   {
-    auto load_arguments = std::vector<llvm::Value*>{};
+    auto load_arguments = std::vector<llvm::Value*> {};
     for (auto&& argument : instance.arguments) {
       load_arguments.emplace_back(this->visit(*argument));
     }
 
     auto callee = this->module_->getFunction(instance.callee);
+    if (callee == nullptr && instance.callee == "put_i64") {
+      callee = this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::put_i64);
+    } else {
+      throw std::logic_error{"Unknown function: " + instance.callee};
+    }
     return this->builder.CreateCall(callee, load_arguments);
   }
 
