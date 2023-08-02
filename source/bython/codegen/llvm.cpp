@@ -74,6 +74,17 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     return this->builder.CreateSub(lhs_v, rhs_v, "minus");
   }
 
+  BYTHON_VISITOR_IMPL(call, instance)
+  {
+    auto load_arguments = std::vector<llvm::Value*>{};
+    for (auto&& argument : instance.arguments) {
+      load_arguments.emplace_back(this->visit(*argument));
+    }
+
+    auto callee = this->module_->getFunction(instance.callee);
+    return this->builder.CreateCall(callee, load_arguments);
+  }
+
   BYTHON_VISITOR_IMPL(node, /*instance*/)
   {
     throw std::runtime_error {"Unknown AST Node"};
