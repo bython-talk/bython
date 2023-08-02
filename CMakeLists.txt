@@ -13,11 +13,13 @@ project(
 include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
 
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+
 # --- Third Party Deps ---
 find_package(lexy REQUIRED)
 find_package(LLVM REQUIRED CONFIG)
 
-message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+find_package(cxxopts CONFIG REQUIRED)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -41,9 +43,8 @@ target_include_directories(
 )
 
 target_compile_features(bython_lib PUBLIC cxx_std_17)
-target_link_directories(bython_lib PRIVATE foonathan::lexy)
+target_include_directories(bython_lib PRIVATE foonathan::lexy)
 
-# Configure LLVM
 target_include_directories(bython_lib SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(bython_lib PRIVATE LLVMCore LLVMSupport)
 #target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
@@ -60,7 +61,7 @@ add_subdirectory(source)
 set_property(TARGET bython_exe PROPERTY OUTPUT_NAME bython)
 
 target_compile_features(bython_exe PRIVATE cxx_std_17)
-target_link_libraries(bython_exe PRIVATE bython_lib)
+target_link_libraries(bython_exe PRIVATE bython_lib cxxopts::cxxopts)
 
 
 # ---- Install rules ----
