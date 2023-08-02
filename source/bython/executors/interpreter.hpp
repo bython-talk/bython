@@ -18,10 +18,7 @@ struct interpreter
   interpreter(interpreter&&);
   auto operator=(interpreter&&) noexcept -> interpreter&;
 
-  auto repl(std::string_view code) -> void;
-
-  auto retrieve_int_state(std::string_view entity) -> int64_t;
-  auto retrieve_float_state(std::string_view entity) -> double;
+  auto begin() -> void;
 
 private:
   struct interpreter_pimpl;
