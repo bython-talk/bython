@@ -42,24 +42,6 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
 RUN cmake --build ${LEXY_BUILD_DIR} -j4 && cmake --install ${LEXY_BUILD_DIR} --config RELEASE
 RUN rm -r /lexy /lexy.zip
 
-### cxxopts
-RUN wget https://github.com/jarro2783/cxxopts/archive/refs/tags/v3.1.1.zip -O /cxxopts.zip && unzip /cxxopts.zip -d /cxxopts
-ARG CXXOPTS_BUILD_DIR=/cxxopts/cxxopts-3.1.1/build
-
-RUN cmake -DCMAKE_BUILD_TYPE=Release \
-    -DCXXOPTS_STANDALONE_PROJECT=OFF \
-    -DCXXOPTS_BUILD_EXAMPLES=OFF \
-    -DCXXOPTS_BUILD_TESTS=OFF \
-    -DCXXOPTS_ENABLE_WARNINGS=OFF \
-    -DCXXOPTS_USE_UNICODE_HELP=ON \
-    -DCXXOPTS_ENABLE_INSTALL=ON \
-    -S /cxxopts/cxxopts-3.1.1 -B ${CXXOPTS_BUILD_DIR}
-RUN cmake --build ${CXXOPTS_BUILD_DIR} -j4 && cmake --install ${CXXOPTS_BUILD_DIR} --config RELEASE
-RUN rm -r /cxxopts /cxxopts.zip
-
-
-
-
 FROM llvm16-cmake-deps AS bython-base
 
 RUN apt-get -q -y update
