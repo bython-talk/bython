@@ -15,11 +15,13 @@ struct intrinsic
 };
 
 enum class intrinsic_tag {
+  // io
+  put_i64,
+
+  // maths
   powi_f32_i32
 };
 
 auto builtin_intrinsic(llvm::LLVMContext& context, intrinsic_tag itag) -> intrinsic;
-
-auto powi_f32_i32(llvm::LLVMContext& context) -> intrinsic;
 
 }  // namespace bython::codegen
