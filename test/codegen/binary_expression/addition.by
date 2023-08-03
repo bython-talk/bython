@@ -1,4 +1,4 @@
-# RUN: %jit --inpath %s | grep -e "-1"
+# RUN: %jit --inpath %s | grep -e "3"
 def main()
 {
     val x = 1 + 2;
