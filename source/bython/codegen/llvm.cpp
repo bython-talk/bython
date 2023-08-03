@@ -10,6 +10,7 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Verifier.h>
 
 #include "intrinsic.hpp"
 #include "symbols.hpp"
@@ -55,6 +56,9 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       this->visit(*stmt);
     }
 
+    this->builder.CreateRetVoid();
+    llvm::verifyFunction(*function);
+
     return function;
   }
 
@@ -75,6 +79,9 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   BYTHON_VISITOR_IMPL(assignment, assgn)
   {
     auto* rhs_value = this->visit(*assgn.rhs);
+    if (assgn.lhs == "_") {
+      return rhs_value;
+    }
 
     if (auto existing_var = this->symbol_mapping.get(assgn.lhs)) {
       auto [type, memory_location] = *existing_var;
@@ -97,8 +104,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     if (m::matches(*binop.op, m::binary_operator {a::binop_tag::pow})) {
       // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
       // requires powi intrinsics to be brought into scope as prototypes
-      auto* pow_intrinsic =
-          this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
+      auto pow_intrinsic = this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
       return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
     } else if (m::matches(*binop.op, m::binary_operator {a::binop_tag::plus})) {
       return this->builder.CreateAdd(lhs_v, rhs_v, "plus");
@@ -113,13 +119,14 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       load_arguments.emplace_back(this->visit(*argument));
     }
 
-    auto callee = this->module_->getFunction(instance.callee);
-    if (callee == nullptr && instance.callee == "put_i64") {
-      callee = this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::put_i64);
+    if (auto callee = this->module_->getFunction(instance.callee); callee != nullptr) {
+      return this->builder.CreateCall(callee, load_arguments);
+    } else if (instance.callee == "put_i64") {
+      auto intrinsic_callee = this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::put_i64);
+      return this->builder.CreateCall(intrinsic_callee, load_arguments);
     } else {
-      throw std::logic_error{"Unknown function: " + instance.callee};
+      throw std::logic_error {"Unknown function: " + instance.callee};
     }
-    return this->builder.CreateCall(callee, load_arguments);
   }
 
   BYTHON_VISITOR_IMPL(node, /*instance*/)
@@ -128,19 +135,12 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   }
 
 private:
-  auto insert_or_retrieve_intrinsic(codegen::intrinsic_tag itag) -> llvm::Function*
+  auto insert_or_retrieve_intrinsic(codegen::intrinsic_tag itag) -> llvm::FunctionCallee
   {
     auto intrinsic = codegen::builtin_intrinsic(this->context, itag);
+    auto ir_intrinsic = this->module_->getOrInsertFunction(intrinsic.name, intrinsic.signature);
 
-    // Retrieve function signature from module directly
-    if (auto inserted = this->module_->getFunction(intrinsic.name); inserted != nullptr) {
-      return inserted;
-    }
-
-    // Creates a new function, attach it to a module, and return that reference
-    auto intr_func = llvm::Function::Create(
-        intrinsic.signature, llvm::Function::ExternalLinkage, intrinsic.name, *this->module_);
-    return intr_func;
+    return ir_intrinsic;
   }
 
 public:
@@ -156,10 +156,11 @@ public:
 
 namespace bython::codegen
 {
-auto compile(std::unique_ptr<ast::node> ast) -> std::unique_ptr<llvm::Module>
+auto compile(std::string_view name,
+             std::unique_ptr<ast::node> ast,
+             llvm::LLVMContext& context) -> std::unique_ptr<llvm::Module>
 {
-  auto context = llvm::LLVMContext {};
-  auto visitor = codegen_visitor {"module", context};
+  auto visitor = codegen_visitor {name, context};
   visitor.visit(*ast);
 
   return std::move(visitor.module_);

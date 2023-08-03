@@ -3,13 +3,22 @@
 
 #include "jit.hpp"
 
+#include <bython/codegen/builtin.hpp>
 #include <bython/codegen/llvm.hpp>
 #include <bython/parser/grammar.hpp>
 #include <bython/parser/top_level_grammar.hpp>
 #include <lexy/action/parse.hpp>
 #include <lexy/input/file.hpp>
 #include <lexy_ext/report_error.hpp>
+#include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/MCJIT.h>
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/Support/TargetParser.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+#include <llvm/TargetParser/Host.h>
+#include <llvm/TargetParser/Triple.h>
 
 namespace bython::executor
 {
@@ -21,6 +30,10 @@ struct jit_compiler::jit_compiler_pimpl
    */
   auto execute(std::filesystem::path const& input_file) -> int
   {
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmParser();
+    llvm::InitializeNativeTargetAsmPrinter();
+
     auto file = lexy::read_file<lexy::utf8_encoding>(input_file.c_str());
     if (!file) {
       std::cerr << "Unable to read from " << input_file << "; check that it exists!";
@@ -36,29 +49,41 @@ struct jit_compiler::jit_compiler_pimpl
     }
 
     auto module_ = std::make_unique<ast::mod>(std::move(parsed).value());
-    auto codegen = codegen::compile(std::move(module_));
+
+    auto filename = input_file.filename().string();
+    auto context = std::make_unique<llvm::LLVMContext>();
+
+    auto codegen = codegen::compile(filename, std::move(module_), *context);
+
+    codegen->setSourceFileName(std::string {input_file});
+    codegen->setTargetTriple("x86_64-pc-linux-gnu");
+    codegen->print(llvm::errs(), nullptr);
 
     std::string error;
     auto engine = llvm::EngineBuilder(std::move(codegen))
+                      .setTargetOptions(llvm::TargetOptions {})
                       .setErrorStr(&error)
                       .setEngineKind(llvm::EngineKind::JIT)
                       .setVerifyModules(true)
-                      // .setOptLevel
                       .create();
-    if (!engine) {
+    if (!engine || error.size()) {
       std::cerr << "JIT Error: " << error << "\n";
       return -1;
     }
+
+    for (auto&& builtin : {codegen::builtin_tag::put_i64}) {
+      auto bmetadata = codegen::builtin(builtin);
+      engine->addGlobalMapping(bmetadata.name, bmetadata.procedure_addr);
+    }
+
     engine->finalizeObject();
+    if (auto main_function = engine->FindFunctionNamed("main"); main_function != nullptr) {
+      engine->runFunction(main_function, {});
+      return 0;
+    }
 
-    // Assume signature of function
-    using main_signature = void (*)(void);
-
-    auto main_function_addr = engine->getFunctionAddress("main");
-    auto mainptr = reinterpret_cast<main_signature>(main_function_addr);
-
-    mainptr();
-    return 0;
+    std::cerr << "Cannot find main function! Exiting...\n";
+    return -1;
   }
 };
 
