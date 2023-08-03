@@ -13,6 +13,7 @@
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/MC/TargetRegistry.h>
+#include <llvm/Support/ManagedStatic.h>
 #include <llvm/Support/TargetParser.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
@@ -28,12 +29,18 @@ struct jit_compiler::jit_compiler_pimpl
    * This helps us keep LLVM linkage private between bython_lib and consumers thereof,
    * for example, the bython tests
    */
-  auto execute(std::filesystem::path const& input_file) -> int
+
+  jit_compiler_pimpl()
   {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmParser();
     llvm::InitializeNativeTargetAsmPrinter();
+  }
 
+  ~jit_compiler_pimpl() { llvm::llvm_shutdown(); }
+
+  auto execute(std::filesystem::path const& input_file) -> int
+  {
     auto file = lexy::read_file<lexy::utf8_encoding>(input_file.c_str());
     if (!file) {
       std::cerr << "Unable to read from " << input_file << "; check that it exists!";
