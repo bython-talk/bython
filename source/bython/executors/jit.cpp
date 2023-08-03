@@ -65,6 +65,7 @@ struct jit_compiler::jit_compiler_pimpl
                       .setErrorStr(&error)
                       .setEngineKind(llvm::EngineKind::JIT)
                       .setVerifyModules(true)
+                      .setOptLevel(llvm::CodeGenOpt::None)
                       .create();
     if (!engine || error.size()) {
       std::cerr << "JIT Error: " << error << "\n";
