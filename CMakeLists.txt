@@ -43,7 +43,11 @@ target_link_libraries(bython_lib PRIVATE foonathan::lexy::file)
 
 target_include_directories(bython_lib SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
-llvm_map_components_to_libnames(LLVM_LIBS support core irreader mcjit)
+llvm_map_components_to_libnames(LLVM_LIBS
+  support core
+  irreader mcjit executionengine
+  runtimedyld
+  native x86codegen)
 target_link_libraries(bython_lib PRIVATE ${LLVM_LIBS})
 
 target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
