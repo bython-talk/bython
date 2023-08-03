@@ -2,21 +2,22 @@
 
 #include <llvm/IR/DerivedTypes.h>
 
-namespace bython::codegen
+namespace
 {
+using namespace bython::codegen;
 
-auto put_i64(llvm::LLVMContext& context) -> intrinsic
+auto put_i64(llvm::LLVMContext& context) -> intrinsic_metadata
 {
-  return intrinsic {"bython.put_i64",
-                    llvm::FunctionType::get(
-                        /*Result=*/llvm::Type::getVoidTy(context),
-                        /*Params=*/ {llvm::Type::getInt64Ty(context)},
-                        /*IsVarArg=*/false)};
+  return intrinsic_metadata {"bython.put_i64",
+                             llvm::FunctionType::get(
+                                 /*Result=*/llvm::Type::getVoidTy(context),
+                                 /*Params=*/ {llvm::Type::getInt64Ty(context)},
+                                 /*IsVarArg=*/false)};
 }
 
-auto powi_f32_i32(llvm::LLVMContext& context) -> intrinsic
+auto powi_f32_i32(llvm::LLVMContext& context) -> intrinsic_metadata
 {
-  return intrinsic {
+  return intrinsic_metadata {
       "llvm.powi.f32.i32",
       llvm::FunctionType::get(
           /*Result=*/llvm::Type::getFloatTy(context),
@@ -24,7 +25,12 @@ auto powi_f32_i32(llvm::LLVMContext& context) -> intrinsic
           /*IsVarArg=*/false)};
 }
 
-auto builtin_intrinsic(llvm::LLVMContext& context, intrinsic_tag itag) -> intrinsic
+}  // namespace
+
+namespace bython::codegen
+{
+
+auto intrinsic(llvm::LLVMContext& context, intrinsic_tag itag) -> intrinsic_metadata
 {
   switch (itag) {
     // io
