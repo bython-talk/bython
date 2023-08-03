@@ -6,11 +6,13 @@
 #include <bython/ast.hpp>
 #include <bython/matching.hpp>
 #include <bython/visitation/ast.hpp>
+#include <llvm/ExecutionEngine/Interpreter.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/TargetParser/Triple.h>
 
 #include "intrinsic.hpp"
 #include "symbols.hpp"
@@ -57,7 +59,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     }
 
     this->builder.CreateRetVoid();
-    llvm::verifyFunction(*function);
+    llvm::verifyFunction(*function, &llvm::errs());
 
     return function;
   }
@@ -137,8 +139,8 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 private:
   auto insert_or_retrieve_intrinsic(codegen::intrinsic_tag itag) -> llvm::FunctionCallee
   {
-    auto intrinsic = codegen::builtin_intrinsic(this->context, itag);
-    auto ir_intrinsic = this->module_->getOrInsertFunction(intrinsic.name, intrinsic.signature);
+    auto imetadata = codegen::intrinsic(this->context, itag);
+    auto ir_intrinsic = this->module_->getOrInsertFunction(imetadata.name, imetadata.signature);
 
     return ir_intrinsic;
   }
@@ -156,13 +158,13 @@ public:
 
 namespace bython::codegen
 {
-auto compile(std::string_view name,
-             std::unique_ptr<ast::node> ast,
-             llvm::LLVMContext& context) -> std::unique_ptr<llvm::Module>
+auto compile(std::string_view name, std::unique_ptr<ast::node> ast, llvm::LLVMContext& context)
+    -> std::unique_ptr<llvm::Module>
 {
   auto visitor = codegen_visitor {name, context};
   visitor.visit(*ast);
 
+  llvm::verifyModule(*visitor.module_, &llvm::errs());
   return std::move(visitor.module_);
 }
 }  // namespace bython::codegen
