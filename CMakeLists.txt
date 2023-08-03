@@ -45,8 +45,7 @@ target_include_directories(bython_lib SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
 llvm_map_components_to_libnames(LLVM_LIBS
   support core
-  irreader mcjit executionengine
-  runtimedyld
+  irreader mcjit executionengine interpreter
   native x86codegen)
 target_link_libraries(bython_lib PRIVATE ${LLVM_LIBS})
 
