@@ -35,8 +35,7 @@ struct binary_operation final : expression
 
 struct comparison final : expression
 {
-  comparison(ast::expressions operands_,
-             std::vector<comparison_operator_tag> ops_);
+  comparison(ast::expressions operands_, std::vector<comparison_operator_tag> ops_);
 
   auto add_operator(bython::ast::comparison_operator_tag op) -> void;
   auto add_operand(std::unique_ptr<expression> expr) -> void;
@@ -54,8 +53,7 @@ struct variable final : expression
 
 struct call final : expression
 {
-  call(std::string callee_,
-       std::vector<std::unique_ptr<expression>> arguments_);
+  call(std::string callee_, std::vector<std::unique_ptr<expression>> arguments_);
 
   std::string callee;
   ast::expressions arguments;

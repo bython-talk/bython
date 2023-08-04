@@ -11,8 +11,7 @@ namespace bython::codegen
 {
 class symbol_lookup
 {
-  using mapping = std::unordered_map<std::string_view,
-                                     std::tuple<llvm::Type*, llvm::Value*>>;
+  using mapping = std::unordered_map<std::string_view, std::tuple<llvm::Type*, llvm::Value*>>;
 
 public:
   symbol_lookup() { this->lookup.emplace_back(); }
@@ -20,12 +19,10 @@ public:
   auto get(std::string_view identifier) const
       -> std::optional<std::tuple<llvm::Type*, llvm::Value*>>;
 
-  auto put(std::string_view symbol_name,
-           llvm::Type* symbol_type,
-           llvm::Value* symbol_storage_loc) -> void;
-
-  auto update(std::string_view symbol_name, llvm::Value* symbol_storage_loc)
+  auto put(std::string_view symbol_name, llvm::Type* symbol_type, llvm::Value* symbol_storage_loc)
       -> void;
+
+  auto update(std::string_view symbol_name, llvm::Value* symbol_storage_loc) -> void;
 
   auto initialise_new_scope() -> void;
   auto pop_scope() -> void;

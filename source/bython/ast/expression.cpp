@@ -19,8 +19,7 @@ binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
 {
 }
 
-comparison::comparison(ast::expressions operands_,
-                       std::vector<comparison_operator_tag> ops_)
+comparison::comparison(ast::expressions operands_, std::vector<comparison_operator_tag> ops_)
     : operands {std::move(operands_)}
     , ops {}
 {
@@ -39,8 +38,7 @@ auto comparison::add_operand(std::unique_ptr<expression> expr) -> void
   this->operands.emplace_back(std::move(expr));
 }
 
-call::call(std::string callee_,
-           std::vector<std::unique_ptr<expression>> arguments_)
+call::call(std::string callee_, std::vector<std::unique_ptr<expression>> arguments_)
     : callee {std::move(callee_)}
     , arguments {std::move(arguments_)}
 {

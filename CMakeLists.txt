@@ -39,16 +39,23 @@ target_include_directories(
 
 target_compile_features(bython_lib PUBLIC cxx_std_17)
 target_include_directories(bython_lib PRIVATE foonathan::lexy)
+target_link_libraries(bython_lib PRIVATE foonathan::lexy::file)
 
 target_include_directories(bython_lib SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
-target_link_libraries(bython_lib PRIVATE LLVMCore)
-#target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
+
+llvm_map_components_to_libnames(LLVM_LIBS
+  support core
+  irreader mcjit executionengine interpreter
+  native x86codegen)
+target_link_libraries(bython_lib PRIVATE ${LLVM_LIBS})
+
+target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
 #target_link_options(bython_lib PRIVATE "LINKER:${LLVM_LDFLAGS}")
 
 
 
 # ---- Declare executables ----
-
+llvm_map_components_to_libnames(LLVM_SUPPORT_LIB support)
 foreach(VARIATION IN ITEMS repl compiler jit)
   add_executable(bython_${VARIATION} source/${VARIATION}.cpp)
   add_executable(bython::${VARIATION} ALIAS bython_${VARIATION})
@@ -57,7 +64,7 @@ foreach(VARIATION IN ITEMS repl compiler jit)
 
   # Use command line parser given by LLVM
   target_include_directories(bython_${VARIATION} SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
-  target_link_libraries(bython_${VARIATION} PRIVATE bython_lib LLVMSupport)
+  target_link_libraries(bython_${VARIATION} PRIVATE bython_lib ${LLVM_SUPPORT_LIB})
 
   set_property(TARGET bython_${VARIATION} PROPERTY OUTPUT_NAME bython-${VARIATION})
 endforeach()

@@ -5,7 +5,8 @@
 			"extensions": [
 				"ms-vscode.cpptools-extension-pack",
 				"ms-azuretools.vscode-docker",
-				"eamodio.gitlens"
+				"eamodio.gitlens",
+				"xaver.clang-format"
 			]
 		}
 	}

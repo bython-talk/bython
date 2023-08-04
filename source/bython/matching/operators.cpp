@@ -22,8 +22,7 @@ auto unary_operator::matches(const ast::node& ast) const -> bool
 
 auto comparison_operator::matches(const ast::node& ast) const -> bool
 {
-  if (auto const* comparison_op = ast::dyn_cast<ast::comparison_operator>(&ast))
-  {
+  if (auto const* comparison_op = ast::dyn_cast<ast::comparison_operator>(&ast)) {
     return comparison_op->op == this->op;
   }
   return false;

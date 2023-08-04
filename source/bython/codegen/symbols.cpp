@@ -21,12 +21,11 @@ auto symbol_lookup::put(std::string_view symbol_name,
                         llvm::Type* symbol_type,
                         llvm::Value* symbol_storage_loc) -> void
 {
-  this->lookup.back().insert_or_assign(
-      symbol_name, std::make_pair(symbol_type, symbol_storage_loc));
+  this->lookup.back().insert_or_assign(symbol_name,
+                                       std::make_pair(symbol_type, symbol_storage_loc));
 }
 
-auto symbol_lookup::update(std::string_view symbol_name,
-                           llvm::Value* symbol_storage_loc) -> void
+auto symbol_lookup::update(std::string_view symbol_name, llvm::Value* symbol_storage_loc) -> void
 {
   for (auto it = this->lookup.rbegin(); it != this->lookup.rend(); ++it) {
     if (auto search = it->find(symbol_name); search != it->end()) {
@@ -48,8 +47,7 @@ auto symbol_lookup::pop_scope() -> void
   this->lookup.pop_back();
 }
 
-auto type_lookup::get(std::string_view identifier) const
-    -> std::optional<llvm::Type*>
+auto type_lookup::get(std::string_view identifier) const -> std::optional<llvm::Type*>
 {
   for (auto it = this->lookup.rbegin(); it != this->lookup.rend(); ++it) {
     if (auto search = it->find(identifier); search != it->end()) {
@@ -60,8 +58,7 @@ auto type_lookup::get(std::string_view identifier) const
   return std::nullopt;
 }
 
-auto type_lookup::put(std::string_view symbol_name, llvm::Type* symbol_type)
-    -> void
+auto type_lookup::put(std::string_view symbol_name, llvm::Type* symbol_type) -> void
 {
   this->lookup.back().insert_or_assign(symbol_name, symbol_type);
 }

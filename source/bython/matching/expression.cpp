@@ -38,9 +38,7 @@ auto comparison::chain(std::unique_ptr<matching::matcher> op,
 auto comparison::matches(ast::node const& ast) const -> bool
 {
   if (auto const* comps = ast::dyn_cast<ast::comparison>(&ast)) {
-    if (comps->ops.size() != this->ops.size()
-        || comps->operands.size() != this->operands.size())
-    {
+    if (comps->ops.size() != this->ops.size() || comps->operands.size() != this->operands.size()) {
       return false;
     }
 
@@ -50,9 +48,7 @@ auto comparison::matches(ast::node const& ast) const -> bool
       }
     }
 
-    for (decltype(comps->operands)::size_type i = 0; i < comps->operands.size();
-         ++i)
-    {
+    for (decltype(comps->operands)::size_type i = 0; i < comps->operands.size(); ++i) {
       if (!matching::matches(*comps->operands[i], *this->operands[i])) {
         return false;
       }

@@ -19,24 +19,23 @@ namespace bython::parser
 auto module(std::string_view code, error_callback report_error)
     -> lexy::parse_result<ast::mod, error_callback>
 {
-  auto tree = lexy::parse<grammar::top_level<grammar::mod>>(
-      lexy::string_input(code), report_error);
+  auto tree = lexy::parse<grammar::top_level<grammar::mod>>(lexy::string_input(code), report_error);
   return tree;
 }
 
 auto expression(std::string_view code, error_callback report_error)
     -> lexy::parse_result<std::unique_ptr<ast::expression>, error_callback>
 {
-  auto tree = lexy::parse<grammar::top_level<grammar::expression>>(
-      lexy::string_input(code), report_error);
+  auto tree =
+      lexy::parse<grammar::top_level<grammar::expression>>(lexy::string_input(code), report_error);
   return tree;
 }
 
 auto statement(std::string_view code, error_callback report_error)
     -> lexy::parse_result<std::unique_ptr<ast::statement>, error_callback>
 {
-  auto tree = lexy::parse<grammar::top_level<grammar::outer_stmt>>(
-      lexy::string_input(code), report_error);
+  auto tree =
+      lexy::parse<grammar::top_level<grammar::outer_stmt>>(lexy::string_input(code), report_error);
   return tree;
 }
 

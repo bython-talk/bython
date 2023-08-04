@@ -51,8 +51,8 @@ struct comparison final : matching::expression
     this->operands.emplace_back(std::move(init));
   }
 
-  auto chain(std::unique_ptr<matching::matcher> op,
-             std::unique_ptr<matching::matcher> against) -> comparison;
+  auto chain(std::unique_ptr<matching::matcher> op, std::unique_ptr<matching::matcher> against)
+      -> comparison;
 
   auto matches(ast::node const& ast) const -> bool override;
 

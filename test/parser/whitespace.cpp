@@ -5,14 +5,12 @@ namespace parser = bython::parser;
 
 TEST_CASE("Reach EOF")
 {
-  auto without_whitespace =
-      parser::expression("variable", lexy_ext::report_error);
+  auto without_whitespace = parser::expression("variable", lexy_ext::report_error);
   REQUIRE(without_whitespace.has_value());
 }
 
 TEST_CASE("Consume Whitespace until EOF")
 {
-  auto with_whitespace =
-      parser::expression("variable       ", lexy_ext::report_error);
+  auto with_whitespace = parser::expression("variable       ", lexy_ext::report_error);
   REQUIRE(with_whitespace.has_value());
 }
