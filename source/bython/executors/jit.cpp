@@ -10,6 +10,7 @@
 #include <lexy/action/parse.hpp>
 #include <lexy/input/file.hpp>
 #include <lexy_ext/report_error.hpp>
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/MC/TargetRegistry.h>
@@ -57,23 +58,27 @@ struct jit_compiler::jit_compiler_pimpl
 
     auto module_ = std::make_unique<ast::mod>(std::move(parsed).value());
 
-    auto filename = input_file.filename().string();
     auto context = std::make_unique<llvm::LLVMContext>();
 
-    auto codegen = codegen::compile(filename, std::move(module_), *context);
+    auto codegen =
+        codegen::compile(std::string {input_file.filename()}, std::move(module_), *context);
+    codegen->setSourceFileName(std::string {input_file});
+    codegen->setTargetTriple("x86_64-pc-linux-gnu");
 
     codegen->setSourceFileName(std::string {input_file});
     codegen->setTargetTriple("x86_64-pc-linux-gnu");
     codegen->print(llvm::errs(), nullptr);
 
     std::string error;
-    auto engine = llvm::EngineBuilder(std::move(codegen))
-                      .setTargetOptions(llvm::TargetOptions {})
-                      .setErrorStr(&error)
-                      .setEngineKind(llvm::EngineKind::JIT)
-                      .setVerifyModules(true)
-                      .setOptLevel(llvm::CodeGenOpt::None)
-                      .create();
+    auto engine_builder = std::make_unique<llvm::EngineBuilder>(std::move(codegen));
+    engine_builder->setTargetOptions(llvm::TargetOptions {});
+    engine_builder->setErrorStr(&error);
+    engine_builder->setEngineKind(llvm::EngineKind::JIT);
+    engine_builder->setVerifyModules(true);
+    engine_builder->setOptLevel(llvm::CodeGenOpt::None);
+
+    auto engine = std::unique_ptr<llvm::ExecutionEngine>(engine_builder->create());
+
     if (!engine || error.size()) {
       std::cerr << "JIT Error: " << error << "\n";
       return -1;
