@@ -38,7 +38,7 @@ struct jit_compiler::jit_compiler_pimpl
     llvm::InitializeNativeTargetAsmPrinter();
   }
 
-  ~jit_compiler_pimpl() { llvm::llvm_shutdown(); }
+  ~jit_compiler_pimpl() = default;
 
   auto execute(std::filesystem::path const& input_file) -> int
   {
