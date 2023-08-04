@@ -64,20 +64,17 @@ struct jit_compiler::jit_compiler_pimpl
         codegen::compile(std::string {input_file.filename()}, std::move(module_), *context);
     codegen->setSourceFileName(std::string {input_file});
     codegen->setTargetTriple("x86_64-pc-linux-gnu");
-
-    codegen->setSourceFileName(std::string {input_file});
-    codegen->setTargetTriple("x86_64-pc-linux-gnu");
     codegen->print(llvm::errs(), nullptr);
 
     std::string error;
-    auto engine_builder = std::make_unique<llvm::EngineBuilder>(std::move(codegen));
-    engine_builder->setTargetOptions(llvm::TargetOptions {});
-    engine_builder->setErrorStr(&error);
-    engine_builder->setEngineKind(llvm::EngineKind::JIT);
-    engine_builder->setVerifyModules(true);
-    engine_builder->setOptLevel(llvm::CodeGenOpt::None);
+    auto engine_builder = llvm::EngineBuilder(std::move(codegen));
+    engine_builder.setTargetOptions(llvm::TargetOptions {});
+    engine_builder.setErrorStr(&error);
+    engine_builder.setEngineKind(llvm::EngineKind::JIT);
+    engine_builder.setVerifyModules(true);
+    engine_builder.setOptLevel(llvm::CodeGenOpt::None);
 
-    auto engine = std::unique_ptr<llvm::ExecutionEngine>(engine_builder->create());
+    auto engine = std::unique_ptr<llvm::ExecutionEngine>(engine_builder.create());
 
     if (!engine || error.size()) {
       std::cerr << "JIT Error: " << error << "\n";
