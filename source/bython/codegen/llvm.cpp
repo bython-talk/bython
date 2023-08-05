@@ -12,6 +12,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Support/ErrorHandling.h>
 #include <llvm/TargetParser/Triple.h>
 
 #include "builtin.hpp"
@@ -104,15 +105,55 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     auto lhs_v = this->visit(*binop.lhs);
     auto rhs_v = this->visit(*binop.rhs);
 
-    if (m::matches(*binop.op, m::binary_operator {a::binop_tag::pow})) {
-      // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
-      // requires powi intrinsics to be brought into scope as prototypes
-      auto pow_intrinsic = this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
-      return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
-    } else if (m::matches(*binop.op, m::binary_operator {a::binop_tag::plus})) {
-      return this->builder.CreateAdd(lhs_v, rhs_v, "plus");
+    if (auto* b = ast::dyn_cast<ast::binary_operator>(*binop.op); b) {
+      switch (b->op) {
+        case a::binop_tag::pow: {
+          // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
+          // requires powi intrinsics to be brought into scope as prototypes
+          auto pow_intrinsic =
+              this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
+          return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
+        }
+        case a::binop_tag::multiply: {
+          return this->builder.CreateMul(lhs_v, rhs_v, "a.mul");
+        }
+        case a::binop_tag::divide: {
+          return this->builder.CreateSDiv(lhs_v, rhs_v, "a.sdiv");
+        }
+        case a::binop_tag::modulo: {
+          return this->builder.CreateSRem(lhs_v, rhs_v, "a.srem");
+        }
+        case a::binop_tag::plus: {
+          return this->builder.CreateAdd(lhs_v, rhs_v, "a.add");
+        }
+        case a::binop_tag::minus: {
+          return this->builder.CreateSub(lhs_v, rhs_v, "a.sub");
+        }
+        case a::binop_tag::bitshift_right_: {
+          return this->builder.CreateAShr(lhs_v, rhs_v, "bit.ashr");
+        }
+        case a::binop_tag::bitshift_left_: {
+          return this->builder.CreateShl(lhs_v, rhs_v, "bit.shl");
+        }
+        case a::binop_tag::bitand_: {
+          return this->builder.CreateAnd(lhs_v, rhs_v, "bit.and");
+        }
+        case a::binop_tag::bitxor_: {
+          return this->builder.CreateXor(lhs_v, rhs_v, "bit.xor");
+        }
+        case a::binop_tag::bitor_: {
+          return this->builder.CreateXor(lhs_v, rhs_v, "bit.or");
+        }
+        case a::binop_tag::booland: {
+          return this->builder.CreateLogicalAnd(lhs_v, rhs_v, "log.and");
+        }
+        case a::binop_tag::boolor: {
+          return this->builder.CreateLogicalOr(lhs_v, rhs_v, "log.or");
+        }
+      }
     }
-    return this->builder.CreateSub(lhs_v, rhs_v, "minus");
+
+    llvm_unreachable("Failed to handle all binary operations");
   }
 
   BYTHON_VISITOR_IMPL(call, instance)
