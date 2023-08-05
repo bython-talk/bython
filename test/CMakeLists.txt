@@ -13,7 +13,7 @@ add_executable(bython_test)
 target_link_libraries(bython_test PRIVATE
         bython_lib
         Catch2::Catch2WithMain)
-target_compile_features(bython_test PRIVATE cxx_std_17)
+target_compile_features(bython_test PRIVATE cxx_std_20)
 
 include(CTest)
 include(Catch)
