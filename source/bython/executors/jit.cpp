@@ -57,7 +57,6 @@ struct jit_compiler::jit_compiler_pimpl
     }
 
     auto module_ = std::make_unique<ast::mod>(std::move(parsed).value());
-
     auto context = std::make_unique<llvm::LLVMContext>();
 
     auto codegen =
@@ -81,8 +80,8 @@ struct jit_compiler::jit_compiler_pimpl
       return -1;
     }
 
-    for (auto&& builtin : {codegen::builtin_tag::put_i64}) {
-      auto bmetadata = codegen::builtin(builtin);
+    for (auto&& builtin : {codegen::builtin_tag::put_i64, codegen::builtin_tag::putln_i64}) {
+      auto bmetadata = codegen::builtin(*context, builtin);
       engine->addGlobalMapping(bmetadata.name, bmetadata.procedure_addr);
     }
 
