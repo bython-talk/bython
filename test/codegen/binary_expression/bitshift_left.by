@@ -1,0 +1,6 @@
+# RUN: %jit --inpath %s | grep -e "32"
+def main()
+{
+    val x = 1 << 5;
+    val _ = put_i64(x);
+}

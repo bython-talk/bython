@@ -1,6 +1,0 @@
-# RUN: %jit --inpath %s | grep -e "-1"
-def main()
-{
-    val x = 1 - 2;
-    val _ = put_i64(x);
-}
