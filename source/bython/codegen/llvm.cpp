@@ -142,7 +142,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
           return this->builder.CreateXor(lhs_v, rhs_v, "bit.xor");
         }
         case a::binop_tag::bitor_: {
-          return this->builder.CreateXor(lhs_v, rhs_v, "bit.or");
+          return this->builder.CreateOr(lhs_v, rhs_v, "bit.or");
         }
         case a::binop_tag::booland: {
           return this->builder.CreateLogicalAnd(lhs_v, rhs_v, "log.and");
