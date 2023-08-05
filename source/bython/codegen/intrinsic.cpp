@@ -1,30 +1,35 @@
+#include <functional>
+#include <unordered_map>
+
 #include "intrinsic.hpp"
 
 #include <llvm/IR/DerivedTypes.h>
+#include <llvm/Support/ErrorHandling.h>
 
 namespace
 {
 using namespace bython::codegen;
 
-auto put_i64(llvm::LLVMContext& context) -> intrinsic_metadata
+using intrinsic_factory = llvm::FunctionType* (*)(llvm::LLVMContext&);
+struct table_entry
 {
-  return intrinsic_metadata {"bython.put_i64",
-                             llvm::FunctionType::get(
-                                 /*Result=*/llvm::Type::getVoidTy(context),
-                                 /*Params=*/ {llvm::Type::getInt64Ty(context)},
-                                 /*IsVarArg=*/false)};
-}
+  intrinsic_tag tag;
+  std::string_view name;
+  intrinsic_factory factory;
+};
 
-auto powi_f32_i32(llvm::LLVMContext& context) -> intrinsic_metadata
-{
-  return intrinsic_metadata {
-      "llvm.powi.f32.i32",
-      llvm::FunctionType::get(
-          /*Result=*/llvm::Type::getFloatTy(context),
-          /*Params=*/ {llvm::Type::getFloatTy(context), llvm::Type::getInt32Ty(context)},
-          /*IsVarArg=*/false)};
-}
-
+static auto const intrinsic_lookup = std::array {
+    // void @bython.put_i64(i64)
+    table_entry {
+        .tag = intrinsic_tag::powi_f32_i32,
+        .name = "llvm.powi.f32.i32",
+        .factory = [](llvm::LLVMContext& context) -> llvm::FunctionType*
+        {
+          return llvm::FunctionType::get(
+              /*Result=*/llvm::Type::getFloatTy(context),
+              /*Params=*/ {llvm::Type::getFloatTy(context), llvm::Type::getInt32Ty(context)},
+              /*IsVarArg=*/false);
+        }}};
 }  // namespace
 
 namespace bython::codegen
@@ -32,17 +37,20 @@ namespace bython::codegen
 
 auto intrinsic(llvm::LLVMContext& context, intrinsic_tag itag) -> intrinsic_metadata
 {
-  switch (itag) {
-    // io
-    case intrinsic_tag::put_i64:
-      return put_i64(context);
+  auto entry = intrinsic_lookup[std::underlying_type_t<intrinsic_tag>(itag)];
+  return intrinsic_metadata {.name = entry.name, .signature = entry.factory(context)};
+}
 
-    // math
-    case intrinsic_tag::powi_f32_i32:
-      return powi_f32_i32(context);
-    default:
-      llvm_unreachable("Unrecognised intrinsic type");
+auto intrinsic(llvm::LLVMContext& context, std::string_view name)
+    -> std::optional<intrinsic_metadata>
+{
+  auto desc =
+      std::ranges::find_if(intrinsic_lookup, [&name](auto&& entry) { return entry.name == name; });
+  if (desc != intrinsic_lookup.end()) {
+    return intrinsic_metadata {.name = desc->name, .signature = desc->factory(context)};
   }
+
+  return std::nullopt;
 }
 
 }  // namespace bython::codegen

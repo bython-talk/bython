@@ -1,23 +1,29 @@
 #pragma once
 
 #include <cinttypes>
-#include <string>
+#include <optional>
+#include <string_view>
+
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/LLVMContext.h>
 
 namespace bython::codegen
 {
 
 struct builtin_metadata
 {
-  std::string name;
+  std::string_view name;
+  llvm::FunctionType* signature;
   std::uint64_t procedure_addr;
 };
 
-enum class builtin_tag
+enum class builtin_tag : std::uint8_t
 {
   put_i64,
   putln_i64
 };
 
-auto builtin(builtin_tag tag) -> builtin_metadata;
+auto builtin(llvm::LLVMContext& context, builtin_tag btag) -> builtin_metadata;
+auto builtin(llvm::LLVMContext& context, std::string_view btag) -> std::optional<builtin_metadata>;
 
 }  // namespace bython::codegen
