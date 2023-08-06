@@ -37,7 +37,7 @@ target_include_directories(
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
 )
 
-target_compile_features(bython_lib PUBLIC cxx_std_17)
+target_compile_features(bython_lib PUBLIC cxx_std_20)
 target_include_directories(bython_lib PRIVATE foonathan::lexy)
 target_link_libraries(bython_lib PRIVATE foonathan::lexy::file)
 

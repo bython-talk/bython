@@ -12,8 +12,10 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Support/ErrorHandling.h>
 #include <llvm/TargetParser/Triple.h>
 
+#include "builtin.hpp"
 #include "intrinsic.hpp"
 #include "symbols.hpp"
 
@@ -103,15 +105,55 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     auto lhs_v = this->visit(*binop.lhs);
     auto rhs_v = this->visit(*binop.rhs);
 
-    if (m::matches(*binop.op, m::binary_operator {a::binop_tag::pow})) {
-      // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
-      // requires powi intrinsics to be brought into scope as prototypes
-      auto pow_intrinsic = this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
-      return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
-    } else if (m::matches(*binop.op, m::binary_operator {a::binop_tag::plus})) {
-      return this->builder.CreateAdd(lhs_v, rhs_v, "plus");
+    if (auto* b = ast::dyn_cast<ast::binary_operator>(*binop.op); b) {
+      switch (b->op) {
+        case a::binop_tag::pow: {
+          // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
+          // requires powi intrinsics to be brought into scope as prototypes
+          auto pow_intrinsic =
+              this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
+          return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
+        }
+        case a::binop_tag::multiply: {
+          return this->builder.CreateMul(lhs_v, rhs_v, "a.mul");
+        }
+        case a::binop_tag::divide: {
+          return this->builder.CreateSDiv(lhs_v, rhs_v, "a.sdiv");
+        }
+        case a::binop_tag::modulo: {
+          return this->builder.CreateSRem(lhs_v, rhs_v, "a.srem");
+        }
+        case a::binop_tag::plus: {
+          return this->builder.CreateAdd(lhs_v, rhs_v, "a.add");
+        }
+        case a::binop_tag::minus: {
+          return this->builder.CreateSub(lhs_v, rhs_v, "a.sub");
+        }
+        case a::binop_tag::bitshift_right_: {
+          return this->builder.CreateAShr(lhs_v, rhs_v, "bit.ashr");
+        }
+        case a::binop_tag::bitshift_left_: {
+          return this->builder.CreateShl(lhs_v, rhs_v, "bit.shl");
+        }
+        case a::binop_tag::bitand_: {
+          return this->builder.CreateAnd(lhs_v, rhs_v, "bit.and");
+        }
+        case a::binop_tag::bitxor_: {
+          return this->builder.CreateXor(lhs_v, rhs_v, "bit.xor");
+        }
+        case a::binop_tag::bitor_: {
+          return this->builder.CreateOr(lhs_v, rhs_v, "bit.or");
+        }
+        case a::binop_tag::booland: {
+          return this->builder.CreateLogicalAnd(lhs_v, rhs_v, "log.and");
+        }
+        case a::binop_tag::boolor: {
+          return this->builder.CreateLogicalOr(lhs_v, rhs_v, "log.or");
+        }
+      }
     }
-    return this->builder.CreateSub(lhs_v, rhs_v, "minus");
+
+    llvm_unreachable("Failed to handle all binary operations");
   }
 
   BYTHON_VISITOR_IMPL(call, instance)
@@ -121,13 +163,14 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       load_arguments.emplace_back(this->visit(*argument));
     }
 
-    if (auto callee = this->module_->getFunction(instance.callee); callee != nullptr) {
-      return this->builder.CreateCall(callee, load_arguments);
-    } else if (instance.callee == "put_i64") {
-      auto intrinsic_callee = this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::put_i64);
-      return this->builder.CreateCall(intrinsic_callee, load_arguments);
-    } else {
-      throw std::logic_error {"Unknown function: " + instance.callee};
+    if (auto defined = this->module_->getFunction(instance.callee); defined != nullptr) {
+      return this->builder.CreateCall(defined, load_arguments);
+    } else if (auto intrinsic = this->insert_or_retrieve_intrinsic(instance.callee); intrinsic) {
+      return this->builder.CreateCall(*intrinsic, load_arguments);
+    } else if (auto builtin = this->insert_or_retrieve_builtin("bython." + instance.callee))
+      return this->builder.CreateCall(*builtin, load_arguments);
+    else {
+      throw std::logic_error {"Cannot call function; undefined: " + instance.callee};
     }
   }
 
@@ -142,6 +185,36 @@ private:
     auto imetadata = codegen::intrinsic(this->context, itag);
     auto ir_intrinsic = this->module_->getOrInsertFunction(imetadata.name, imetadata.signature);
 
+    return ir_intrinsic;
+  }
+
+  auto insert_or_retrieve_intrinsic(std::string_view name) -> std::optional<llvm::FunctionCallee>
+  {
+    auto imetadata = codegen::intrinsic(this->context, name);
+    if (!imetadata) {
+      return std::nullopt;
+    }
+
+    auto ir_intrinsic = this->module_->getOrInsertFunction(imetadata->name, imetadata->signature);
+    return ir_intrinsic;
+  }
+
+  auto insert_or_retrieve_builtin(codegen::builtin_tag btag) -> llvm::FunctionCallee
+  {
+    auto bmetadata = codegen::builtin(this->context, btag);
+    auto ir_intrinsic = this->module_->getOrInsertFunction(bmetadata.name, bmetadata.signature);
+
+    return ir_intrinsic;
+  }
+
+  auto insert_or_retrieve_builtin(std::string_view name) -> std::optional<llvm::FunctionCallee>
+  {
+    auto bmetadata = codegen::builtin(this->context, name);
+    if (!bmetadata) {
+      return std::nullopt;
+    }
+
+    auto ir_intrinsic = this->module_->getOrInsertFunction(bmetadata->name, bmetadata->signature);
     return ir_intrinsic;
   }
 
