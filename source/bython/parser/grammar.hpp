@@ -28,6 +28,7 @@ static constexpr auto elif_ = LEXY_KEYWORD("elif", internal::identifier);
 static constexpr auto else_ = LEXY_KEYWORD("else", internal::identifier);
 
 static constexpr auto as_ = LEXY_KEYWORD("as", internal::identifier);
+static constexpr auto discard_ = LEXY_KEYWORD("discard", internal::identifier);
 
 }  // namespace keyword
 
@@ -40,7 +41,8 @@ static constexpr auto reserved_identifier = identifier.reserve(keyword::funcdef_
                                                                keyword::if_,
                                                                keyword::elif_,
                                                                keyword::else_,
-                                                               keyword::as_);
+                                                               keyword::as_,
+                                                               keyword::discard_);
 }  // namespace internal
 
 struct symbol_identifier
@@ -317,11 +319,20 @@ struct assignment
 {
   static constexpr auto rule = []
   {
-    auto introduced = dsl::p<grammar::symbol_identifier> + LEXY_LIT("=") + dsl::p<expression>;
+    auto introduced = dsl::p<grammar::symbol_identifier>
+        + LEXY_LIT(":") + dsl::p<grammar::symbol_identifier> + LEXY_LIT("=") + dsl::p<expression>;
     return keyword::variable_ >> introduced;
   }();
 
   static constexpr auto value = lexy::construct<ast::assignment> | new_statement<ast::assignment>;
+};
+
+struct expression_statement
+{
+  static constexpr auto rule = [] { return keyword::discard_ >> dsl::p<expression>; }();
+
+  static constexpr auto value =
+      lexy::construct<ast::expression_statement> | new_statement<ast::expression_statement>;
 };
 
 struct inner_stmt
@@ -329,14 +340,13 @@ struct inner_stmt
   struct missing_statement
   {
     static constexpr auto name =
-        R"(Expected `val` for an assignment, or `if` for branching;
-  This error can also occur if you forgot to finish branching with a closing curly bracket)";
+        R"(Expected `val` for an assignment, `if` for branching, `discard` for expression statements;)";
   };
 
   static constexpr auto rule = []
   {
     auto terminator = dsl::terminator(dsl::semicolon).limit(dsl::lit_c<'}'>);
-    return terminator(dsl::p<assignment> | dsl::p<conditional_branch>
+    return terminator(dsl::p<assignment> | dsl::p<conditional_branch> | dsl::p<expression_statement>
                       | dsl::error<missing_statement>);
   }();
 
