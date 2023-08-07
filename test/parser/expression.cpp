@@ -179,6 +179,16 @@ TEST_CASE("Compositions", "[Simple Binary Operations]")
                               m::lift<m::variable>("b"));
     REQUIRE(m::matches(m, matcher));
   }
+
+  SECTION("As")
+  {
+    auto code = unwrap_grammar<g::expression, ast::binary_operation>("x as u32");
+    auto matcher = m::lift<m::binary_operation>(m::lift<m::variable>("x"),
+                                                m::lift<m::binary_operator>(ast::binop_tag::as),
+                                                m::lift<m::variable>("u32"));
+
+    REQUIRE(m::matches(code, *matcher));
+  }
 }
 
 TEST_CASE("Compositions", "[Binary Operations w/ Precedence]")

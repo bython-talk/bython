@@ -25,4 +25,4 @@ private:
   std::unique_ptr<interpreter_pimpl> impl;
 };
 
-}  // namespace bython::codegen
+}  // namespace bython::executor

@@ -1,5 +1,6 @@
 # RUN: %jit --inpath %s | grep -e "1"
 def main()
 {
-    val _ = put_i64(5 % 2);
+    val x: i64 = 5 % 2;
+    discard put_i64(x);
 }

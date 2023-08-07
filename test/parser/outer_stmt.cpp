@@ -38,8 +38,8 @@ TEST_CASE("Function Definition")
   {
     auto ast = unwrap_grammar<g::outer_stmt, ast::function_def>(R"(
 def f() {
-  val x = 1 + 2;
-  val y = 1 - 2;
+  val x: i64 = 1 + 2;
+  val y: i64 = 1 - 2;
 }
 )");
   }

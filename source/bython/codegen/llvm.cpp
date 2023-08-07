@@ -18,6 +18,7 @@
 #include "builtin.hpp"
 #include "intrinsic.hpp"
 #include "symbols.hpp"
+#include "type_system.hpp"
 
 namespace bython
 {
@@ -77,78 +78,154 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(integer, instance)
   {
-    return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(this->context), instance.value);
+    if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
+        && instance.value <= std::numeric_limits<std::int8_t>::max())
+    {
+      return llvm::ConstantInt::getSigned(llvm::Type::getInt8Ty(this->context), instance.value);
+    }
+
+    else if (std::numeric_limits<std::int16_t>::lowest() <= instance.value
+             && instance.value <= std::numeric_limits<std::int16_t>::max())
+    {
+      return llvm::ConstantInt::getSigned(llvm::Type::getInt16Ty(this->context), instance.value);
+    }
+
+    else if (std::numeric_limits<std::int32_t>::lowest() <= instance.value
+             && instance.value <= std::numeric_limits<std::int32_t>::max())
+    {
+      return llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context), instance.value);
+    }
+
+    else if (std::numeric_limits<std::int64_t>::lowest() <= instance.value
+             && instance.value <= std::numeric_limits<std::int64_t>::max())
+    {
+      return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(this->context), instance.value);
+    }
+
+    else
+    {
+      throw std::logic_error {"Integer constant " + std::to_string(instance.value)
+                              + " is too large; does not fit in widest integer datatype (i64)"};
+    }
   }
 
   BYTHON_VISITOR_IMPL(assignment, assgn)
   {
     auto* rhs_value = this->visit(*assgn.rhs);
-    if (assgn.lhs == "_") {
-      return rhs_value;
-    }
-
     if (auto existing_var = this->symbol_mapping.get(assgn.lhs)) {
       auto [type, memory_location] = *existing_var;
       return this->builder.CreateStore(rhs_value, memory_location);
     }
 
-    // TODO: Enforce type declarations for assignments
-    //  auto type = this->type_mapping.get(assgn.hint);
-    auto* type = llvm::Type::getInt64Ty(this->context);
-    auto allocation = this->builder.CreateAlloca(type, /*ArraySize=*/nullptr, assgn.lhs);
-    this->symbol_mapping.put(assgn.lhs, type, allocation);
-    return this->builder.CreateStore(rhs_value, allocation);
+    auto lhs_type = this->type_mapping.get(this->context, assgn.hint);
+    if (!lhs_type) {
+      throw std::logic_error {"Unknown type used in LHS of assignment: " + assgn.hint};
+    }
+
+    auto converted_rhs = codegen::convert(this->builder, rhs_value, *lhs_type);
+    if (!converted_rhs) {
+      throw std::logic_error {"Unable to convert RHS to type of LHS: " + assgn.hint};
+    }
+
+    auto allocation = this->builder.CreateAlloca(*lhs_type, /*ArraySize=*/nullptr, assgn.lhs);
+    this->symbol_mapping.put(assgn.lhs, *lhs_type, allocation);
+    return this->builder.CreateStore(*converted_rhs, allocation);
   }
 
   BYTHON_VISITOR_IMPL(binary_operation, binop)
   {
-    auto lhs_v = this->visit(*binop.lhs);
-    auto rhs_v = this->visit(*binop.rhs);
+    if (m::matches(*binop.op, m::binary_operator {a::binop_tag::as})) {
+      auto lhs_v = this->visit(*binop.lhs);
+      auto target = a::dyn_cast<ast::variable>(*binop.rhs);
 
-    if (auto* b = ast::dyn_cast<ast::binary_operator>(*binop.op); b) {
-      switch (b->op) {
-        case a::binop_tag::pow: {
-          // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
-          // requires powi intrinsics to be brought into scope as prototypes
-          auto pow_intrinsic =
-              this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
-          return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
-        }
-        case a::binop_tag::multiply: {
-          return this->builder.CreateMul(lhs_v, rhs_v, "a.mul");
-        }
-        case a::binop_tag::divide: {
-          return this->builder.CreateSDiv(lhs_v, rhs_v, "a.sdiv");
-        }
-        case a::binop_tag::modulo: {
-          return this->builder.CreateSRem(lhs_v, rhs_v, "a.srem");
-        }
-        case a::binop_tag::plus: {
-          return this->builder.CreateAdd(lhs_v, rhs_v, "a.add");
-        }
-        case a::binop_tag::minus: {
-          return this->builder.CreateSub(lhs_v, rhs_v, "a.sub");
-        }
-        case a::binop_tag::bitshift_right_: {
-          return this->builder.CreateAShr(lhs_v, rhs_v, "bit.ashr");
-        }
-        case a::binop_tag::bitshift_left_: {
-          return this->builder.CreateShl(lhs_v, rhs_v, "bit.shl");
-        }
-        case a::binop_tag::bitand_: {
-          return this->builder.CreateAnd(lhs_v, rhs_v, "bit.and");
-        }
-        case a::binop_tag::bitxor_: {
-          return this->builder.CreateXor(lhs_v, rhs_v, "bit.xor");
-        }
-        case a::binop_tag::bitor_: {
-          return this->builder.CreateOr(lhs_v, rhs_v, "bit.or");
-        }
-        case a::binop_tag::booland: {
-          return this->builder.CreateLogicalAnd(lhs_v, rhs_v, "log.and");
-        }
-        case a::binop_tag::boolor: {
-          return this->builder.CreateLogicalOr(lhs_v, rhs_v, "log.or");
+      if (target == nullptr) {
+        throw std::logic_error {"`as` expression requires type identifier on RHS"};
+      }
+
+      auto target_type = this->type_mapping.get(this->context, target->identifier);
+      if (!target_type) {
+        throw std::logic_error {"Unknown type on RHS: " + target->identifier};
+      }
+
+      auto conversion = codegen::convert(this->builder, lhs_v, *target_type);
+      if (!conversion) {
+        throw std::logic_error {"Unable to codegen conversion"};
+      }
+      return *conversion;
+    }
+
+    else
+    {
+      auto lhs_v = this->visit(*binop.lhs);
+      auto rhs_v = this->visit(*binop.rhs);
+
+      if (auto* b = ast::dyn_cast<ast::binary_operator>(*binop.op); b) {
+        switch (b->op) {
+          case a::binop_tag::pow: {
+            // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
+            // requires powi intrinsics to be brought into scope as prototypes
+            auto pow_intrinsic =
+                this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
+            return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
+          }
+          case a::binop_tag::multiply: {
+            return this->builder.CreateMul(lhs_v, rhs_v, "a.mul");
+          }
+          case a::binop_tag::divide: {
+            return this->builder.CreateSDiv(lhs_v, rhs_v, "a.sdiv");
+          }
+          case a::binop_tag::modulo: {
+            return this->builder.CreateSRem(lhs_v, rhs_v, "a.srem");
+          }
+          case a::binop_tag::plus: {
+            return this->builder.CreateAdd(lhs_v, rhs_v, "a.add");
+          }
+          case a::binop_tag::minus: {
+            return this->builder.CreateSub(lhs_v, rhs_v, "a.sub");
+          }
+          case a::binop_tag::bitshift_right_: {
+            return this->builder.CreateAShr(lhs_v, rhs_v, "bit.ashr");
+          }
+          case a::binop_tag::bitshift_left_: {
+            return this->builder.CreateShl(lhs_v, rhs_v, "bit.shl");
+          }
+          case a::binop_tag::bitand_: {
+            return this->builder.CreateAnd(lhs_v, rhs_v, "bit.and");
+          }
+          case a::binop_tag::bitxor_: {
+            return this->builder.CreateXor(lhs_v, rhs_v, "bit.xor");
+          }
+          case a::binop_tag::bitor_: {
+            return this->builder.CreateOr(lhs_v, rhs_v, "bit.or");
+          }
+          case a::binop_tag::booland: {
+            auto lhs_bool =
+                codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
+            if (!lhs_bool) {
+              throw std::logic_error {"Unable to convert LHS to i1 (boolean)"};
+            }
+            auto rhs_bool =
+                codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
+            if (!rhs_bool) {
+              throw std::logic_error {"Unable to convert RHS to i1 (boolean)"};
+            }
+
+            return this->builder.CreateLogicalAnd(*lhs_bool, *rhs_bool, "log.and");
+          }
+          case a::binop_tag::boolor: {
+            auto lhs_bool =
+                codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
+            if (!lhs_bool) {
+              throw std::logic_error {"Unable to convert LHS to i1 (boolean)"};
+            }
+            auto rhs_bool =
+                codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
+            if (!rhs_bool) {
+              throw std::logic_error {"Unable to convert RHS to i1 (boolean)"};
+            }
+
+            return this->builder.CreateLogicalOr(*lhs_bool, *rhs_bool, "log.or");
+          }
         }
       }
     }
@@ -172,6 +249,12 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     else {
       throw std::logic_error {"Cannot call function; undefined: " + instance.callee};
     }
+  }
+
+  BYTHON_VISITOR_IMPL(expression_statement, instance)
+  {
+    this->visit(*instance.discarded);
+    return nullptr;
   }
 
   BYTHON_VISITOR_IMPL(node, /*instance*/)

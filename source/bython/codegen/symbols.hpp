@@ -38,7 +38,8 @@ class type_lookup
 public:
   type_lookup() { this->lookup.emplace_back(); }
 
-  auto get(std::string_view identifier) const -> std::optional<llvm::Type*>;
+  auto get(llvm::LLVMContext& context, std::string_view identifier) const
+      -> std::optional<llvm::Type*>;
 
   auto put(std::string_view symbol_name, llvm::Type* symbol_type) -> void;
 

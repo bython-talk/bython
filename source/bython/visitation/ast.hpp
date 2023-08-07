@@ -91,11 +91,15 @@ struct visitor
   BYTHON_VISITOR_DIRECT(assignment, inst, return_type)
   BYTHON_VISITOR_DELEGATE(assignment, statement, inst, return_type)
 
+  BYTHON_VISITOR_DIRECT(expression_statement, inst, return_type)
+  BYTHON_VISITOR_DELEGATE(expression_statement, statement, inst, return_type)
+
   BYTHON_VISITOR_DELEGATE(statement, node, inst, return_type)
   virtual auto visit(statement const& inst) -> return_type final
   {
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(type_definition, inst)
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(assignment, inst)
+    BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(expression_statement, inst)
     BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(function_def, inst)
 
     throw std::logic_error("Unexpected statement type; could not downcast and dispatch");

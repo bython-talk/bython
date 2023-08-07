@@ -1,3 +1,4 @@
+#include <iostream>
 #include <ranges>
 
 #include "builtin.hpp"
@@ -6,12 +7,17 @@ namespace builtin
 {
 auto put_i64_impl(int64_t value) -> void
 {
-  std::printf("%jd", value);
+  std::cout << value;
+}
+
+auto put_f32_impl(float value) -> void
+{
+  std::cout << value;
 }
 
 auto putln_i64_impl(int64_t value) -> void
 {
-  std::printf("%jd\n", value);
+  std::cout << value << "\n";
 }
 
 }  // namespace builtin
@@ -42,6 +48,18 @@ static auto const builtin_lookup = std::array {
                        /*IsVarArg=*/false);
                  },
                  .procedure_addr = std::uint64_t(builtin::put_i64_impl)},
+
+    // void @bython.put_f32(f32)
+    table_entry {.tag = builtin_tag::put_f32,
+                 .name = "bython.put_f32",
+                 .factory = [](llvm::LLVMContext& context) -> llvm::FunctionType*
+                 {
+                   return llvm::FunctionType::get(
+                       /*Result=*/llvm::Type::getVoidTy(context),
+                       /*Params=*/ {llvm::Type::getFloatTy(context)},
+                       /*IsVarArg=*/false);
+                 },
+                 .procedure_addr = std::uint64_t(builtin::put_f32_impl)},
 
     // void @bython.putln_i64(i64)
     table_entry {.tag = builtin_tag::putln_i64,

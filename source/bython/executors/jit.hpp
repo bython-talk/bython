@@ -26,4 +26,4 @@ private:
   std::unique_ptr<jit_compiler_pimpl> impl;
 };
 
-}  // namespace bython::codegen
+}  // namespace bython::executor

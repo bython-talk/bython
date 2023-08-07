@@ -80,7 +80,10 @@ struct jit_compiler::jit_compiler_pimpl
       return -1;
     }
 
-    for (auto&& builtin : {codegen::builtin_tag::put_i64, codegen::builtin_tag::putln_i64}) {
+    for (auto&& builtin : {codegen::builtin_tag::put_i64,
+                           codegen::builtin_tag::putln_i64,
+                           codegen::builtin_tag::put_f32})
+    {
       auto bmetadata = codegen::builtin(*context, builtin);
       engine->addGlobalMapping(bmetadata.name, bmetadata.procedure_addr);
     }

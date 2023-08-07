@@ -36,10 +36,18 @@ struct type_definition final : statement
 
 struct assignment final : statement
 {
-  assignment(std::string lhs_, std::unique_ptr<expression> rhs_);
+  assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_);
 
   std::string lhs;
+  std::string hint;
   std::unique_ptr<expression> rhs;
+};
+
+struct expression_statement final : statement
+{
+  expression_statement(std::unique_ptr<expression> discarded_);
+
+  std::unique_ptr<expression> discarded;
 };
 
 }  // namespace bython::ast
