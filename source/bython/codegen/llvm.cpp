@@ -123,9 +123,8 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
     // TODO: Enforce type declarations for assignments
     //  auto type = this->type_mapping.get(assgn.hint);
-    auto* type = llvm::Type::getInt64Ty(this->context);
-    auto allocation = this->builder.CreateAlloca(type, /*ArraySize=*/nullptr, assgn.lhs);
-    this->symbol_mapping.put(assgn.lhs, type, allocation);
+    auto allocation = this->builder.CreateAlloca(rhs_value->getType(), /*ArraySize=*/nullptr, assgn.lhs);
+    this->symbol_mapping.put(assgn.lhs, rhs_value->getType(), allocation);
     return this->builder.CreateStore(rhs_value, allocation);
   }
 
