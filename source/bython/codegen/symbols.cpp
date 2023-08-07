@@ -55,10 +55,15 @@ auto symbol_lookup::pop_scope() -> void
 using type_factory = llvm::Type* (*)(llvm::LLVMContext&);
 
 static auto builtin_types = std::unordered_map<std::string_view, type_factory> {
+    // signed integer types
     {"i64", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt64Ty(c)); }},
     {"i32", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt32Ty(c)); }},
     {"i16", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt16Ty(c)); }},
-    {"i8", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt8Ty(c)); }}};
+    {"i8", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt8Ty(c)); }},
+
+    // floating point types
+    {"f64", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getDoubleTy(c)); }},
+    {"f32", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getFloatTy(c)); }}};
 
 auto type_lookup::get(llvm::LLVMContext& context, std::string_view identifier) const
     -> std::optional<llvm::Type*>
