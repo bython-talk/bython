@@ -1,4 +1,9 @@
+#include <ranges>
+#include <unordered_map>
+
 #include "symbols.hpp"
+
+#include <llvm/IR/DerivedTypes.h>
 
 namespace bython::codegen
 {
@@ -27,8 +32,8 @@ auto symbol_lookup::put(std::string_view symbol_name,
 
 auto symbol_lookup::update(std::string_view symbol_name, llvm::Value* symbol_storage_loc) -> void
 {
-  for (auto it = this->lookup.rbegin(); it != this->lookup.rend(); ++it) {
-    if (auto search = it->find(symbol_name); search != it->end()) {
+  for (auto&& entry : std::ranges::reverse_view(this->lookup)) {
+    if (auto search = entry.find(symbol_name); search != entry.end()) {
       std::get<1>(search->second) = symbol_storage_loc;
       break;
     }
@@ -47,12 +52,25 @@ auto symbol_lookup::pop_scope() -> void
   this->lookup.pop_back();
 }
 
-auto type_lookup::get(std::string_view identifier) const -> std::optional<llvm::Type*>
+using type_factory = llvm::Type* (*)(llvm::LLVMContext&);
+
+static auto builtin_types = std::unordered_map<std::string_view, type_factory> {
+    {"i64", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt64Ty(c)); }},
+    {"i32", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt32Ty(c)); }},
+    {"i16", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt16Ty(c)); }},
+    {"i8", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt8Ty(c)); }}};
+
+auto type_lookup::get(llvm::LLVMContext& context, std::string_view identifier) const
+    -> std::optional<llvm::Type*>
 {
-  for (auto it = this->lookup.rbegin(); it != this->lookup.rend(); ++it) {
-    if (auto search = it->find(identifier); search != it->end()) {
+  for (auto&& entry : std::ranges::reverse_view(this->lookup)) {
+    if (auto search = entry.find(identifier); search != entry.end()) {
       return search->second;
     }
+  }
+
+  if (auto search = builtin_types.find(identifier); search != builtin_types.end()) {
+    return search->second(context);
   }
 
   return std::nullopt;
