@@ -60,6 +60,7 @@ static auto builtin_types = std::unordered_map<std::string_view, type_factory> {
     {"i32", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt32Ty(c)); }},
     {"i16", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt16Ty(c)); }},
     {"i8", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt8Ty(c)); }},
+    {"i1", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt1Ty(c)); }},
 
     // floating point types
     {"f64", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getDoubleTy(c)); }},
