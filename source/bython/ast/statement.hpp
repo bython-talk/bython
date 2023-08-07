@@ -43,7 +43,8 @@ struct assignment final : statement
   std::unique_ptr<expression> rhs;
 };
 
-struct expression_statement final : statement {
+struct expression_statement final : statement
+{
   expression_statement(std::unique_ptr<expression> discarded_);
 
   std::unique_ptr<expression> discarded;

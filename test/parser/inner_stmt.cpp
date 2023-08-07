@@ -26,8 +26,8 @@ TEST_CASE("If Statement")
 
   SECTION("Single If")
   {
-    auto ast =
-        unwrap_grammar<g::inner_stmt, ast::conditional_branch>("if x { val y: i64 = x; val z: i64 = y; };");
+    auto ast = unwrap_grammar<g::inner_stmt, ast::conditional_branch>(
+        "if x { val y: i64 = x; val z: i64 = y; };");
   }
 
   SECTION("If + Elif")

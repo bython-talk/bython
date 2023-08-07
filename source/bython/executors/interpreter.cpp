@@ -51,4 +51,4 @@ auto interpreter::begin() -> void
   }
 }
 
-}  // namespace bython::codegen
+}  // namespace bython::executor
