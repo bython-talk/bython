@@ -112,20 +112,24 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   BYTHON_VISITOR_IMPL(assignment, assgn)
   {
     auto* rhs_value = this->visit(*assgn.rhs);
-    if (assgn.lhs == "_") {
-      return rhs_value;
-    }
-
     if (auto existing_var = this->symbol_mapping.get(assgn.lhs)) {
       auto [type, memory_location] = *existing_var;
       return this->builder.CreateStore(rhs_value, memory_location);
     }
 
-    // TODO: Enforce type declarations for assignments
-    //  auto type = this->type_mapping.get(assgn.hint);
-    auto allocation = this->builder.CreateAlloca(rhs_value->getType(), /*ArraySize=*/nullptr, assgn.lhs);
-    this->symbol_mapping.put(assgn.lhs, rhs_value->getType(), allocation);
-    return this->builder.CreateStore(rhs_value, allocation);
+    auto lhs_type = this->type_mapping.get(this->context, assgn.hint);
+    if (!lhs_type) {
+      throw std::logic_error {"Unknown type used in LHS of assignment: " + assgn.hint};
+    }
+
+    auto converted_rhs = codegen::convert(this->builder, rhs_value, *lhs_type);
+    if (!converted_rhs) {
+      throw std::logic_error {"Unable to convert RHS to type of LHS: " + assgn.hint};
+    }
+
+    auto allocation = this->builder.CreateAlloca(*lhs_type, /*ArraySize=*/nullptr, assgn.lhs);
+    this->symbol_mapping.put(assgn.lhs, *lhs_type, allocation);
+    return this->builder.CreateStore(*converted_rhs, allocation);
   }
 
   BYTHON_VISITOR_IMPL(binary_operation, binop)
@@ -245,6 +249,12 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     else {
       throw std::logic_error {"Cannot call function; undefined: " + instance.callee};
     }
+  }
+
+  BYTHON_VISITOR_IMPL(expression_statement, instance)
+  {
+    this->visit(*instance.discarded);
+    return nullptr;
   }
 
   BYTHON_VISITOR_IMPL(node, /*instance*/)
