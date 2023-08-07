@@ -80,7 +80,7 @@ auto convert(llvm::IRBuilder<>& builder, llvm::Value* src, llvm::Type* dst_type)
     -> std::optional<llvm::Value*>
 {
   if (src->getType()->isIntegerTy() && dst_type->isIntegerTy()) {
-    if (src->getType()->getIntegerBitWidth() < dst_type->getIntegerBitWidth()) {
+    if (src->getType()->getIntegerBitWidth() <= dst_type->getIntegerBitWidth()) {
       auto converter = int_promoter {dst_type};
       return converter.codegen(builder, src);
 
@@ -98,7 +98,7 @@ auto convert(llvm::IRBuilder<>& builder, llvm::Value* src, llvm::Type* dst_type)
     // TODO: Check losslessness
     auto converter = int_to_fp{dst_type};
     return converter.codegen(builder, src);
-    
+
   }
 
   return std::nullopt;
