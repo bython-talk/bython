@@ -23,6 +23,8 @@ struct type_definition_stmt
   }
 
   std::string identifier;
+
+  auto tag() const -> ast::tag;
 };
 using type_definition_stmts = std::vector<type_definition_stmt>;
 
@@ -32,6 +34,8 @@ struct type_definition final : statement
 
   std::string identifier;
   type_definition_stmts body;
+
+  auto tag() const -> ast::tag;
 };
 
 struct assignment final : statement
@@ -41,6 +45,8 @@ struct assignment final : statement
   std::string lhs;
   std::string hint;
   std::unique_ptr<expression> rhs;
+
+  auto tag() const -> ast::tag;
 };
 
 struct expression_statement final : statement
@@ -48,6 +54,8 @@ struct expression_statement final : statement
   expression_statement(std::unique_ptr<expression> discarded_);
 
   std::unique_ptr<expression> discarded;
+
+  auto tag() const -> ast::tag;
 };
 
 }  // namespace bython::ast

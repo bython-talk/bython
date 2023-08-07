@@ -7,4 +7,8 @@ mod::mod(statements body_)
 {
 }
 
+auto mod::tag() const -> ast::tag {
+    return ast::tag{tag::mod};
+}
+
 }  // namespace bython::ast

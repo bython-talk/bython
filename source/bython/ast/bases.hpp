@@ -2,12 +2,16 @@
 
 #include <memory>
 
+#include "tags.hpp"
+
 namespace bython::ast
 {
 
 struct node
 {
   virtual ~node() = default;
+
+  virtual auto tag() const -> ast::tag = 0;
 };
 
 template<typename T>

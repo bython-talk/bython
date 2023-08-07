@@ -21,6 +21,8 @@ struct unary_operation final : expression
 
   std::unique_ptr<node> op;
   std::unique_ptr<expression> rhs;
+
+  auto tag() const -> ast::tag;
 };
 
 struct binary_operation final : expression
@@ -31,6 +33,8 @@ struct binary_operation final : expression
 
   std::unique_ptr<expression> lhs, rhs;
   std::unique_ptr<node> op;
+
+  auto tag() const -> ast::tag;
 };
 
 struct comparison final : expression
@@ -42,6 +46,8 @@ struct comparison final : expression
 
   ast::expressions operands;
   std::vector<std::unique_ptr<node>> ops;
+
+  auto tag() const -> ast::tag;
 };
 
 struct variable final : expression
@@ -49,6 +55,8 @@ struct variable final : expression
   explicit variable(std::string identifier_);
 
   std::string identifier;
+
+  auto tag() const -> ast::tag;
 };
 
 struct call final : expression
@@ -57,6 +65,8 @@ struct call final : expression
 
   std::string callee;
   ast::expressions arguments;
+
+  auto tag() const -> ast::tag;
 };
 
 struct integer final : expression
@@ -64,6 +74,8 @@ struct integer final : expression
   explicit integer(int64_t value_);
 
   int64_t value;
+
+  auto tag() const -> ast::tag;
 };
 
 }  // namespace bython::ast
