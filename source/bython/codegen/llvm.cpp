@@ -78,7 +78,35 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(integer, instance)
   {
-    return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(this->context), instance.value);
+    if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
+        && instance.value <= std::numeric_limits<std::int8_t>::max())
+    {
+      return llvm::ConstantInt::getSigned(llvm::Type::getInt8Ty(this->context), instance.value);
+    }
+
+    else if (std::numeric_limits<std::int16_t>::lowest() <= instance.value
+             && instance.value <= std::numeric_limits<std::int16_t>::max())
+    {
+      return llvm::ConstantInt::getSigned(llvm::Type::getInt16Ty(this->context), instance.value);
+    }
+
+    else if (std::numeric_limits<std::int32_t>::lowest() <= instance.value
+             && instance.value <= std::numeric_limits<std::int32_t>::max())
+    {
+      return llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context), instance.value);
+    }
+
+    else if (std::numeric_limits<std::int64_t>::lowest() <= instance.value
+             && instance.value <= std::numeric_limits<std::int64_t>::max())
+    {
+      return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(this->context), instance.value);
+    }
+
+    else
+    {
+      throw std::logic_error {"Integer constant " + std::to_string(instance.value)
+                              + " is too large; does not fit in widest integer datatype (i64)"};
+    }
   }
 
   BYTHON_VISITOR_IMPL(assignment, assgn)
