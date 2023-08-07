@@ -271,9 +271,6 @@ struct expression
 template<typename T>
 static constexpr auto new_statement = grammar::new_unique_ptr<T, ast::statement>;
 
-template<typename T>
-static constexpr auto new_compound_statement = grammar::new_unique_ptr<T, ast::compound>;
-
 /* === Inner Statements === */
 
 struct branch_body
@@ -294,9 +291,8 @@ struct dependent_branch
   }();
 
   static constexpr auto value = lexy::callback(
-      lexy::construct<ast::conditional_branch> | new_compound_statement<ast::conditional_branch>,
-      lexy::construct<ast::unconditional_branch>
-          | new_compound_statement<ast::unconditional_branch>);
+      lexy::construct<ast::conditional_branch> | new_statement<ast::conditional_branch>,
+      lexy::construct<ast::unconditional_branch> | new_statement<ast::unconditional_branch>);
 };
 
 struct conditional_branch
@@ -312,7 +308,7 @@ struct conditional_branch
   static constexpr auto value =
       lexy::bind(
           lexy::construct<ast::conditional_branch>, lexy::_1, lexy::_2, lexy::_3.or_default())
-      | new_compound_statement<ast::conditional_branch>;
+      | new_statement<ast::conditional_branch>;
 };
 
 struct assignment
