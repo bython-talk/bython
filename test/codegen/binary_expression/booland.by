@@ -1,4 +1,4 @@
-# RUN: %jit --inpath %s | grep -e "1"
+# RUN: %jit --inpath %s | grep -e "-1"
 def main()
 {
     val _ = put_i64((1 && 1) as i64);

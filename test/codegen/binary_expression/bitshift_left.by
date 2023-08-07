@@ -2,5 +2,5 @@
 def main()
 {
     val x = 1 << 5;
-    val _ = put_i64(x);
+    val _ = put_i64(x as i64);
 }
