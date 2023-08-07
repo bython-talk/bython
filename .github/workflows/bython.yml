@@ -50,7 +50,7 @@ jobs:
       run: cmake -Wno-error=dev --preset=ci-sanitize -G Ninja
 
     - name: Build
-      run: cmake --build build/sanitize -j 2
+      run: cmake --build build/sanitize -j $(nproc)
 
     - name: Test
       working-directory: build/sanitize
@@ -63,7 +63,7 @@ jobs:
           detect_leaks=1"
         ASAN_SYMBOLIZER: "/usr/bin/llvm-symbolizer-16"
         UBSAN_OPTIONS: print_stacktrace=1
-      run: ctest --output-on-failure --no-tests=error -j 2
+      run: ctest --output-on-failure --no-tests=error -j $(nproc)
   coverage:
     needs: [lint]
     runs-on: ubuntu-22.04
@@ -85,11 +85,11 @@ jobs:
         run: cmake -Wno-error=dev --preset=ci-coverage
 
       - name: Build
-        run: cmake --build build/coverage -j 2
+        run: cmake --build build/coverage -j $(nproc)
 
       - name: Test
         working-directory: build/coverage
-        run: ctest --output-on-failure --no-tests=error -j 2
+        run: ctest --output-on-failure --no-tests=error -j $(nproc)
 
       - name: Process coverage info
         run: cmake --build build/coverage -t coverage
@@ -125,14 +125,14 @@ jobs:
           cmake -Wno-error=dev --preset=ci-$os -G Ninja
 
       - name: Build
-        run: cmake --build build --config Release -j 2
+        run: cmake --build build --config Release -j $(nproc)
 
       - name: Install
         run: cmake --install build --config Release --prefix prefix
 
       - name: Test
         working-directory: build
-        run: ctest --output-on-failure --no-tests=error -C Release -j 2
+        run: ctest --output-on-failure --no-tests=error -C Release -j $(nproc)
   docs:
     # Deploy docs only when builds succeed
     needs: [sanitize, test]

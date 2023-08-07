@@ -1,4 +1,4 @@
-#include <bython/ast/compound.hpp>
+#include <bython/ast/statement.hpp>
 #include <bython/parser/grammar.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>

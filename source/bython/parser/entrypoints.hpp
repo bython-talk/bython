@@ -3,7 +3,6 @@
 #include <lexy/action/parse.hpp>
 #include <lexy_ext/report_error.hpp>
 
-#include "../ast/compound.hpp"
 #include "../ast/expression.hpp"
 #include "../ast/module.hpp"
 #include "../ast/statement.hpp"

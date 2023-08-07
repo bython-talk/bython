@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bases.hpp"
+#include "tags.hpp"
 
 namespace bython::ast
 {
@@ -14,12 +15,11 @@ enum class unop_tag
 
 struct unary_operator final : node
 {
-  explicit unary_operator(unop_tag op_)
-      : op {op_}
-  {
-  }
+  explicit unary_operator(unop_tag op_);
 
   unop_tag op;
+
+  auto tag() const -> ast::tag;
 };
 
 enum class binop_tag
@@ -67,6 +67,8 @@ struct binary_operator final : node
   }
 
   binop_tag op;
+
+  auto tag() const -> ast::tag;
 };
 
 enum class comparison_operator_tag
@@ -90,6 +92,8 @@ struct comparison_operator final : node
   }
 
   comparison_operator_tag op;
+
+  auto tag() const -> ast::tag;
 };
 
 }  // namespace bython::ast
