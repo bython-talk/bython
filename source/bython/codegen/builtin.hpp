@@ -20,7 +20,9 @@ struct builtin_metadata
 enum class builtin_tag : std::uint8_t
 {
   put_i64,
-  putln_i64
+  putln_i64,
+
+  put_f32,
 };
 
 auto builtin(llvm::LLVMContext& context, builtin_tag btag) -> builtin_metadata;
