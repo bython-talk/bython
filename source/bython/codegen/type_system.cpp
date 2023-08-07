@@ -58,7 +58,8 @@ struct int_truncater final : type_converter
   auto codegen(llvm::IRBuilder<>& builder, llvm::Value* src) -> llvm::Value*
   {
     // Produce true iff integer value is not 0
-    return builder.CreateICmpNE(src, llvm::ConstantInt::get(src->getType(), 0, /*isSigned=*/true), "int.trunc");
+    return builder.CreateICmpNE(
+        src, llvm::ConstantInt::get(src->getType(), 0, /*isSigned=*/true), "int.trunc");
   }
 };
 
@@ -69,6 +70,16 @@ struct int_to_fp final : type_converter
   auto codegen(llvm::IRBuilder<>& builder, llvm::Value* src) -> llvm::Value*
   {
     return builder.CreateSIToFP(src, this->dst_type, "int2fp.prom");
+  }
+};
+
+struct float_promoter final : type_converter
+{
+  using type_converter::type_converter;
+
+  auto codegen(llvm::IRBuilder<>& builder, llvm::Value* src) -> llvm::Value*
+  {
+    return builder.CreateFPExt(src, this->dst_type, "fp.prom");
   }
 };
 
@@ -96,9 +107,14 @@ auto convert(llvm::IRBuilder<>& builder, llvm::Value* src, llvm::Type* dst_type)
   else if (src->getType()->isIntegerTy() && dst_type->isFloatingPointTy())
   {
     // TODO: Check losslessness
-    auto converter = int_to_fp{dst_type};
+    auto converter = int_to_fp {dst_type};
     return converter.codegen(builder, src);
+  }
 
+  else if (src->getType()->isFloatTy() && dst_type->isFloatingPointTy())
+  {
+    auto converter = float_promoter {dst_type};
+    return converter.codegen(builder, src);
   }
 
   return std::nullopt;
