@@ -26,6 +26,9 @@ static constexpr auto struct_ = LEXY_KEYWORD("struct", internal::identifier);
 static constexpr auto if_ = LEXY_KEYWORD("if", internal::identifier);
 static constexpr auto elif_ = LEXY_KEYWORD("elif", internal::identifier);
 static constexpr auto else_ = LEXY_KEYWORD("else", internal::identifier);
+
+static constexpr auto as_ = LEXY_KEYWORD("as", internal::identifier);
+
 }  // namespace keyword
 
 namespace internal
@@ -36,7 +39,8 @@ static constexpr auto reserved_identifier = identifier.reserve(keyword::funcdef_
                                                                keyword::struct_,
                                                                keyword::if_,
                                                                keyword::elif_,
-                                                               keyword::else_);
+                                                               keyword::else_,
+                                                               keyword::as_);
 }  // namespace internal
 
 struct symbol_identifier
@@ -102,6 +106,8 @@ struct parenthesized
 
 namespace operators
 {
+static constexpr auto as = dsl::op<ast::binop_tag::as>(keyword::as_);
+
 static constexpr auto pow = dsl::op<ast::binop_tag::pow>(LEXY_LIT("**"));
 
 static constexpr auto unary_plus = dsl::op<ast::unop_tag::plus>(dsl::lit_c<'+'>);
@@ -141,7 +147,6 @@ static constexpr auto grt = dsl::op<ast::comparison_operator_tag::grt>(
 static constexpr auto eq = dsl::op<ast::comparison_operator_tag::eq>(LEXY_LIT("=="));
 
 static constexpr auto neq = dsl::op<ast::comparison_operator_tag::neq>(LEXY_LIT("!="));
-
 }  // namespace operators
 
 struct expr_prod : lexy::expression_production
@@ -157,10 +162,16 @@ struct expr_prod : lexy::expression_production
         | dsl::error<expression_error>;
   }();
 
+  struct as_conversion : dsl::infix_op_left
+  {
+    static constexpr auto op = operators::as;
+    using operand = dsl::atom;
+  };
+
   struct math_power : dsl::infix_op_right
   {
     static constexpr auto op = operators::pow;
-    using operand = dsl::atom;
+    using operand = as_conversion;
   };
 
   struct unary_operation : dsl::prefix_op
@@ -342,10 +353,7 @@ struct inner_compound_body
 
 struct outer_compound_body
 {
-  static constexpr auto rule = []
-  {
-    return dsl::curly_bracketed.opt_list(dsl::p<inner_stmt>);
-  }();
+  static constexpr auto rule = [] { return dsl::curly_bracketed.opt_list(dsl::p<inner_stmt>); }();
 
   static constexpr auto value = lexy::as_list<ast::statements>;
 };
