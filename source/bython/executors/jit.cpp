@@ -63,7 +63,8 @@ struct jit_compiler::jit_compiler_pimpl
         codegen::compile(std::string {input_file.filename()}, std::move(module_), context);
     codegen->setSourceFileName(std::string {input_file});
     codegen->setTargetTriple("x86_64-pc-linux-gnu");
-    codegen->print(llvm::errs(), nullptr);
+    
+    // codegen->print(llvm::errs(), nullptr);
 
     std::string error;
     auto engine_builder = llvm::EngineBuilder(std::move(codegen));
