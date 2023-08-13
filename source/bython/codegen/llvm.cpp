@@ -1,4 +1,6 @@
+#include <iomanip>
 #include <map>
+#include <sstream>
 #include <tuple>
 
 #include "llvm.hpp"
@@ -11,8 +13,10 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/ErrorHandling.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/TargetParser/Triple.h>
 
 #include "builtin.hpp"
@@ -26,12 +30,25 @@ using namespace bython::ast;
 namespace a = bython::ast;
 namespace m = bython::matching;
 
+template<typename Arg, typename... Args>
+[[noreturn]] auto log_and_throw(Arg&& arg, Args&&... args) -> void
+{
+  std::string error;
+  auto rso = llvm::raw_string_ostream {error};
+
+  rso << std::forward<Arg>(arg);
+  ((rso << ' ' << std::forward<Args>(args)), ...);
+  llvm::errs() << error << '\n';
+
+  throw std::logic_error {std::move(error)};
+}
+
 struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 {
-  explicit codegen_visitor(std::string_view module_identifier, llvm::LLVMContext& context_)
-      : context {context_}
-      , builder {context_}
-      , module_ {std::make_unique<llvm::Module>(module_identifier, context_)}
+  explicit codegen_visitor(llvm::Module& out_module)
+      : context {out_module.getContext()}
+      , builder {out_module.getContext()}
+      , module_ {out_module}
       , symbol_mapping {}
       , type_mapping {}
   {
@@ -42,8 +59,6 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     for (auto&& stmt : m.body) {
       this->visit(*stmt);
     }
-
-    // TODO: This should never be used; read from module attribute instead
     return nullptr;
   }
 
@@ -52,7 +67,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     auto function_type =
         llvm::FunctionType::get(llvm::Type::getVoidTy(this->context), {}, /*isVarArg=*/false);
     auto function = llvm::Function::Create(
-        function_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, fdef.name, *this->module_);
+        function_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, fdef.name, this->module_);
 
     auto entry_into_function = llvm::BasicBlock::Create(this->context, "entry", function);
     this->builder.SetInsertPoint(entry_into_function);
@@ -104,8 +119,9 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
     else
     {
-      throw std::logic_error {"Integer constant " + std::to_string(instance.value)
-                              + " is too large; does not fit in widest integer datatype (i64)"};
+      log_and_throw("Integer constant",
+                    std::to_string(instance.value),
+                    "does not fit in any integer datatype");
     }
   }
 
@@ -119,12 +135,16 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
     auto lhs_type = this->type_mapping.get(this->context, assgn.hint);
     if (!lhs_type) {
-      throw std::logic_error {"Unknown type used in LHS of assignment: " + assgn.hint};
+      log_and_throw("Unknown type", assgn.hint, "used on LHS of assignment");
     }
 
     auto converted_rhs = codegen::convert(this->builder, rhs_value, *lhs_type);
     if (!converted_rhs) {
-      throw std::logic_error {"Unable to convert RHS to type of LHS: " + assgn.hint};
+      log_and_throw("Types on each side of assignment are incompatible:",
+                    "type on LHS:",
+                    **lhs_type,
+                    ", type on RHS:",
+                    *rhs_value->getType());
     }
 
     auto allocation = this->builder.CreateAlloca(*lhs_type, /*ArraySize=*/nullptr, assgn.lhs);
@@ -134,29 +154,29 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(binary_operation, binop)
   {
-    if (m::matches(*binop.op, m::binary_operator {a::binop_tag::as})) {
-      auto lhs_v = this->visit(*binop.lhs);
-      auto target = a::dyn_cast<ast::variable>(*binop.rhs);
+    auto lhs_v = this->visit(*binop.lhs);
 
+    if (m::matches(*binop.op, m::binary_operator {a::binop_tag::as})) {
+      auto target = a::dyn_cast<ast::variable>(*binop.rhs);
       if (target == nullptr) {
-        throw std::logic_error {"`as` expression requires type identifier on RHS"};
+        log_and_throw("`as` expression requires type identifier on RHS");
       }
 
       auto target_type = this->type_mapping.get(this->context, target->identifier);
       if (!target_type) {
-        throw std::logic_error {"Unknown type on RHS: " + target->identifier};
+        log_and_throw("Unknown type on RHS:", target->identifier);
       }
 
       auto conversion = codegen::convert(this->builder, lhs_v, *target_type);
       if (!conversion) {
-        throw std::logic_error {"Unable to codegen conversion"};
+        log_and_throw(
+            "Unable to codegen conversion.", "LHS:", *lhs_v->getType(), ", RHS:", *target_type);
       }
       return *conversion;
     }
 
     else
     {
-      auto lhs_v = this->visit(*binop.lhs);
       auto rhs_v = this->visit(*binop.rhs);
 
       if (auto* b = ast::dyn_cast<ast::binary_operator>(*binop.op); b) {
@@ -202,12 +222,12 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
             auto lhs_bool =
                 codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
             if (!lhs_bool) {
-              throw std::logic_error {"Unable to convert LHS to i1 (boolean)"};
+              log_and_throw("Unable to convert LHS type", *lhs_v->getType(), "to i1 (boolean)");
             }
             auto rhs_bool =
                 codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
             if (!rhs_bool) {
-              throw std::logic_error {"Unable to convert RHS to i1 (boolean)"};
+              log_and_throw("Unable to convert RHS type", *rhs_v->getType(), "to i1 (boolean)");
             }
 
             return this->builder.CreateLogicalAnd(*lhs_bool, *rhs_bool, "log.and");
@@ -216,12 +236,12 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
             auto lhs_bool =
                 codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
             if (!lhs_bool) {
-              throw std::logic_error {"Unable to convert LHS to i1 (boolean)"};
+              log_and_throw("Unable to convert LHS type", *lhs_v->getType(), "to i1 (boolean)");
             }
             auto rhs_bool =
                 codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
             if (!rhs_bool) {
-              throw std::logic_error {"Unable to convert RHS to i1 (boolean)"};
+              log_and_throw("Unable to convert RHS type", *rhs_v->getType(), "to i1 (boolean)");
             }
 
             return this->builder.CreateLogicalOr(*lhs_bool, *rhs_bool, "log.or");
@@ -240,7 +260,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       load_arguments.emplace_back(this->visit(*argument));
     }
 
-    if (auto defined = this->module_->getFunction(instance.callee); defined != nullptr) {
+    if (auto defined = this->module_.getFunction(instance.callee); defined != nullptr) {
       return this->builder.CreateCall(defined, load_arguments);
     } else if (auto intrinsic = this->insert_or_retrieve_intrinsic(instance.callee); intrinsic) {
       return this->builder.CreateCall(*intrinsic, load_arguments);
@@ -266,7 +286,7 @@ private:
   auto insert_or_retrieve_intrinsic(codegen::intrinsic_tag itag) -> llvm::FunctionCallee
   {
     auto imetadata = codegen::intrinsic(this->context, itag);
-    auto ir_intrinsic = this->module_->getOrInsertFunction(imetadata.name, imetadata.signature);
+    auto ir_intrinsic = this->module_.getOrInsertFunction(imetadata.name, imetadata.signature);
 
     return ir_intrinsic;
   }
@@ -278,14 +298,14 @@ private:
       return std::nullopt;
     }
 
-    auto ir_intrinsic = this->module_->getOrInsertFunction(imetadata->name, imetadata->signature);
+    auto ir_intrinsic = this->module_.getOrInsertFunction(imetadata->name, imetadata->signature);
     return ir_intrinsic;
   }
 
   auto insert_or_retrieve_builtin(codegen::builtin_tag btag) -> llvm::FunctionCallee
   {
     auto bmetadata = codegen::builtin(this->context, btag);
-    auto ir_intrinsic = this->module_->getOrInsertFunction(bmetadata.name, bmetadata.signature);
+    auto ir_intrinsic = this->module_.getOrInsertFunction(bmetadata.name, bmetadata.signature);
 
     return ir_intrinsic;
   }
@@ -297,14 +317,13 @@ private:
       return std::nullopt;
     }
 
-    auto ir_intrinsic = this->module_->getOrInsertFunction(bmetadata->name, bmetadata->signature);
+    auto ir_intrinsic = this->module_.getOrInsertFunction(bmetadata->name, bmetadata->signature);
     return ir_intrinsic;
   }
 
-public:
   llvm::LLVMContext& context;
   llvm::IRBuilder<> builder;
-  std::unique_ptr<llvm::Module> module_;
+  llvm::Module& module_;
 
   codegen::symbol_lookup symbol_mapping;
   codegen::type_lookup type_mapping;
@@ -317,10 +336,17 @@ namespace bython::codegen
 auto compile(std::string_view name, std::unique_ptr<ast::node> ast, llvm::LLVMContext& context)
     -> std::unique_ptr<llvm::Module>
 {
-  auto visitor = codegen_visitor {name, context};
+  auto module_ = std::make_unique<llvm::Module>(name, context);
+  compile(std::move(ast), *module_);
+
+  return module_;
+}
+
+auto compile(std::unique_ptr<ast::node> ast, llvm::Module& module_) -> void
+{
+  auto visitor = codegen_visitor {module_};
   visitor.visit(*ast);
 
-  llvm::verifyModule(*visitor.module_, &llvm::errs());
-  return std::move(visitor.module_);
+  llvm::verifyModule(module_, &llvm::errs());
 }
 }  // namespace bython::codegen
