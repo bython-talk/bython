@@ -57,10 +57,10 @@ struct jit_compiler::jit_compiler_pimpl
     }
 
     auto module_ = std::make_unique<ast::mod>(std::move(parsed).value());
-    auto context = std::make_unique<llvm::LLVMContext>();
+    auto context = llvm::LLVMContext();
 
     auto codegen =
-        codegen::compile(std::string {input_file.filename()}, std::move(module_), *context);
+        codegen::compile(std::string {input_file.filename()}, std::move(module_), context);
     codegen->setSourceFileName(std::string {input_file});
     codegen->setTargetTriple("x86_64-pc-linux-gnu");
     codegen->print(llvm::errs(), nullptr);
@@ -84,7 +84,7 @@ struct jit_compiler::jit_compiler_pimpl
                            codegen::builtin_tag::putln_i64,
                            codegen::builtin_tag::put_f32})
     {
-      auto bmetadata = codegen::builtin(*context, builtin);
+      auto bmetadata = codegen::builtin(context, builtin);
       engine->addGlobalMapping(bmetadata.name, bmetadata.procedure_addr);
     }
 
