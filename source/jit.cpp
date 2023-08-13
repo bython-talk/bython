@@ -16,10 +16,14 @@ auto main(int argc, char* argv[]) -> int
 {
   namespace cl = llvm::cl;
 
+  auto jit_category = cl::OptionCategory {
+      "JIT Options", "Options for controlling the JIT implementation of Bython"};
+
   auto inpath = cl::opt<std::string>("inpath",
                                      cl::desc("File to just-in-time compile and execute"),
                                      cl::value_desc("filepath"),
-                                     cl::Required);
+                                     cl::Required,
+                                     cl::cat(jit_category));
 
   auto debug_values =
       cl::values(clEnumValN(opt_level::debug, "g", "Disable optimisations, enable debugging"),
@@ -29,8 +33,10 @@ auto main(int argc, char* argv[]) -> int
                                   cl::desc("Choose optimisation level"),
                                   debug_values,
                                   cl::value_desc("opt-level"),
-                                  cl::init(opt_level::off));
+                                  cl::init(opt_level::off),
+                                  cl::cat(jit_category));
 
+  cl::HideUnrelatedOptions(jit_category);
   cl::ParseCommandLineOptions(argc, argv, "bython-jit");
 
   auto jit = bython::executor::jit_compiler {};
