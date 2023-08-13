@@ -1,4 +1,4 @@
 target_sources(bython_lib PRIVATE
-    # interpreter.cpp
+    interpreter.cpp
     jit.cpp
 )
