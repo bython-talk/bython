@@ -114,7 +114,7 @@ struct interpreter::interpreter_pimpl
   ~interpreter_pimpl()
   {
     if (auto error = this->session->endSession(); error) {
-      llvm::errs() << error;
+      llvm::errs() << error << "\n";
     }
   }
 
@@ -145,6 +145,8 @@ struct interpreter::interpreter_pimpl
             this->add_module(llvm::orc::ThreadSafeModule {std::move(module_), this->context}));
       }
 
+      /*
+      TODO: Currently disabled until we discover how to codegen calls for functions that are defined elsewhere
       else if (auto inner_stmt =
                    lexy::parse<top_level_expr>(input, lexy_ext::report_error.to(error_writer));
                inner_stmt.has_value())
@@ -171,10 +173,11 @@ struct interpreter::interpreter_pimpl
         auto entrypoint = std::bit_cast<void (*)()>(entrypoint_addr);
         entrypoint();
       }
+      */
 
       else
       {
-        llvm::errs() << errors << "\n";
+        llvm::errs() << errors << "\n\n";
       }
     }
   }
