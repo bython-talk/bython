@@ -12,7 +12,11 @@ TEST_CASE("Lexy Frontend")
 {
   auto parser = p::lexy_code_frontend {};
   auto parse_result = parser.parse("undecl_iden,DeclIdent");
-  REQUIRE(parse_result.has_value());
+
+  if (parse_result.has_error()) {
+    INFO(std::move(parse_result).error());
+    REQUIRE(false);
+  }
 
   auto [parse_metadata, ast] = std::move(parse_result).value();
   auto mod = dynamic_cast<ast::expr_mod*>(&*ast);
