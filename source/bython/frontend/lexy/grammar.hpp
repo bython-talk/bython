@@ -1,8 +1,9 @@
 #pragma once
 
-#include <bython/ast.hpp>
 #include <lexy/callback.hpp>
 #include <lexy/dsl.hpp>
+
+#include "bython/ast.hpp"
 
 namespace bython::grammar
 {
@@ -73,9 +74,20 @@ struct nested_expression : lexy::transparent_production
 
 struct integer : lexy::token_production
 {
-  static constexpr auto rule = LEXY_LIT("0x") >> dsl::integer<int, dsl::hex> | dsl::integer<int>;
-
-  static constexpr auto value = lexy::construct<ast::integer> | new_expression<ast::integer>;
+  static constexpr auto rule =
+      // Hexadecimal: 0x0F
+      LEXY_LIT("0x") >> dsl::integer<int64_t, dsl::hex> |
+      // Explicit Decimal: 0d09
+      LEXY_LIT("0d") >> dsl::integer<int64_t, dsl::decimal> |
+      // Explicit Octal: 0o07
+      LEXY_LIT("0o") >> dsl::integer<int64_t, dsl::octal> |
+      // Explicit Binary: 0b01
+      LEXY_LIT("0b") >> dsl::integer<int64_t, dsl::binary> |
+      // Default; standard decimal with an optional sign
+      dsl::peek(dsl::lit_c<'-'> / dsl::lit_c<'+'> / dsl::digit<dsl::decimal>)
+          >> dsl::sign + dsl::integer<int64_t, dsl::decimal>;
+  static constexpr auto value =
+      lexy::as_integer<int64_t> | lexy::construct<ast::integer> | new_expression<ast::integer>;
 };
 
 struct var_or_call
@@ -160,7 +172,7 @@ struct expr_prod : lexy::expression_production
 
   static constexpr auto atom = []
   {
-    return dsl::p<var_or_call> | dsl::p<integer> | dsl::p<parenthesized>
+    return dsl::p<var_or_call> | dsl::p<parenthesized> | dsl::p<integer>
         | dsl::error<expression_error>;
   }();
 
@@ -331,6 +343,13 @@ struct expression_statement
       lexy::construct<ast::expression_statement> | new_statement<ast::expression_statement>;
 };
 
+struct return_stmt
+{
+  static constexpr auto rule = [] { return keyword::return_ >> dsl::p<expression>; }();
+
+  static constexpr auto value = lexy::construct<ast::return_> | new_statement<ast::return_>;
+};
+
 struct inner_stmt
 {
   struct missing_statement
@@ -343,7 +362,7 @@ struct inner_stmt
   {
     auto terminator = dsl::terminator(dsl::semicolon).limit(dsl::lit_c<'}'>);
     return terminator(dsl::p<assignment> | dsl::p<conditional_branch> | dsl::p<expression_statement>
-                      | dsl::error<missing_statement>);
+                      | dsl::p<return_stmt> | dsl::error<missing_statement>);
   }();
 
   static constexpr auto value = lexy::forward<std::unique_ptr<ast::statement>>;
@@ -370,7 +389,8 @@ struct function_def
 {
   struct parameter
   {
-    static constexpr auto rule = [] { return dsl::p<symbol_identifier>; }();
+    static constexpr auto rule = []
+    { return dsl::p<symbol_identifier> + LEXY_LIT(":") + dsl::p<type_identifier>; }();
     static constexpr auto value = lexy::construct<ast::parameter>;
   };
 
