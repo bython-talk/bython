@@ -24,22 +24,22 @@ struct frontend_error_reporter
   std::string msg;
 };
 
-struct parse_tree
+struct parse_metadata
 {
-  virtual ~parse_tree() = default;
+  virtual ~parse_metadata() = default;
 };
 
 struct frontend_parse_result
 {
   frontend_parse_result() = delete;
 
-  frontend_parse_result(std::unique_ptr<parse_tree> tree, std::unique_ptr<ast::node> ast);
+  frontend_parse_result(std::unique_ptr<parse_metadata> tree, std::unique_ptr<ast::node> ast);
   explicit frontend_parse_result(std::string error);
 
   auto has_value() const -> bool;
   auto has_error() const -> bool;
 
-  using value_type = std::tuple<std::unique_ptr<parse_tree>, std::unique_ptr<ast::node>>;
+  using value_type = std::tuple<std::unique_ptr<parse_metadata>, std::unique_ptr<ast::node>>;
   
   auto value() && -> value_type;
   auto error() && -> std::string;
@@ -59,8 +59,8 @@ struct frontend
   virtual auto parse(std::string_view) -> frontend_parse_result = 0;
   virtual auto parse_expression(std::string_view) -> frontend_parse_result = 0;
   virtual auto parse_statement(std::string_view) -> frontend_parse_result = 0;
-  
-  virtual auto report_error(parser::parse_tree const& tree, ast::node const& node, frontend_error_report report) const -> void = 0;
+
+  virtual auto report_error(parser::parse_metadata const& tree, ast::node const& node, frontend_error_report report) const -> void = 0;
 };
 
 }  // namespace bython::parser

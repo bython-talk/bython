@@ -6,7 +6,7 @@
 namespace bython::parser
 {
 
-frontend_parse_result::frontend_parse_result(std::unique_ptr<parse_tree> tree,
+frontend_parse_result::frontend_parse_result(std::unique_ptr<parse_metadata> tree,
                                              std::unique_ptr<ast::node> ast)
     : result_ {std::make_tuple(std::move(tree), std::move(ast))}
 {
