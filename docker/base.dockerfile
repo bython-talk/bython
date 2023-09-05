@@ -15,7 +15,7 @@ RUN /llvm.sh 16 && apt-get clean all
 
 FROM llvm16 AS llvm16-cmake-deps
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get -q -y install --no-install-recommends gcc unzip cmake make pkg-config
+RUN apt-get -q -y install --no-install-recommends gcc unzip cmake make pkg-config libboost-dev
 
 
 ### Catch2
@@ -28,8 +28,8 @@ RUN rm -r /catch2 /catch2.zip
 
 
 ### lexy
-RUN wget https://github.com/foonathan/lexy/archive/refs/tags/v2022.12.1.zip -O /lexy.zip && unzip /lexy.zip -d /lexy
-ARG LEXY_BUILD_DIR=/lexy/lexy-2022.12.1/build
+RUN wget https://github.com/foonathan/lexy/archive/refs/heads/main.zip -O /lexy.zip && unzip /lexy.zip -d /lexy
+ARG LEXY_BUILD_DIR=/lexy/lexy-main/build
 
 RUN cmake -DCMAKE_BUILD_TYPE=Release \
     -DLEXY_BUILD_BENCHMARKS=OFF \
@@ -38,7 +38,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
     -DLEXY_BUILD_DOCS=OFF \
     -DLEXY_BUILD_PACKAGE=OFF \
     -DLEXY_ENABLE_INSTALL=ON \ 
-    -S /lexy/lexy-2022.12.1 -B ${LEXY_BUILD_DIR}
+    -S /lexy/lexy-main -B ${LEXY_BUILD_DIR}
 RUN cmake --build ${LEXY_BUILD_DIR} -j4 && cmake --install ${LEXY_BUILD_DIR} --config RELEASE
 RUN rm -r /lexy /lexy.zip
 
