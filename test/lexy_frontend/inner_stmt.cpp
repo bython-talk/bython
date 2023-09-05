@@ -1,6 +1,6 @@
-#include <bython/ast/statement.hpp>
-#include <bython/matching.hpp>
-#include <bython/parser/grammar.hpp>
+#include "bython/ast/statement.hpp"
+#include "bython/matching.hpp"
+#include "bython/lexy_frontend/grammar.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 #include "unwrap.hpp"

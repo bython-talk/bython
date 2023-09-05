@@ -8,7 +8,7 @@
 #include <lexy_ext/report_error.hpp>
 
 #include "bython/ast/bases.hpp"
-#include "bython/parser/top_level_grammar.hpp"
+#include "bython/lexy_frontend/top_level_grammar.hpp"
 
 template<typename T>
 auto unwrap(std::unique_ptr<bython::ast::node> node) -> T

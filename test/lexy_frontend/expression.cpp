@@ -1,11 +1,11 @@
 #include <iostream>
 #include <iterator>
 
-#include <bython/ast.hpp>
-#include <bython/matching.hpp>
-#include <bython/parser/grammar.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include "bython/ast.hpp"
+#include "bython/lexy_frontend/grammar.hpp"
+#include "bython/matching.hpp"
 #include "unwrap.hpp"
 
 namespace ast = bython::ast;

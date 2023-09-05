@@ -1,8 +1,8 @@
-#include <bython/ast/statement.hpp>
-#include <bython/parser/grammar.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include "bython/ast/statement.hpp"
+#include "bython/lexy_frontend/grammar.hpp"
 #include "unwrap.hpp"
 
 namespace ast = bython::ast;
@@ -20,7 +20,7 @@ TEST_CASE("Function Definition")
 
   SECTION("Parameter")
   {
-    auto ast = unwrap_grammar<g::outer_stmt, ast::function_def>("def f(a,b,){}");
+    auto ast = unwrap_grammar<g::outer_stmt, ast::function_def>("def f(a: i64, b: u64,){}");
     REQUIRE(ast.name == "f");
 
     REQUIRE(ast.parameters.size() == 2);
@@ -31,7 +31,7 @@ TEST_CASE("Function Definition")
 
   SECTION("Bad def keyword")
   {
-    unwrap_grammar_failure<g::outer_stmt, ast::function_def>("f(a, b){}");
+    unwrap_grammar_failure<g::outer_stmt, ast::function_def>("f(a: i64, b: u64){}");
   }
 
   SECTION("Multi-Body")
