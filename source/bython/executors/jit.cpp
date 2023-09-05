@@ -3,10 +3,6 @@
 
 #include "jit.hpp"
 
-#include <bython/codegen/builtin.hpp>
-#include <bython/codegen/llvm.hpp>
-#include <bython/parser/grammar.hpp>
-#include <bython/parser/top_level_grammar.hpp>
 #include <lexy/action/parse.hpp>
 #include <lexy/input/file.hpp>
 #include <lexy_ext/report_error.hpp>
@@ -21,6 +17,10 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
+
+#include "bython/frontend/lexy.hpp"
+#include "bython/llvm_backend/builtin.hpp"
+#include "bython/llvm_backend/llvm.hpp"
 
 namespace bython::executor
 {
@@ -63,7 +63,7 @@ struct jit_compiler::jit_compiler_pimpl
         codegen::compile(std::string {input_file.filename()}, std::move(module_), context);
     codegen->setSourceFileName(std::string {input_file});
     codegen->setTargetTriple("x86_64-pc-linux-gnu");
-    
+
     // codegen->print(llvm::errs(), nullptr);
 
     std::string error;

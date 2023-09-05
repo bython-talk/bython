@@ -2,10 +2,8 @@
 
 #include "interpreter.hpp"
 
-#include <bython/codegen/builtin.hpp>
-#include <bython/codegen/llvm.hpp>
-#include <bython/parser/grammar.hpp>
-#include <bython/parser/top_level_grammar.hpp>
+// #include <bython/c
+
 #include <lexy/action/parse.hpp>
 #include <lexy/action/scan.hpp>
 #include <lexy/dsl.hpp>
@@ -20,6 +18,11 @@
 #include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/Support/TargetSelect.h>
+
+#include "bython/lexy_frontend/grammar.hpp"
+#include "bython/lexy_frontend/top_level_grammar.hpp"
+#include "bython/llvm_backend/builtin.hpp"
+#include "bython/llvm_backend/llvm.hpp"
 
 namespace bython::executor
 {
@@ -91,7 +94,7 @@ struct interpreter::interpreter_pimpl
       , context {std::make_unique<llvm::LLVMContext>()}
       , main {session->createBareJITDylib("<repl>")}
   {
-    auto builtin_symbols = llvm::orc::SymbolMap{};
+    auto builtin_symbols = llvm::orc::SymbolMap {};
 
     for (auto&& b : {codegen::builtin_tag::put_i64,
                      codegen::builtin_tag::putln_i64,
@@ -146,10 +149,9 @@ struct interpreter::interpreter_pimpl
       }
 
       /*
-      TODO: Currently disabled until we discover how to codegen calls for functions that are defined elsewhere
-      else if (auto inner_stmt =
-                   lexy::parse<top_level_expr>(input, lexy_ext::report_error.to(error_writer));
-               inner_stmt.has_value())
+      TODO: Currently disabled until we discover how to codegen calls for functions that are defined
+      elsewhere else if (auto inner_stmt = lexy::parse<top_level_expr>(input,
+      lexy_ext::report_error.to(error_writer)); inner_stmt.has_value())
       {
         auto module_name = (llvm::Twine {"__anon_expr"} + std::to_string(iter)).str();
         auto anon_expr = std::make_unique<llvm::Module>(module_name, *this->context.getContext());
