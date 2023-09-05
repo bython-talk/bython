@@ -9,6 +9,8 @@
 
 namespace bython::codegen
 {
+
+
 class symbol_lookup
 {
   using mapping = std::unordered_map<std::string_view, std::tuple<llvm::Type*, llvm::Value*>>;
@@ -31,17 +33,23 @@ private:
   std::vector<mapping> lookup;
 };
 
+struct metadata {
+  llvm::Type* type;
+  std::optional<bool> is_signed; 
+};
+
 class type_lookup
 {
-  using mapping = std::unordered_map<std::string_view, llvm::Type*>;
+  using mapping = std::unordered_map<std::string_view, metadata>;
 
 public:
   type_lookup() { this->lookup.emplace_back(); }
 
   auto get(llvm::LLVMContext& context, std::string_view identifier) const
-      -> std::optional<llvm::Type*>;
+      -> std::optional<metadata>;
 
   auto put(std::string_view symbol_name, llvm::Type* symbol_type) -> void;
+  auto put(std::string_view symbol_name, llvm::Type* symbol_type, bool is_signed) -> void;
 
   auto initialise_new_scope() -> void;
   auto pop_scope() -> void;

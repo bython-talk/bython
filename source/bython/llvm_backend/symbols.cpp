@@ -52,22 +52,31 @@ auto symbol_lookup::pop_scope() -> void
   this->lookup.pop_back();
 }
 
-using type_factory = llvm::Type* (*)(llvm::LLVMContext&);
+using type_factory = metadata (*)(llvm::LLVMContext&);
 
 static auto builtin_types = std::unordered_map<std::string_view, type_factory> {
-    // signed integer types
-    {"i64", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt64Ty(c)); }},
-    {"i32", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt32Ty(c)); }},
-    {"i16", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt16Ty(c)); }},
-    {"i8", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt8Ty(c)); }},
-    {"i1", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getInt1Ty(c)); }},
+    // signed integer type
+    {"i64",
+     [](llvm::LLVMContext& c)
+     { return metadata {.type = llvm::Type::getInt64Ty(c), .is_signed = true}; }},
 
-    // floating point types
-    {"f64", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getDoubleTy(c)); }},
-    {"f32", [](llvm::LLVMContext& c) { return cast<llvm::Type>(llvm::Type::getFloatTy(c)); }}};
+    // unsigned integer
+    {"u64",
+     [](llvm::LLVMContext& c)
+     { return metadata {.type = llvm::Type::getInt64Ty(c), .is_signed = false}; }},
+
+    // boolean type
+    {"bool",
+     [](llvm::LLVMContext& c)
+     { return metadata {.type = llvm::Type::getInt1Ty(c), .is_signed = false}; }},
+
+    // floating point
+    {"f64", [](llvm::LLVMContext& c) {
+       return metadata {.type = llvm::Type::getDoubleTy(c), .is_signed = false};
+     }}};
 
 auto type_lookup::get(llvm::LLVMContext& context, std::string_view identifier) const
-    -> std::optional<llvm::Type*>
+    -> std::optional<metadata>
 {
   for (auto&& entry : std::ranges::reverse_view(this->lookup)) {
     if (auto search = entry.find(identifier); search != entry.end()) {
@@ -84,7 +93,14 @@ auto type_lookup::get(llvm::LLVMContext& context, std::string_view identifier) c
 
 auto type_lookup::put(std::string_view symbol_name, llvm::Type* symbol_type) -> void
 {
-  this->lookup.back().insert_or_assign(symbol_name, symbol_type);
+  this->lookup.back().insert_or_assign(symbol_name,
+                                       metadata {.type = symbol_type, .is_signed = std::nullopt});
+}
+
+auto type_lookup::put(std::string_view symbol_name, llvm::Type* symbol_type, bool is_signed) -> void
+{
+  this->lookup.back().insert_or_assign(symbol_name,
+                                       metadata {.type = symbol_type, .is_signed = is_signed});
 }
 
 auto type_lookup::initialise_new_scope() -> void

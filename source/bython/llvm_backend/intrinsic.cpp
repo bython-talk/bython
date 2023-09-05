@@ -19,7 +19,7 @@ struct table_entry
 };
 
 static auto const intrinsic_lookup = std::array {
-    // void @bython.put_i64(i64)
+    // float @llvm.powi.f32.i32(f32, i32)
     table_entry {
         .tag = intrinsic_tag::powi_f32_i32,
         .name = "llvm.powi.f32.i32",

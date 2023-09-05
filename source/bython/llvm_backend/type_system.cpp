@@ -119,4 +119,36 @@ auto convert(llvm::IRBuilder<>& builder, llvm::Value* src, llvm::Type* dst_type)
 
   return std::nullopt;
 }
+
+auto unify(llvm::IRBuilder<>& builder, llvm::Value* lhs, llvm::Value* rhs)
+    -> std::optional<std::tuple<llvm::Value*, llvm::Value*>>
+{
+  if (lhs->getType()->isFloatTy() && rhs->getType()->isIntegerTy()) {
+    if (auto rhso = convert(builder, rhs, lhs->getType()); rhso) {
+      rhs = *rhso;
+    } else {
+      return std::nullopt;
+    }
+  }
+
+  else if (rhs->getType()->isFloatTy() && lhs->getType()->isIntegerTy())
+  {
+    if (auto lhso = convert(builder, lhs, rhs->getType()); lhso) {
+      lhs = *lhso;
+    } else {
+      return std::nullopt;
+    }
+  }
+
+  else if (lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy())
+  {
+    if (lhs->getType()->getIntegerBitWidth() < rhs->getType()->getIntegerBitWidth()) {
+      lhs = *convert(builder, lhs, rhs->getType());
+    } else if (lhs->getType()->getIntegerBitWidth() > rhs->getType()->getIntegerBitWidth()) {
+      rhs = *convert(builder, rhs, lhs->getType());
+    }
+  }
+
+  return std::make_tuple(lhs, rhs);
+}
 }  // namespace bython::codegen

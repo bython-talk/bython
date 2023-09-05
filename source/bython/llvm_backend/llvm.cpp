@@ -2,16 +2,15 @@
 #include <map>
 #include <sstream>
 #include <tuple>
+#include <type_traits>
 
 #include "llvm.hpp"
 
-#include <bython/ast.hpp>
-#include <bython/matching.hpp>
-#include <bython/visitation/ast.hpp>
 #include <llvm/ExecutionEngine/Interpreter.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/InstVisitor.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
@@ -20,6 +19,9 @@
 #include <llvm/TargetParser/Triple.h>
 
 #include "builtin.hpp"
+#include "bython/ast.hpp"
+#include "bython/ast/visitor.hpp"
+#include "bython/matching.hpp"
 #include "intrinsic.hpp"
 #include "symbols.hpp"
 #include "type_system.hpp"
@@ -64,6 +66,21 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(function_def, fdef)
   {
+    auto parameter_types = std::vector<llvm::Type*> {};
+    for (auto&& parameter : fdef.parameters) {
+      if (auto retrieved = this->type_mapping.get(this->context, parameter.hint); retrieved) {
+        parameter_types.emplace_back(retrieved->type);
+      } else {
+        log_and_throw("Failed to codegen parameters for '",
+                      fdef.name,
+                      "'; undefined type on parameter '",
+                      parameter.name,
+                      "' - '",
+                      parameter.hint,
+                      "'");
+      }
+    }
+
     auto function_type =
         llvm::FunctionType::get(llvm::Type::getVoidTy(this->context), {}, /*isVarArg=*/false);
     auto function = llvm::Function::Create(
@@ -76,7 +93,14 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       this->visit(*stmt);
     }
 
-    this->builder.CreateRetVoid();
+    // Support implicit return
+    if (function_type->getReturnType()->isVoidTy()) {
+      auto& last_basicblock = function->back();
+      if (!last_basicblock.empty() && !llvm::isa<llvm::ReturnInst>(last_basicblock.back())) {
+        this->builder.CreateRetVoid();
+      }
+    }
+
     llvm::verifyFunction(*function, &llvm::errs());
 
     return function;
@@ -93,25 +117,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(integer, instance)
   {
-    if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
-        && instance.value <= std::numeric_limits<std::int8_t>::max())
-    {
-      return llvm::ConstantInt::getSigned(llvm::Type::getInt8Ty(this->context), instance.value);
-    }
-
-    else if (std::numeric_limits<std::int16_t>::lowest() <= instance.value
-             && instance.value <= std::numeric_limits<std::int16_t>::max())
-    {
-      return llvm::ConstantInt::getSigned(llvm::Type::getInt16Ty(this->context), instance.value);
-    }
-
-    else if (std::numeric_limits<std::int32_t>::lowest() <= instance.value
-             && instance.value <= std::numeric_limits<std::int32_t>::max())
-    {
-      return llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context), instance.value);
-    }
-
-    else if (std::numeric_limits<std::int64_t>::lowest() <= instance.value
+    if (std::numeric_limits<std::int64_t>::lowest() <= instance.value
              && instance.value <= std::numeric_limits<std::int64_t>::max())
     {
       return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(this->context), instance.value);
@@ -138,17 +144,18 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       log_and_throw("Unknown type", assgn.hint, "used on LHS of assignment");
     }
 
-    auto converted_rhs = codegen::convert(this->builder, rhs_value, *lhs_type);
+    auto converted_rhs = codegen::convert(this->builder, rhs_value, lhs_type->type);
     if (!converted_rhs) {
       log_and_throw("Types on each side of assignment are incompatible:",
                     "type on LHS:",
-                    **lhs_type,
+                    *lhs_type->type,
                     ", type on RHS:",
                     *rhs_value->getType());
     }
 
-    auto allocation = this->builder.CreateAlloca(*lhs_type, /*ArraySize=*/nullptr, assgn.lhs);
-    this->symbol_mapping.put(assgn.lhs, *lhs_type, allocation);
+    auto allocation = this->builder.CreateAlloca(lhs_type->type, /*ArraySize=*/nullptr, assgn.lhs);
+    this->symbol_mapping.put(assgn.lhs, lhs_type->type, allocation);
+
     return this->builder.CreateStore(*converted_rhs, allocation);
   }
 
@@ -167,10 +174,13 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
         log_and_throw("Unknown type on RHS:", target->identifier);
       }
 
-      auto conversion = codegen::convert(this->builder, lhs_v, *target_type);
+      auto conversion = codegen::convert(this->builder, lhs_v, target_type->type);
       if (!conversion) {
-        log_and_throw(
-            "Unable to codegen conversion.", "LHS:", *lhs_v->getType(), ", RHS:", *target_type);
+        log_and_throw("Unable to codegen conversion.",
+                      "LHS:",
+                      *lhs_v->getType(),
+                      ", RHS:",
+                      *target_type->type);
       }
       return *conversion;
     }
@@ -267,7 +277,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     } else if (auto builtin = this->insert_or_retrieve_builtin("bython." + instance.callee))
       return this->builder.CreateCall(*builtin, load_arguments);
     else {
-      throw std::logic_error {"Cannot call function; undefined: " + instance.callee};
+      log_and_throw("Cannot call function; undefined: ", instance.callee);
     }
   }
 
@@ -277,9 +287,136 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     return nullptr;
   }
 
-  BYTHON_VISITOR_IMPL(node, /*instance*/)
+  BYTHON_VISITOR_IMPL(return_, instance)
   {
-    throw std::runtime_error {"Unknown AST Node"};
+    auto value = this->visit(*instance.expr);
+    return this->builder.CreateRet(value);
+  }
+
+  BYTHON_VISITOR_IMPL(conditional_branch, instance)
+  {
+    auto branch_on = this->builder.CreateICmpNE(
+        this->visit(*instance.condition),
+        llvm::ConstantInt::get(this->context, llvm::APInt(1, 0, /*isSigned=*/false)));
+
+    auto parent = this->builder.GetInsertBlock()->getParent();
+    auto if_true = llvm::BasicBlock::Create(this->context, "iftrue");
+    auto otherwise = llvm::BasicBlock::Create(this->context, "otherwise");
+    auto joined = llvm::BasicBlock::Create(this->context, "merge");
+    parent->insert(parent->end(), if_true);
+
+    this->builder.CreateCondBr(branch_on, if_true, otherwise);
+
+    this->builder.SetInsertPoint(if_true);
+    for (auto&& stmt : instance.body) {
+      this->visit(*stmt);
+    }
+    this->builder.CreateBr(joined);
+
+    if (instance.orelse != nullptr) {
+      this->visit(*instance.orelse);
+    }
+    otherwise = this->builder.GetInsertBlock();
+
+    parent->insert(parent->end(), joined);
+    this->builder.SetInsertPoint(joined);
+
+    return nullptr;
+  }
+
+  BYTHON_VISITOR_IMPL(comparison, instance)
+  {
+    using namespace std::string_view_literals;
+
+#define BUILDER_ALIAS(BUILDER_FUNCTION) \
+  [](llvm::IRBuilder<>& builder_, llvm::Value* lhs_, llvm::Value* rhs_, llvm::Twine const& name_) \
+      -> llvm::Value* { return builder_.BUILDER_FUNCTION(lhs_, rhs_, name_); }
+
+    using op_table_lookup = std::array<std::tuple<std::string_view,
+                                                  llvm::Value* (*)(llvm::IRBuilder<>& builder,
+                                                                   llvm::Value*,
+                                                                   llvm::Value*,
+                                                                   llvm::Twine const&)>,
+                                       6>;
+
+    static constexpr auto signed_integer_op_table =
+        op_table_lookup {std::make_tuple("cmp.slt"sv, BUILDER_ALIAS(CreateICmpSLT)),
+                         std::make_tuple("cmp.sle"sv, BUILDER_ALIAS(CreateICmpSLE)),
+                         std::make_tuple("cmp.sgt"sv, BUILDER_ALIAS(CreateICmpSGE)),
+                         std::make_tuple("cmp.sge"sv, BUILDER_ALIAS(CreateICmpSGT)),
+                         std::make_tuple("cmp.seq"sv, BUILDER_ALIAS(CreateICmpEQ)),
+                         std::make_tuple("cmp.sne"sv, BUILDER_ALIAS(CreateICmpNE))};
+
+#undef BUILDER_ALIAS
+
+    /*static constexpr auto unsigned_integer_op_table =
+        op_table_lookup {{comparison_operator_tag::lsr, this->builder.CreateICmpULT},
+                         {comparison_operator_tag::leq, this->builder.CreateICmpULE},
+                         {comparison_operator_tag::geq, this->builder.CreateICmpUGE},
+                         {comparison_operator_tag::grt, this->builder.CreateICmpUGT},
+                         {comparison_operator_tag::eq, this->builder.CreateICmpEQ},
+                         {comparison_operator_tag::ne, this->builder.CreateICmpNE}};
+
+    static constexpr auto floating_op_table =
+        op_table_lookup {{comparison_operator_tag::lsr, this->builder.CreateFCmpOLT},
+                         {comparison_operator_tag::leq, this->builder.CreateFCmpOLE},
+                         {comparison_operator_tag::geq, this->builder.CreateFCmpOGE},
+                         {comparison_operator_tag::grt, this->builder.CreateFCmpOGT},
+                         {comparison_operator_tag::eq, this->builder.CreateFCmpOEQ},
+                         {comparison_operator_tag::ne, this->builder.CreateFCmpONE}};*/
+
+    // Load all information, prepend boolean true
+    auto cs = std::vector<llvm::Value*> {};
+    for (auto&& operand : instance.operands) {
+      cs.emplace_back(this->visit(*operand));
+    }
+
+    // For now only support Integer and Floating types
+    // NOTE: the length of cs is instance.operands.size() + 1, so this is safe
+    llvm::Value* logical_and_accum =
+        llvm::ConstantInt::getSigned(llvm::Type::getInt1Ty(this->context), 1);
+
+    for (auto operand = 0U; operand < instance.operands.size(); ++operand) {
+      auto lhs = cs[operand + 0];
+      auto rhs = cs[operand + 1];
+
+      // Promote operands to identical types
+      if (auto unified = codegen::unify(this->builder, lhs, rhs); unified) {
+        lhs = std::get<0>(*unified);
+        rhs = std::get<1>(*unified);
+      } else {
+        log_and_throw(
+            "Unable to create comparison between ", *lhs->getType(), " and ", *rhs->getType());
+      }
+
+      auto* op = ast::dyn_cast<comparison_operator>(*instance.ops[operand]);
+      if (!op) {
+        log_and_throw("Unknown operator used in comparison");
+      }
+
+      // TODO: Account for unsigned integers
+      auto [name, builder_function] =
+          signed_integer_op_table[std::underlying_type_t<comparison_operator_tag>(op->op)];
+      auto comp_exec = builder_function(builder, lhs, rhs, name);
+
+      auto comp_as_bool =
+          codegen::convert(builder, comp_exec, llvm::Type::getInt1Ty(this->context));
+      if (!comp_as_bool) {
+        log_and_throw("Unable to convert result of comparison to bool");
+      }
+
+      logical_and_accum =
+          this->builder.CreateLogicalAnd(logical_and_accum,
+                                         *comp_as_bool,
+                                         std::string {"comp.booland."} + std::to_string(operand));
+    }
+
+    return logical_and_accum;
+  }
+
+  BYTHON_VISITOR_IMPL(node, instance)
+  {
+    throw std::runtime_error {"Unknown AST Node: " + std::to_string(instance.tag().unwrap())};
   }
 
 private:
@@ -327,7 +464,7 @@ private:
 
   codegen::symbol_lookup symbol_mapping;
   codegen::type_lookup type_mapping;
-};
+};  // namespace bython
 
 }  // namespace bython
 
