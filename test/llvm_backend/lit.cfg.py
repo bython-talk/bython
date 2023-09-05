@@ -8,6 +8,7 @@ config.suffixes = [".by"]
 config.test_source_root = os.path.dirname(__file__)
 config.test_exec_root = os.path.join(config.binary_dir, "test", "lit-output")
 
-config.substitutions.append(
-    (r"%jit", os.path.join(config.binary_dir, r"bython-jit"))
-)
+config.substitutions.extend([
+    (r"%jit", os.path.join(config.binary_dir, r"bython-jit")),
+    (r"%filecheck", "FileCheck-16"),
+])
