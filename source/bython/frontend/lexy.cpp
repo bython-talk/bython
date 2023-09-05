@@ -5,6 +5,8 @@
 
 #include "lexy.hpp"
 
+#include <boost/container_hash/hash.hpp>  // uuid hasher
+#include <boost/uuid/uuid.hpp>  // uuid class
 #include <lexy/action/parse.hpp>
 #include <lexy/callback.hpp>
 #include <lexy/error.hpp>
@@ -30,37 +32,9 @@ struct is_unique_ptr<std::unique_ptr<T, D>> : std::true_type
 {
 };
 
-template<typename Input>
-struct lexy_parse_result final : p::parse_tree
-{
-  lexy_parse_result(Input input_)
-      : input {std::move(input_)}
-  {
-  }
-
-  Input input;
-};
-
-template<typename Input>
-struct lexy_state
-{
-  using lexy_span = p::lexy_frontend<Input>::lexy_span;
-
-  lexy_state(Input& input_)
-      : input {input_}
-      , spans {}
-  {
-  }
-
-  Input& input;
-  std::unordered_map<boost::uuids::uuid, lexy_span, boost::hash<boost::uuids::uuid>> spans;
-};
-
-template<typename Input>
+template<typename Input, typename LexySpan>
 struct lexy_grammar
 {
-  using lexy_span = p::lexy_frontend<Input>::lexy_span;
-
   template<typename Production, typename Value>
   struct with_span : lexy::transparent_production
   {
@@ -72,12 +46,12 @@ struct lexy_grammar
           auto begin = lexy::get_input_location(state.input, startptr);
           auto end = lexy::get_input_location(state.input, endptr);
 
-          auto node_span = lexy_span {.begin = begin, .end = end};
+          auto node_span = LexySpan {.begin = begin, .end = end};
 
           if constexpr (is_unique_ptr<std::remove_cvref<Value>>::value) {
-            state.spans.insert({node->uuid, std::move(node_span)});
+            state.span_lookup.insert({node->uuid, std::move(node_span)});
           } else {
-            state.spans.insert({node.uuid, std::move(node_span)});
+            state.span_lookup.insert({node.uuid, std::move(node_span)});
           }
           return node;
         },
@@ -115,74 +89,133 @@ struct lexy_grammar
   };
 };
 
+template<typename Input>
+struct lexy_frontend
+{
+  struct lexy_span
+  {
+    lexy::input_location<Input> begin;
+    lexy::input_location<Input> end;
+  };
+
+  using span_map =
+      std::unordered_map<boost::uuids::uuid, lexy_span, boost::hash<boost::uuids::uuid>>;
+
+  struct lexy_parse_result final : p::parse_metadata
+  {
+    lexy_parse_result(Input input_, span_map span_lookup_)
+        : input {std::move(input_)}
+        , span_lookup {std::move(span_lookup_)}
+    {
+    }
+
+    Input input;
+    span_map span_lookup;
+  };
+
+  struct lexy_state
+  {
+    lexy_state(Input& input_)
+        : input {input_}
+    {
+    }
+
+    Input& input;
+    span_map span_lookup;
+  };
+
+  static auto parse(std::string_view code) -> p::frontend_parse_result
+  {
+    using entrypoint = lexy_grammar<Input, lexy_span>::vars;
+    return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
+  }
+
+  static auto parse_expression(std::string_view code) -> p::frontend_parse_result
+  {
+    using entrypoint = lexy_grammar<Input, lexy_span>::vars;
+    return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
+  }
+
+  static auto parse_statement(std::string_view code) -> p::frontend_parse_result
+  {
+    using entrypoint = lexy_grammar<Input, lexy_span>::vars;
+    return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
+  }
+
+  static auto report_error(p::parse_metadata const& tree,
+                           ast::node const& node,
+                           p::frontend_error_report report) -> void
+  {
+    auto lexy_parse_tree = dynamic_cast<lexy_parse_result const*>(&tree);
+    if (!lexy_parse_tree) {
+      std::cerr << "Cannot report lexy error without lexy's input\n";
+      return;
+    }
+
+    auto span_search = lexy_parse_tree->span_lookup.find(node.uuid);
+    if (span_search == lexy_parse_tree->span_lookup.end()) {
+      std::cerr << "Unable to report error! AST Node is known\n";
+      return;
+    }
+    auto span = span_search->second;
+
+    lexy_ext::diagnostic_writer(lexy_parse_tree->input)
+        .write_annotation(std::ostream_iterator<std::string_view::value_type>(std::cerr),
+                          lexy_ext::annotation_kind::primary,
+                          span.begin,
+                          span.end.position(),
+                          [&](auto& out, lexy::visualization_options)
+                          { return lexy::_detail::write_str(out, report.message.c_str()); });
+  }
+
+private:
+  template<typename Entrypoint>
+  static auto parse_entrypoint(std::string_view code) -> p::frontend_parse_result
+  {
+    auto input = Input {code};
+    auto state = lexy_state {input};
+
+    std::string error;
+    auto error_handling = lexy_ext::report_error.to(std::back_insert_iterator(error));
+
+    if (auto tree = lexy::parse<Entrypoint>(input, state, error_handling); tree.has_value()) {
+      auto lexy_pr =
+          std::make_unique<lexy_parse_result>(std::move(input), std::move(state.span_lookup));
+      auto ast = std::move(tree).value();
+
+      return p::frontend_parse_result(std::move(lexy_pr), std::move(ast));
+    }
+
+    return p::frontend_parse_result(std::move(error));
+  }
+};
+
 namespace bython::parser
 {
 
-template<typename Input, typename Entrypoint>
-auto parse_entrypoint(std::string_view code,
-                      std::unordered_map<boost::uuids::uuid,
-                                         typename p::lexy_frontend<Input>::lexy_span,
-                                         boost::hash<boost::uuids::uuid>>* span_lookup)
-    -> frontend_parse_result
-{
-  auto input = Input {code};
-  auto state = lexy_state {input};
-
-  std::string error;
-  auto error_handling = lexy_ext::report_error.to(std::back_insert_iterator(error));
-
-  if (auto tree = lexy::parse<Entrypoint>(input, state, error_handling); tree.has_value()) {
-    *span_lookup = std::move(state.spans);
-
-    auto module = std::move(tree).value();
-    std::unique_ptr<parse_tree> lexy_pr =
-        std::make_unique<lexy_parse_result<Input>>(std::move(input));
-
-    return frontend_parse_result(std::move(lexy_pr), std::move(module));
-  }
-
-  return frontend_parse_result(std::move(error));
-}
-
 auto lexy_code_frontend::parse(std::string_view code) -> frontend_parse_result
 {
-  return parse_entrypoint<lexy::string_input<>, lexy_grammar<lexy::string_input<>>::vars>(code, &this->span_lookup);
+  using parser = lexy_frontend<lexy::string_input<>>;
+  return parser::parse(code);
 }
 
 auto lexy_code_frontend::parse_expression(std::string_view code) -> frontend_parse_result
 {
-  return parse_entrypoint<lexy::string_input<>, lexy_grammar<lexy::string_input<>>::vars>(code, &this->span_lookup);
+  using parser = lexy_frontend<lexy::string_input<>>;
+  return parser::parse_expression(code);
 }
 
 auto lexy_code_frontend::parse_statement(std::string_view code) -> frontend_parse_result
 {
-  return parse_entrypoint<lexy::string_input<>, lexy_grammar<lexy::string_input<>>::vars>(code, &this->span_lookup);
+  using parser = lexy_frontend<lexy::string_input<>>;
+  return parser::parse_statement(code);
 }
 
-auto lexy_code_frontend::report_error(parser::parse_tree const& tree,
+auto lexy_code_frontend::report_error(p::parse_metadata const& tree,
                                       ast::node const& node,
-                                      frontend_error_report report) const -> void
+                                      p::frontend_error_report report) const -> void
 {
-  using pr = lexy_parse_result<lexy::string_input<>>;
-
-  auto lexy_parse_tree = dynamic_cast<pr const*>(&tree);
-  if (!lexy_parse_tree) {
-    std::cerr << "Cannot report lexy error without lexy's input\n";
-  }
-
-  auto span_search = this->span_lookup.find(node.uuid);
-  if (span_search == this->span_lookup.end()) {
-    std::cerr << "Unable to report error! AST Node is known\n";
-    return;
-  }
-  auto span = span_search->second;
-
-  lexy_ext::diagnostic_writer(lexy_parse_tree->input)
-      .write_annotation(std::ostream_iterator<std::string_view::value_type>(std::cerr),
-                        lexy_ext::annotation_kind::primary,
-                        span.begin,
-                        span.end.position(),
-                        [&](auto& out, lexy::visualization_options)
-                        { return lexy::_detail::write_str(out, report.message.c_str()); });
+  using parser = lexy_frontend<lexy::string_input<>>;
+  parser::report_error(tree, node, std::move(report));
 }
 }  // namespace bython::parser
