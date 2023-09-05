@@ -88,6 +88,8 @@ struct visitor
 
   BYTHON_MAKE_VISITOR_METHODS(function_def, statement, inst, return_type)
 
+  BYTHON_MAKE_VISITOR_METHODS(return_, statement, inst, return_type)
+
   BYTHON_VISITOR_DELEGATE(statement, node, inst, return_type)
   virtual auto visit(statement const& inst) -> return_type final
   {
@@ -102,6 +104,7 @@ struct visitor
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(conditional_branch, statement, inst)
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(unconditional_branch, statement, inst)
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(function_def, statement, inst)
+        BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(return_, statement, inst)
     }
   }
 

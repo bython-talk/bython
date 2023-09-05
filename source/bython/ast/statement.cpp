@@ -98,4 +98,10 @@ auto function_def::tag() const -> ast::tag
   return ast::tag {tag::function_def};
 }
 
+return_::return_(std::unique_ptr<expression> expr_)  : expr{std::move(expr_)} {}
+
+auto return_::tag() const -> ast::tag {
+  return ast::tag{tag::return_};
+}
+
 }  // namespace bython::ast

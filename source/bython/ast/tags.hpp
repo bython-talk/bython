@@ -38,7 +38,8 @@ public:
     while_,
     conditional_branch,
     unconditional_branch,
-    function_def
+    function_def,
+    return_
   };
 
   enum misc : std::uint32_t

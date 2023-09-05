@@ -83,8 +83,8 @@ struct conditional_branch final : statement
                      statements body_,
                      std::unique_ptr<statement> orelse_);
 
-  std::unique_ptr<node> condition;
-  std::unique_ptr<node> orelse;
+  std::unique_ptr<expression> condition;
+  std::unique_ptr<statement> orelse;
 
   statements body;
 
@@ -103,6 +103,7 @@ struct unconditional_branch final : statement
 struct parameter
 {
   std::string name;
+  std::string hint;
 };
 
 using parameters = std::vector<parameter>;
@@ -115,6 +116,15 @@ struct function_def final : statement
   std::vector<parameter> parameters;
 
   statements body;
+
+  auto tag() const -> ast::tag;
+};
+
+struct return_ final : statement
+{
+  explicit return_(std::unique_ptr<expression> expr_);
+
+  std::unique_ptr<expression> expr;
 
   auto tag() const -> ast::tag;
 };

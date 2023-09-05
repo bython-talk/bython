@@ -1,5 +1,4 @@
 #include <bython/ast.hpp>
-#include <bython/visitation/ast.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 using namespace bython::ast;
