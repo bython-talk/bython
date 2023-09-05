@@ -27,6 +27,10 @@ message(STATUS LLVM_LIBRARY_DIRS: ${LLVM_LIBRARY_DIRS})
 message(STATUS LLVM_DEFINITIONS: ${LLVM_DEFINITIONS})
 # message(STATUS LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS})
 
+
+find_package(Boost REQUIRED)
+message(STATUS Boost: (${Boost_INCLUDE_DIRS}))
+
 # ---- Declare library ----
 add_library(bython_lib OBJECT source/bython/lib.cpp)
 add_subdirectory(source)
@@ -38,7 +42,7 @@ target_include_directories(
 )
 
 target_compile_features(bython_lib PUBLIC cxx_std_20)
-target_include_directories(bython_lib PRIVATE foonathan::lexy)
+target_include_directories(bython_lib PRIVATE foonathan::lexy ${Boost_INCLUDE_DIRS})
 target_link_libraries(bython_lib PRIVATE foonathan::lexy::file)
 
 target_include_directories(bython_lib SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})

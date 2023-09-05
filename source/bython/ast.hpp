@@ -5,3 +5,4 @@
 #include "ast/module.hpp"
 #include "ast/operators.hpp"
 #include "ast/statement.hpp"
+#include "ast/visitor.hpp"

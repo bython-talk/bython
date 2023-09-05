@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/uuid/uuid.hpp>
+
 #include <memory>
 
 #include "tags.hpp"
@@ -9,10 +11,15 @@ namespace bython::ast
 
 struct node
 {
+  node();
+
   virtual ~node() = default;
 
   virtual auto tag() const -> ast::tag = 0;
+
+  boost::uuids::uuid uuid;
 };
+
 
 template<typename T>
 auto isa(node const* ast) -> bool
