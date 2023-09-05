@@ -32,7 +32,7 @@ struct is_unique_ptr<std::unique_ptr<T, D>> : std::true_type
 {
 };
 
-template<typename Input, typename LexySpan>
+template<typename Input>
 struct lexy_grammar
 {
   template<typename Production, typename Value>
@@ -46,6 +46,7 @@ struct lexy_grammar
           auto begin = lexy::get_input_location(state.input, startptr);
           auto end = lexy::get_input_location(state.input, endptr);
 
+          using LexySpan = decltype(state.span_lookup)::mapped_type;
           auto node_span = LexySpan {.begin = begin, .end = end};
 
           if constexpr (is_unique_ptr<std::remove_cvref<Value>>::value) {
@@ -126,19 +127,19 @@ struct lexy_frontend
 
   static auto parse(std::string_view code) -> p::frontend_parse_result
   {
-    using entrypoint = lexy_grammar<Input, lexy_span>::vars;
+    using entrypoint = lexy_grammar<Input>::vars;
     return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
   }
 
   static auto parse_expression(std::string_view code) -> p::frontend_parse_result
   {
-    using entrypoint = lexy_grammar<Input, lexy_span>::vars;
+    using entrypoint = lexy_grammar<Input>::vars;
     return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
   }
 
   static auto parse_statement(std::string_view code) -> p::frontend_parse_result
   {
-    using entrypoint = lexy_grammar<Input, lexy_span>::vars;
+    using entrypoint = lexy_grammar<Input>::vars;
     return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
   }
 
@@ -157,9 +158,10 @@ struct lexy_frontend
       std::cerr << "Unable to report error! AST Node is known\n";
       return;
     }
-    auto span = span_search->second;
+    auto const& span = span_search->second;
 
-    lexy_ext::diagnostic_writer(lexy_parse_tree->input)
+    static constexpr auto opts = lexy::visualization_options {} | lexy::visualize_fancy;
+    lexy_ext::diagnostic_writer(lexy_parse_tree->input, opts)
         .write_annotation(std::ostream_iterator<std::string_view::value_type>(std::cerr),
                           lexy_ext::annotation_kind::primary,
                           span.begin,
