@@ -29,49 +29,21 @@ message(STATUS LLVM_DEFINITIONS: ${LLVM_DEFINITIONS})
 
 
 find_package(Boost REQUIRED)
-message(STATUS Boost: (${Boost_INCLUDE_DIRS}))
-
-# ---- Declare library ----
-add_library(bython_lib OBJECT source/bython/lib.cpp)
+message(STATUS Boost: ${Boost_INCLUDE_DIRS})
 add_subdirectory(source)
 
-target_include_directories(
-    bython_lib ${warning_guard}
-    PUBLIC
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
-)
-
-target_compile_features(bython_lib PUBLIC cxx_std_20)
-target_include_directories(bython_lib PRIVATE foonathan::lexy ${Boost_INCLUDE_DIRS})
-target_link_libraries(bython_lib PRIVATE foonathan::lexy::file)
-
-target_include_directories(bython_lib SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
-
-llvm_map_components_to_libnames(LLVM_LIBS
-  support core
-  irreader orcjit mcjit executionengine interpreter
-  native x86codegen)
-target_link_libraries(bython_lib PRIVATE ${LLVM_LIBS})
-
-target_compile_definitions(bython_lib PRIVATE ${LLVM_DEFINITIONS})
-#target_link_options(bython_lib PRIVATE "LINKER:${LLVM_LDFLAGS}")
-
-
-
 # ---- Declare executables ----
-llvm_map_components_to_libnames(LLVM_SUPPORT_LIB support)
-foreach(VARIATION IN ITEMS repl compiler jit)
-  add_executable(bython_${VARIATION} source/${VARIATION}.cpp)
-  add_executable(bython::${VARIATION} ALIAS bython_${VARIATION})
+llvm_map_components_to_libnames(LLVM_SUPPORT_LIB support core)
+add_executable(bython_driver source/main.cpp)
+add_executable(bython::driver ALIAS bython_driver)
 
-  target_compile_features(bython_${VARIATION} PRIVATE cxx_std_17)
+target_compile_features(bython_driver PRIVATE cxx_std_20)
 
-  # Use command line parser given by LLVM
-  target_include_directories(bython_${VARIATION} SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
-  target_link_libraries(bython_${VARIATION} PRIVATE bython_lib ${LLVM_SUPPORT_LIB})
+# Use command line parser given by LLVM
+target_include_directories(bython_driver SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+target_link_libraries(bython_driver PRIVATE bython_executors ${LLVM_SUPPORT_LIB})
 
-  set_property(TARGET bython_${VARIATION} PROPERTY OUTPUT_NAME bython-${VARIATION})
-endforeach()
+set_property(TARGET bython_driver PROPERTY OUTPUT_NAME bython-driver)
 
 # ---- Install rules ----
 
