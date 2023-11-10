@@ -83,9 +83,9 @@ the project respectively with the following commands from the project root on
 any operating system with any build system:
 
 ```sh
-cmake --preset=dev
-cmake --build --preset=dev
-ctest --preset=dev
+cmake --preset=dev-ubuntu
+cmake --build build/dev
+ctest --preset=dev-ubuntu
 ```
 
 If you are using a compatible editor (e.g. VSCode) or IDE (e.g. CLion, VS), you
