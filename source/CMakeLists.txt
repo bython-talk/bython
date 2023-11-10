@@ -1,6 +1,5 @@
-target_sources(bython_lib PRIVATE bython/lib.cpp)
 add_subdirectory(bython/ast)
-#add_subdirectory(bython/executors)
+add_subdirectory(bython/executors)
 add_subdirectory(bython/frontend)
-add_subdirectory(bython/llvm_backend)
+add_subdirectory(bython/backend)
 add_subdirectory(bython/matching)

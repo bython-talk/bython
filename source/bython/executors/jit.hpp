@@ -4,8 +4,6 @@
 #include <memory>
 #include <string_view>
 
-#include <bython/ast/bases.hpp>
-
 namespace bython::executor
 {
 struct jit_compiler

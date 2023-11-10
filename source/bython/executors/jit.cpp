@@ -1,11 +1,10 @@
+#include <fstream>
 #include <iostream>
 #include <string>
 
 #include "jit.hpp"
 
 #include <lexy/action/parse.hpp>
-#include <lexy/input/file.hpp>
-#include <lexy_ext/report_error.hpp>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/MCJIT.h>
@@ -18,15 +17,16 @@
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
 
+#include "bython/backend/builtin.hpp"
+#include "bython/backend/llvm.hpp"
 #include "bython/frontend/lexy.hpp"
-#include "bython/llvm_backend/builtin.hpp"
-#include "bython/llvm_backend/llvm.hpp"
 
 namespace bython::executor
 {
 struct jit_compiler::jit_compiler_pimpl
 {
-  /* LLVM details go here, e.g. llvm::ExecutionEngine, llvm::ExecutionSession
+  /* 
+   * LLVM details go here, e.g. llvm::ExecutionEngine, llvm::ExecutionSession
    * This helps us keep LLVM linkage private between bython_lib and consumers thereof,
    * for example, the bython tests
    */
@@ -42,29 +42,31 @@ struct jit_compiler::jit_compiler_pimpl
 
   auto execute(std::filesystem::path const& input_file) -> int
   {
-    auto file = lexy::read_file<lexy::utf8_encoding>(input_file.c_str());
-    if (!file) {
+    auto ifs = std::ifstream(input_file);
+    if (!ifs) {
       std::cerr << "Unable to read from " << input_file << "; check that it exists!";
       return -1;
     }
 
-    auto contents = file.buffer();
-    auto parsed = lexy::parse<grammar::top_level<grammar::mod>>(
-        contents, lexy_ext::report_error.path(input_file.c_str()));
-    if (parsed.is_error()) {
-      std::cerr << parsed.errors() << "\n";
+    auto code = std::string {std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
+
+    auto parser = parser::lexy_code_frontend {};
+    auto parsed = parser.parse(code);
+
+    if (parsed.has_error()) {
+      std::cerr << std::move(parsed).error() << "\n";
       return -1;
     }
 
-    auto module_ = std::make_unique<ast::mod>(std::move(parsed).value());
-    auto context = llvm::LLVMContext();
+    auto [metadata, module] = std::move(parsed).value();
+    auto context = llvm::LLVMContext{};
 
     auto codegen =
-        codegen::compile(std::string {input_file.filename()}, std::move(module_), context);
+        codegen::compile(std::string {input_file.filename()}, std::move(module), context);
     codegen->setSourceFileName(std::string {input_file});
     codegen->setTargetTriple("x86_64-pc-linux-gnu");
 
-    // codegen->print(llvm::errs(), nullptr);
+    codegen->print(llvm::outs(), nullptr);
 
     std::string error;
     auto engine_builder = llvm::EngineBuilder(std::move(codegen));
