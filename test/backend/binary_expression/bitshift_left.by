@@ -1,4 +1,4 @@
-# RUN: %jit --inpath %s | grep -e "32"
+# RUN: %driver-full --inpath %s | grep -e "32"
 def main()
 {
     val x: i64 = 1 << 5;

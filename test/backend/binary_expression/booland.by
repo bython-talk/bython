@@ -1,4 +1,4 @@
-# RUN: %jit --inpath %s | grep -e "-1"
+# RUN: %driver-full --inpath %s | grep -e "-1"
 def main()
 {
     val x: i1 = 1 && 1;
