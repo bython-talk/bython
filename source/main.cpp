@@ -5,11 +5,11 @@
 #include <bython/executors/jit.hpp>
 #include <llvm/Support/CommandLine.h>
 
-enum class opt_level
+enum class compilation_mode
 {
-  debug,
-  off,
-  on
+  parse_only,
+  type_check,
+  full,
 };
 
 auto main(int argc, char* argv[]) -> int
@@ -17,7 +17,7 @@ auto main(int argc, char* argv[]) -> int
   namespace cl = llvm::cl;
 
   auto jit_category = cl::OptionCategory {
-      "JIT Options", "Options for controlling the JIT implementation of Bython"};
+      "Driver Options", "Options for controlling Bython's driver"};
 
   auto inpath = cl::opt<std::string>("inpath",
                                      cl::desc("File to just-in-time compile and execute"),
@@ -26,14 +26,14 @@ auto main(int argc, char* argv[]) -> int
                                      cl::cat(jit_category));
 
   auto debug_values =
-      cl::values(clEnumValN(opt_level::debug, "g", "Disable optimisations, enable debugging"),
-                 clEnumValN(opt_level::off, "0", "Disable both optimisations and debugging"),
-                 clEnumValN(opt_level::on, "fast", "Enable optimisations, disable debugging"));
-  auto debug = cl::opt<opt_level>("O",
-                                  cl::desc("Choose optimisation level"),
+      cl::values(clEnumValN(compilation_mode::parse_only, "parse", "Disable optimisations, enable debugging"),
+                 clEnumValN(compilation_mode::type_check, "tcheck", "Disable both optimisations and debugging"),
+                 clEnumValN(compilation_mode::full, "full", "Enable optimisations, disable debugging"));
+  auto debug = cl::opt<compilation_mode>("m",
+                                  cl::desc("Choose compilation mode"),
                                   debug_values,
-                                  cl::value_desc("opt-level"),
-                                  cl::init(opt_level::off),
+                                  cl::value_desc("comp-mode"),
+                                  cl::init(compilation_mode::full),
                                   cl::cat(jit_category));
 
   cl::HideUnrelatedOptions(jit_category);

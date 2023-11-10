@@ -13,6 +13,7 @@ struct expression : node
 {
 };
 
+using expression_ptr = std::unique_ptr<expression>;
 using expressions = std::vector<std::unique_ptr<expression>>;
 
 struct unary_operation final : expression
@@ -59,12 +60,20 @@ struct variable final : expression
   auto tag() const -> ast::tag;
 };
 
+struct argument_list final : node 
+{
+  explicit argument_list(ast::expressions arguments_);
+  ast::expressions arguments;
+
+  auto tag() const -> ast::tag;
+};
+
 struct call final : expression
 {
-  call(std::string callee_, std::vector<std::unique_ptr<expression>> arguments_);
+  call(std::string callee_, argument_list arguments_);
 
   std::string callee;
-  ast::expressions arguments;
+  argument_list arguments;
 
   auto tag() const -> ast::tag;
 };

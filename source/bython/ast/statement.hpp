@@ -100,20 +100,27 @@ struct unconditional_branch final : statement
   auto tag() const -> ast::tag;
 };
 
-struct parameter
+struct parameter final : node
 {
   std::string name;
   std::string hint;
+
+  auto tag() const -> ast::tag;
 };
 
-using parameters = std::vector<parameter>;
+struct parameter_list final : node
+{
+  std::vector<parameter> parameters;
+
+  auto tag() const -> ast::tag;
+};
 
 struct function_def final : statement
 {
-  function_def(std::string name_, std::vector<parameter> parameters_, statements body_);
+  function_def(std::string name_, parameter_list parameters_, statements body_);
 
   std::string name;
-  std::vector<parameter> parameters;
+  parameter_list parameters;
 
   statements body;
 

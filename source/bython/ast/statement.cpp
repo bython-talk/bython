@@ -86,7 +86,15 @@ auto unconditional_branch::tag() const -> ast::tag
   return ast::tag {tag::unconditional_branch};
 }
 
-function_def::function_def(std::string name_, std::vector<parameter> parameters_, statements body_)
+auto parameter::tag() const -> ast::tag {
+  return ast::tag{tag::parameter};
+}
+
+auto parameter_list::tag() const -> ast::tag {
+  return ast::tag{tag::parameter_list};
+}
+
+function_def::function_def(std::string name_, parameter_list parameters_, statements body_)
     : name(std::move(name_))
     , parameters(std::move(parameters_))
     , body(std::move(body_))

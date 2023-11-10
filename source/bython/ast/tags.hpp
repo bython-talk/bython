@@ -47,7 +47,10 @@ public:
     unary_operator = std::underlying_type_t<ranges>(ranges::misc) + 1,
     binary_operator,
     comparison_operator,
-    mod
+    mod,
+    argument_list,
+    parameter,
+    parameter_list
   };
 
   tag(tag::expression expression_tag)

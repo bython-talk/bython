@@ -67,7 +67,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   BYTHON_VISITOR_IMPL(function_def, fdef)
   {
     auto parameter_types = std::vector<llvm::Type*> {};
-    for (auto&& parameter : fdef.parameters) {
+    for (auto&& parameter : fdef.parameters.parameters) {
       if (auto retrieved = this->type_mapping.get(this->context, parameter.hint); retrieved) {
         parameter_types.emplace_back(retrieved->type);
       } else {
@@ -266,7 +266,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   BYTHON_VISITOR_IMPL(call, instance)
   {
     auto load_arguments = std::vector<llvm::Value*> {};
-    for (auto&& argument : instance.arguments) {
+    for (auto&& argument : instance.arguments.arguments) {
       load_arguments.emplace_back(this->visit(*argument));
     }
 

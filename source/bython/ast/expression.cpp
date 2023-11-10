@@ -53,7 +53,16 @@ auto comparison::add_operand(std::unique_ptr<expression> expr) -> void
   this->operands.emplace_back(std::move(expr));
 }
 
-call::call(std::string callee_, std::vector<std::unique_ptr<expression>> arguments_)
+argument_list::argument_list(ast::expressions arguments_)
+    : arguments {std::move(arguments_)}
+{
+}
+
+auto argument_list::tag() const -> ast::tag {
+  return ast::tag{tag::argument_list};
+}
+
+call::call(std::string callee_, argument_list arguments_)
     : callee {std::move(callee_)}
     , arguments {std::move(arguments_)}
 {
