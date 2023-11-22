@@ -10,6 +10,7 @@
 #include <lexy/action/parse.hpp>
 #include <lexy/callback.hpp>
 #include <lexy/callback/adapter.hpp>
+#include <lexy/callback/object.hpp>
 #include <lexy/dsl.hpp>
 #include <lexy/dsl/option.hpp>
 #include <lexy/error.hpp>
@@ -18,12 +19,23 @@
 #include <lexy_ext/report_error.hpp>
 
 #include "bython/ast.hpp"
+#include "bython/ast/statement.hpp"
 #include "lexy/top_level_grammar.hpp"
 
 namespace dsl = lexy::dsl;
 
 namespace ast = bython::ast;
 namespace p = bython::parser;
+
+template<typename T>
+struct top_level
+{
+  static constexpr auto whitespace = dsl::ascii::space | LEXY_LIT("#") >> dsl::until(dsl::newline)
+      | dsl::backslash >> dsl::newline;
+
+  static constexpr auto rule = T::rule + dsl::whitespace(whitespace) + dsl::eof;
+  static constexpr auto value = T::value;
+};
 
 template<typename T>
 struct is_unique_ptr : std::false_type
@@ -331,30 +343,187 @@ struct lexy_grammar
     static constexpr auto value = lexy::forward<ast::expression_ptr>;
   };
 
-  struct var
-  {
-    struct inner : lexy::transparent_production
-    {
-      static constexpr auto rule =
-          dsl::identifier(dsl::ascii::alpha_underscore, dsl::ascii::alpha_digit_underscore);
-      static constexpr auto value = lexy::as_string<std::string> | lexy::construct<ast::variable>;
-    };
+  /* === Statements === */
+  template<typename T>
+  static constexpr auto new_statement = new_unique_ptr<T, ast::statement>;
 
-    static constexpr auto rule = dsl::p<with_span<inner, ast::variable>>;
-    static constexpr auto value = lexy::new_<ast::variable, ast::expression_ptr>;
+  /* === Inner Statements === */
+  struct inner_compound_body;
+
+  struct branch_body
+  {
+    static constexpr auto rule = dsl::recurse<struct inner_compound_body>;
+    static constexpr auto value = lexy::forward<ast::statements>;
   };
 
-  struct vars
+  struct dependent_branch
   {
-    struct inner : lexy::transparent_production
+    static constexpr auto rule = []
     {
-      static constexpr auto rule = dsl::list(dsl::p<var>, dsl::sep(dsl::comma));
-      static constexpr auto value =
-          lexy::as_list<ast::expressions> >> lexy::construct<ast::expr_mod>;
+      auto another_elif = dsl::p<nested_expression> + dsl::p<branch_body>
+          + dsl::opt(dsl::recurse_branch<struct dependent_branch>);
+      auto terminating_else = dsl::p<branch_body>;
+
+      return keyword::elif_ >> another_elif | keyword::else_ >> terminating_else;
+    }();
+
+    static constexpr auto value = lexy::callback(
+        lexy::construct<ast::conditional_branch> | new_statement<ast::conditional_branch>,
+        lexy::construct<ast::unconditional_branch> | new_statement<ast::unconditional_branch>);
+  };
+
+  struct conditional_branch
+  {
+    static constexpr auto rule = []
+    {
+      auto alt_condition = dsl::p<dependent_branch>;
+
+      auto introduced = dsl::p<nested_expression> + dsl::p<branch_body> + dsl::opt(alt_condition);
+      return keyword::if_ >> introduced;
+    }();
+
+    static constexpr auto value =
+        lexy::bind(
+            lexy::construct<ast::conditional_branch>, lexy::_1, lexy::_2, lexy::_3.or_default())
+        | new_statement<ast::conditional_branch>;
+  };
+
+  struct assignment
+  {
+    static constexpr auto rule = []
+    {
+      auto introduced = dsl::p<symbol_identifier> + LEXY_LIT(":") + dsl::p<symbol_identifier>
+          + LEXY_LIT("=") + dsl::p<expression>;
+      return keyword::variable_ >> introduced;
+    }();
+
+    static constexpr auto value = lexy::construct<ast::assignment> | new_statement<ast::assignment>;
+  };
+
+  struct expression_statement
+  {
+    static constexpr auto rule = [] { return keyword::discard_ >> dsl::p<expression>; }();
+
+    static constexpr auto value =
+        lexy::construct<ast::expression_statement> | new_statement<ast::expression_statement>;
+  };
+
+  struct return_stmt
+  {
+    static constexpr auto rule = [] { return keyword::return_ >> dsl::p<expression>; }();
+
+    static constexpr auto value = lexy::construct<ast::return_> | new_statement<ast::return_>;
+  };
+
+  struct inner_stmt
+  {
+    struct missing_statement
+    {
+      static constexpr auto name =
+          R"(Expected `val` for an assignment, `if` for branching, `discard` for expression statements;)";
     };
 
-    static constexpr auto rule = dsl::p<with_span<inner, ast::expr_mod>>;
-    static constexpr auto value = lexy::new_<ast::expr_mod, std::unique_ptr<ast::node>>;
+    static constexpr auto rule = []
+    {
+      auto terminator = dsl::terminator(dsl::semicolon).limit(dsl::lit_c<'}'>);
+      return terminator(dsl::p<assignment> | dsl::p<conditional_branch>
+                        | dsl::p<expression_statement> | dsl::p<return_stmt>
+                        | dsl::error<missing_statement>);
+    }();
+
+    static constexpr auto value = lexy::forward<std::unique_ptr<ast::statement>>;
+  };
+
+  struct inner_compound_body
+  {
+    static constexpr auto rule = []
+    { return dsl::curly_bracketed.opt_list(dsl::recurse<struct inner_stmt>); }();
+
+    static constexpr auto value = lexy::as_list<ast::statements>;
+  };
+
+  struct outer_compound_body
+  {
+    static constexpr auto rule = [] { return dsl::curly_bracketed.opt_list(dsl::p<inner_stmt>); }();
+
+    static constexpr auto value = lexy::as_list<ast::statements>;
+  };
+
+  /* === Outer Statements === */
+
+  struct function_def
+  {
+    struct parameter
+    {
+      static constexpr auto rule = []
+      { return dsl::p<symbol_identifier> + LEXY_LIT(":") + dsl::p<type_identifier>; }();
+      static constexpr auto value = lexy::construct<ast::parameter>;
+    };
+
+    struct parameters
+    {
+      static constexpr auto rule = []
+      { return dsl::round_bracketed.opt_list(dsl::p<parameter>, dsl::trailing_sep(dsl::comma)); }();
+
+      static constexpr auto value = lexy::as_list<std::vector<ast::parameter>> >> lexy::bind(
+                                        lexy::construct<ast::parameter_list>,
+                                        lexy::_1.or_default());
+    };
+
+    static constexpr auto rule = []
+    {
+      auto introduced =
+          dsl::p<symbol_identifier> + dsl::p<parameters> + dsl::p<outer_compound_body>;
+      return keyword::funcdef_ >> introduced;
+    }();
+
+    static constexpr auto value = lexy::construct<ast::function_def>;
+  };
+
+  struct type_def
+  {
+    struct body
+    {
+      static constexpr auto rule = [] {
+        return dsl::curly_bracketed.opt_list(dsl::p<type_identifier>,
+                                             dsl::trailing_sep(dsl::comma));
+      }();
+
+      static constexpr auto value = lexy::as_list<ast::type_definition_stmts>;
+    };
+
+    static constexpr auto rule = []
+    {
+      auto introduced = dsl::p<symbol_identifier> + dsl::p<body>;
+      return keyword::struct_ >> introduced;
+    }();
+
+    static constexpr auto value = lexy::construct<ast::type_definition>;
+  };
+
+  struct outer_stmt
+  {
+    template<typename T>
+    static constexpr auto new_outer_statement = new_unique_ptr<T, ast::statement>;
+
+    struct outer_stmt_error
+    {
+      static constexpr auto name =
+          "Expected `def` to define a function, `struct` to define a newtype";
+    };
+
+    static constexpr auto rule = []
+    { return dsl::p<function_def> | dsl::p<type_def> | dsl::error<outer_stmt_error>; }();
+    static constexpr auto value = lexy::callback(new_outer_statement<ast::function_def>,
+                                                 new_outer_statement<ast::type_definition>);
+  };
+
+  struct mod
+  {
+    static constexpr auto rule = dsl::list(dsl::p<outer_stmt>, dsl::sep(dsl::newline));
+
+    static constexpr auto value = lexy::as_list<ast::statements> >> lexy::construct<ast::mod>
+        | new_unique_ptr<ast::mod, ast::node>;
   };
 };
 
@@ -384,7 +553,7 @@ struct lexy_frontend
 
   struct lexy_state
   {
-    lexy_state(Input& input_)
+    explicit lexy_state(Input& input_)
         : input {input_}
     {
     }
@@ -395,19 +564,19 @@ struct lexy_frontend
 
   static auto parse(std::string_view code) -> p::frontend_parse_result
   {
-    using entrypoint = lexy_grammar<Input>::vars;
+    using entrypoint = top_level<typename lexy_grammar<Input>::mod>;
     return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
   }
 
   static auto parse_expression(std::string_view code) -> p::frontend_parse_result
   {
-    using entrypoint = lexy_grammar<Input>::expression;
+    using entrypoint = top_level<typename lexy_grammar<Input>::expression>;
     return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
   }
 
   static auto parse_statement(std::string_view code) -> p::frontend_parse_result
   {
-    using entrypoint = lexy_grammar<Input>::vars;
+    using entrypoint = top_level<typename lexy_grammar<Input>::inner_stmt>;
     return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
   }
 
