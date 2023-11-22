@@ -28,8 +28,9 @@
 
 namespace bython
 {
-using namespace bython::ast;
-namespace a = bython::ast;
+
+using namespace bython::ast;  // This line is required for the visitor macros to function properly
+//namespace ast = bython::ast;
 namespace m = bython::matching;
 
 template<typename Arg, typename... Args>
@@ -118,7 +119,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   BYTHON_VISITOR_IMPL(integer, instance)
   {
     if (std::numeric_limits<std::int64_t>::lowest() <= instance.value
-             && instance.value <= std::numeric_limits<std::int64_t>::max())
+        && instance.value <= std::numeric_limits<std::int64_t>::max())
     {
       return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(this->context), instance.value);
     }
@@ -163,8 +164,8 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   {
     auto lhs_v = this->visit(*binop.lhs);
 
-    if (m::matches(*binop.op, m::binary_operator {a::binop_tag::as})) {
-      auto target = a::dyn_cast<ast::variable>(*binop.rhs);
+    if (m::matches(*binop.op, m::binary_operator {binop_tag::as})) {
+      auto target = ast::dyn_cast<ast::variable>(*binop.rhs);
       if (target == nullptr) {
         log_and_throw("`as` expression requires type identifier on RHS");
       }
@@ -189,46 +190,46 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     {
       auto rhs_v = this->visit(*binop.rhs);
 
-      if (auto* b = ast::dyn_cast<ast::binary_operator>(*binop.op); b) {
+      if (auto* b = dyn_cast<binary_operator>(*binop.op); b) {
         switch (b->op) {
-          case a::binop_tag::pow: {
+          case ast::binop_tag::pow: {
             // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
             // requires powi intrinsics to be brought into scope as prototypes
             auto pow_intrinsic =
                 this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
             return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
           }
-          case a::binop_tag::multiply: {
+          case ast::binop_tag::multiply: {
             return this->builder.CreateMul(lhs_v, rhs_v, "a.mul");
           }
-          case a::binop_tag::divide: {
+          case ast::binop_tag::divide: {
             return this->builder.CreateSDiv(lhs_v, rhs_v, "a.sdiv");
           }
-          case a::binop_tag::modulo: {
+          case ast::binop_tag::modulo: {
             return this->builder.CreateSRem(lhs_v, rhs_v, "a.srem");
           }
-          case a::binop_tag::plus: {
+          case ast::binop_tag::plus: {
             return this->builder.CreateAdd(lhs_v, rhs_v, "a.add");
           }
-          case a::binop_tag::minus: {
+          case ast::binop_tag::minus: {
             return this->builder.CreateSub(lhs_v, rhs_v, "a.sub");
           }
-          case a::binop_tag::bitshift_right_: {
+          case ast::binop_tag::bitshift_right_: {
             return this->builder.CreateAShr(lhs_v, rhs_v, "bit.ashr");
           }
-          case a::binop_tag::bitshift_left_: {
+          case ast::binop_tag::bitshift_left_: {
             return this->builder.CreateShl(lhs_v, rhs_v, "bit.shl");
           }
-          case a::binop_tag::bitand_: {
+          case ast::binop_tag::bitand_: {
             return this->builder.CreateAnd(lhs_v, rhs_v, "bit.and");
           }
-          case a::binop_tag::bitxor_: {
+          case ast::binop_tag::bitxor_: {
             return this->builder.CreateXor(lhs_v, rhs_v, "bit.xor");
           }
-          case a::binop_tag::bitor_: {
+          case ast::binop_tag::bitor_: {
             return this->builder.CreateOr(lhs_v, rhs_v, "bit.or");
           }
-          case a::binop_tag::booland: {
+          case ast::binop_tag::booland: {
             auto lhs_bool =
                 codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
             if (!lhs_bool) {
@@ -242,7 +243,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
             return this->builder.CreateLogicalAnd(*lhs_bool, *rhs_bool, "log.and");
           }
-          case a::binop_tag::boolor: {
+          case ast::binop_tag::boolor: {
             auto lhs_bool =
                 codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
             if (!lhs_bool) {
@@ -389,7 +390,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
             "Unable to create comparison between ", *lhs->getType(), " and ", *rhs->getType());
       }
 
-      auto* op = ast::dyn_cast<comparison_operator>(*instance.ops[operand]);
+      auto* op = dyn_cast<comparison_operator>(*instance.ops[operand]);
       if (!op) {
         log_and_throw("Unknown operator used in comparison");
       }
@@ -470,7 +471,7 @@ private:
 
 namespace bython::codegen
 {
-auto compile(std::string_view name, std::unique_ptr<ast::node> ast, llvm::LLVMContext& context)
+auto compile(std::string_view name, std::unique_ptr<node> ast, llvm::LLVMContext& context)
     -> std::unique_ptr<llvm::Module>
 {
   auto module_ = std::make_unique<llvm::Module>(name, context);
@@ -479,7 +480,7 @@ auto compile(std::string_view name, std::unique_ptr<ast::node> ast, llvm::LLVMCo
   return module_;
 }
 
-auto compile(std::unique_ptr<ast::node> ast, llvm::Module& module_) -> void
+auto compile(std::unique_ptr<node> ast, llvm::Module& module_) -> void
 {
   auto visitor = codegen_visitor {module_};
   visitor.visit(*ast);
