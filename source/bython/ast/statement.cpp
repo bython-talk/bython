@@ -86,12 +86,25 @@ auto unconditional_branch::tag() const -> ast::tag
   return ast::tag {tag::unconditional_branch};
 }
 
-auto parameter::tag() const -> ast::tag {
-  return ast::tag{tag::parameter};
+parameter::parameter(std::string name_, std::string hint_)
+    : name {std::move(name_)}
+    , hint {std::move(hint_)}
+{
 }
 
-auto parameter_list::tag() const -> ast::tag {
-  return ast::tag{tag::parameter_list};
+auto parameter::tag() const -> ast::tag
+{
+  return ast::tag {tag::parameter};
+}
+
+parameter_list::parameter_list(std::vector<parameter> parameters_)
+    : parameters {std::move(parameters_)}
+{
+}
+
+auto parameter_list::tag() const -> ast::tag
+{
+  return ast::tag {tag::parameter_list};
 }
 
 function_def::function_def(std::string name_, parameter_list parameters_, statements body_)
@@ -106,10 +119,14 @@ auto function_def::tag() const -> ast::tag
   return ast::tag {tag::function_def};
 }
 
-return_::return_(std::unique_ptr<expression> expr_)  : expr{std::move(expr_)} {}
+return_::return_(std::unique_ptr<expression> expr_)
+    : expr {std::move(expr_)}
+{
+}
 
-auto return_::tag() const -> ast::tag {
-  return ast::tag{tag::return_};
+auto return_::tag() const -> ast::tag
+{
+  return ast::tag {tag::return_};
 }
 
 }  // namespace bython::ast

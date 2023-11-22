@@ -102,6 +102,8 @@ struct unconditional_branch final : statement
 
 struct parameter final : node
 {
+  parameter(std::string name_, std::string hint_);
+
   std::string name;
   std::string hint;
 
@@ -110,6 +112,8 @@ struct parameter final : node
 
 struct parameter_list final : node
 {
+  explicit parameter_list(std::vector<parameter> parameters_);
+
   std::vector<parameter> parameters;
 
   auto tag() const -> ast::tag;

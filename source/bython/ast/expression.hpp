@@ -14,7 +14,7 @@ struct expression : node
 };
 
 using expression_ptr = std::unique_ptr<expression>;
-using expressions = std::vector<std::unique_ptr<expression>>;
+using expressions = std::vector<expression_ptr>;
 
 struct unary_operation final : expression
 {
