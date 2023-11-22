@@ -21,7 +21,8 @@
 /CMakeLists.txt.user*
 
 # Visual Studio Code
-/.vscode/
+/.vscode/*
+!.vscode/settings.json
 /.cache/
 
 # Visual Studio work directory
