@@ -3,7 +3,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -q -y update
 RUN apt-get -q -y install --no-install-recommends \
-    ninja-build gdb cppcheck clang-format-16 \
+    ninja-build gdb cppcheck clang-format-16 clangd \
     tig git vim openssh-client \
     zsh fzf \
     && apt-get clean all
@@ -30,5 +30,8 @@ RUN update-alternatives \
 RUN update-alternatives \
     --install /usr/bin/editor   editor    /usr/bin/vim      100
 RUN git config --global commit.verbose true
+
+RUN git config --global user.name "Bython Enjoyer"
+RUN git config --global user.email "enjoyer@bython.com"
 
 ENTRYPOINT [ "zsh" ]
