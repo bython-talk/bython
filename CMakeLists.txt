@@ -9,6 +9,7 @@ project(
     HOMEPAGE_URL "https://example.com/"
     LANGUAGES C CXX
 )
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
