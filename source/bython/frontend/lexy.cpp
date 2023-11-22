@@ -9,7 +9,9 @@
 #include <boost/uuid/uuid.hpp>  // uuid class
 #include <lexy/action/parse.hpp>
 #include <lexy/callback.hpp>
+#include <lexy/callback/adapter.hpp>
 #include <lexy/dsl.hpp>
+#include <lexy/dsl/option.hpp>
 #include <lexy/error.hpp>
 #include <lexy/input/string_input.hpp>
 #include <lexy/input_location.hpp>
@@ -23,12 +25,12 @@ namespace dsl = lexy::dsl;
 namespace ast = bython::ast;
 namespace p = bython::parser;
 
-template<class T>
+template<typename T>
 struct is_unique_ptr : std::false_type
 {
 };
 
-template<class T, class D>
+template<typename T, typename D>
 struct is_unique_ptr<std::unique_ptr<T, D>> : std::true_type
 {
 };
@@ -39,7 +41,7 @@ struct lexy_grammar
   template<typename Production, typename Value>
   struct with_span : lexy::transparent_production
   {
-    static constexpr auto rule = dsl::position + dsl::p<Production> + dsl::position;
+    static constexpr auto rule = dsl::position(dsl::p<Production>) >> dsl::position;
 
     static constexpr auto value = lexy::callback_with_state<Value>(
         [](auto& state, auto& startptr, Value node, auto& endptr)
@@ -47,10 +49,10 @@ struct lexy_grammar
           auto begin = lexy::get_input_location(state.input, startptr);
           auto end = lexy::get_input_location(state.input, endptr);
 
-          using LexySpan = decltype(state.span_lookup)::mapped_type;
+          using LexySpan = typename decltype(state.span_lookup)::mapped_type;
           auto node_span = LexySpan {.begin = begin, .end = end};
 
-          if constexpr (is_unique_ptr<std::remove_cvref<Value>>::value) {
+          if constexpr (is_unique_ptr<std::remove_cvref_t<Value>>::value) {
             state.span_lookup.insert({node->uuid, std::move(node_span)});
           } else {
             state.span_lookup.insert({node.uuid, std::move(node_span)});
@@ -99,9 +101,10 @@ struct lexy_grammar
   template<typename T>
   static constexpr auto new_expression = new_unique_ptr<T, ast::expression>;
 
+  struct expr_prod;
   struct nested_expression : lexy::transparent_production
   {
-    static constexpr auto rule = dsl::recurse<struct expr_prod>;
+    static constexpr auto rule = dsl::recurse<expr_prod>;
     static constexpr auto value = lexy::forward<ast::expression_ptr>;
   };
 
@@ -134,8 +137,8 @@ struct lexy_grammar
     {
       static constexpr auto rule =
           dsl::round_bracketed.opt_list(dsl::p<nested_expression>, dsl::trailing_sep(dsl::comma));
-      static constexpr auto value =
-          lexy::as_list<ast::expressions> | lexy::construct<ast::argument_list>;
+      static constexpr auto value = lexy::as_list<ast::expressions> >> lexy::bind(
+                                        lexy::construct<ast::argument_list>, lexy::_1.or_default());
     };
 
     static constexpr auto rule = dsl::p<with_span<inner, ast::argument_list>>;
@@ -324,7 +327,7 @@ struct lexy_grammar
 
   struct expression
   {
-    static constexpr auto rule = dsl::p<with_span<expr_prod, ast::expression_ptr>>;
+    static constexpr auto rule = dsl::p<expr_prod>;
     static constexpr auto value = lexy::forward<ast::expression_ptr>;
   };
 
@@ -347,7 +350,7 @@ struct lexy_grammar
     {
       static constexpr auto rule = dsl::list(dsl::p<var>, dsl::sep(dsl::comma));
       static constexpr auto value =
-          lexy::as_list<std::vector<ast::expression_ptr>> >> lexy::construct<ast::expr_mod>;
+          lexy::as_list<ast::expressions> >> lexy::construct<ast::expr_mod>;
     };
 
     static constexpr auto rule = dsl::p<with_span<inner, ast::expr_mod>>;
