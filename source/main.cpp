@@ -14,6 +14,7 @@ enum class compilation_mode
 
 auto main(int argc, char* argv[]) -> int
 {
+
   namespace cl = llvm::cl;
 
   auto jit_category = cl::OptionCategory {

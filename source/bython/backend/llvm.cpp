@@ -1,4 +1,5 @@
 #include <iomanip>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <tuple>
@@ -6,6 +7,9 @@
 
 #include "llvm.hpp"
 
+#include <llvm-16/llvm/IR/Constant.h>
+#include <llvm-16/llvm/IR/Constants.h>
+#include <llvm-16/llvm/IR/Value.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
@@ -20,8 +24,10 @@
 
 #include "builtin.hpp"
 #include "bython/ast.hpp"
+#include "bython/ast/operators.hpp"
 #include "bython/ast/visitor.hpp"
 #include "bython/matching.hpp"
+#include "bython/type_system/environment.hpp"
 #include "intrinsic.hpp"
 #include "symbols.hpp"
 #include "type_system.hpp"
@@ -30,8 +36,9 @@ namespace bython
 {
 
 using namespace bython::ast;  // This line is required for the visitor macros to function properly
-//namespace ast = bython::ast;
+// namespace ast = bython::ast;
 namespace m = bython::matching;
+namespace ts = bython::type_system;
 
 template<typename Arg, typename... Args>
 [[noreturn]] auto log_and_throw(Arg&& arg, Args&&... args) -> void
@@ -52,8 +59,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       : context {out_module.getContext()}
       , builder {out_module.getContext()}
       , module_ {out_module}
-      , symbol_mapping {}
-      , type_mapping {}
+      , environment {ts::environment::initialise_with_builtins()}
   {
   }
 
@@ -116,152 +122,185 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     return load;
   }
 
+  // TODO: Implement signed and unsigned parsing for integers so we can differentiate at codegen
+  // time.
+  // TODO: Treat current implementation as signed
   BYTHON_VISITOR_IMPL(integer, instance)
   {
-    if (std::numeric_limits<std::int64_t>::lowest() <= instance.value
-        && instance.value <= std::numeric_limits<std::int64_t>::max())
+    if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
+        && instance.value <= std::numeric_limits<std::int8_t>::max())
     {
-      return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(this->context), instance.value);
+      // TODO: Error check deref of ty
+      auto i8_ty = *this->environment.typeify_expression(instance, "i8");
+      return llvm::ConstantInt::getSigned(i8_ty->definition(this->context), instance.value);
     }
 
-    else
+    if (std::numeric_limits<std::int16_t>::lowest() <= instance.value
+        && instance.value <= std::numeric_limits<std::int16_t>::max())
     {
-      log_and_throw("Integer constant",
-                    std::to_string(instance.value),
-                    "does not fit in any integer datatype");
+      // TODO: Error check deref of ty
+      auto i16_ty = *this->environment.typeify_expression(instance, "i16");
+      return llvm::ConstantInt::getSigned(i16_ty->definition(this->context), instance.value);
     }
+
+    if (std::numeric_limits<std::int32_t>::lowest() <= instance.value
+        && instance.value <= std::numeric_limits<std::int32_t>::max())
+    {
+      // TODO: Error check deref of ty
+      auto i32_ty = *this->environment.typeify_expression(instance, "i32");
+      return llvm::ConstantInt::getSigned(i32_ty->definition(this->context), instance.value);
+    }
+
+    auto i64_ty = *this->environment.typeify_expression(instance, "i64");
+    return llvm::ConstantInt::getSigned(i64_ty->definition(this->context), instance.value);
   }
 
   BYTHON_VISITOR_IMPL(assignment, assgn)
   {
+    // Compute RHS of assignment
     auto* rhs_value = this->visit(*assgn.rhs);
+
+    // Load type for LHS
+    auto lhs_type = this->environment.lookup(assgn.hint);
+    if (!lhs_type) {
+      log_and_throw("Unknown type", assgn.hint, "used on LHS of assignment");
+    }
+
+    // Load type for RHS
+    auto rhs_type = this->environment.lookup(*assgn.rhs);
+    if (!rhs_type) {
+      log_and_throw("Unknown RHS type");
+    }
+
+    // Account for subtyping
+    auto subtype_converter = this->environment.try_subtype(*lhs_type.value(), *rhs_type.value());
+    if (!subtype_converter) {
+      log_and_throw("Unknown RHS type");
+    }
+
+    auto subtyper_impl = subtype_converter.value();
+
+    auto lhs_llvm_type = lhs_type.value()->definition(this->context);
+    auto subtyped = subtyper_impl(this->builder, rhs_value, lhs_llvm_type);
+
+    // Load type for RHS
     if (auto existing_var = this->symbol_mapping.get(assgn.lhs)) {
       auto [type, memory_location] = *existing_var;
       return this->builder.CreateStore(rhs_value, memory_location);
     }
 
-    auto lhs_type = this->type_mapping.get(this->context, assgn.hint);
-    if (!lhs_type) {
-      log_and_throw("Unknown type", assgn.hint, "used on LHS of assignment");
-    }
+    auto allocation = this->builder.CreateAlloca(lhs_llvm_type, /*ArraySize=*/nullptr, assgn.lhs);
+    this->symbol_mapping.put(assgn.lhs, lhs_llvm_type, allocation);
 
-    auto converted_rhs = codegen::convert(this->builder, rhs_value, lhs_type->type);
-    if (!converted_rhs) {
-      log_and_throw("Types on each side of assignment are incompatible:",
-                    "type on LHS:",
-                    *lhs_type->type,
-                    ", type on RHS:",
-                    *rhs_value->getType());
-    }
-
-    auto allocation = this->builder.CreateAlloca(lhs_type->type, /*ArraySize=*/nullptr, assgn.lhs);
-    this->symbol_mapping.put(assgn.lhs, lhs_type->type, allocation);
-
-    return this->builder.CreateStore(*converted_rhs, allocation);
+    return this->builder.CreateStore(subtyped, allocation);
   }
 
   BYTHON_VISITOR_IMPL(binary_operation, binop)
   {
+    auto* b = dyn_cast<binary_operator>(*binop.op);
+    if (!b) { /**/
+    }
+
     auto lhs_v = this->visit(*binop.lhs);
+    llvm::Value* rhs_v = nullptr;
 
-    if (m::matches(*binop.op, m::binary_operator {binop_tag::as})) {
-      auto target = ast::dyn_cast<ast::variable>(*binop.rhs);
-      if (target == nullptr) {
-        log_and_throw("`as` expression requires type identifier on RHS");
-      }
-
-      auto target_type = this->type_mapping.get(this->context, target->identifier);
-      if (!target_type) {
-        log_and_throw("Unknown type on RHS:", target->identifier);
-      }
-
-      auto conversion = codegen::convert(this->builder, lhs_v, target_type->type);
-      if (!conversion) {
-        log_and_throw("Unable to codegen conversion.",
-                      "LHS:",
-                      *lhs_v->getType(),
-                      ", RHS:",
-                      *target_type->type);
-      }
-      return *conversion;
-    }
-
-    else
-    {
-      auto rhs_v = this->visit(*binop.rhs);
-
-      if (auto* b = dyn_cast<binary_operator>(*binop.op); b) {
-        switch (b->op) {
-          case ast::binop_tag::pow: {
-            // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
-            // requires powi intrinsics to be brought into scope as prototypes
-            auto pow_intrinsic =
-                this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
-            return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
-          }
-          case ast::binop_tag::multiply: {
-            return this->builder.CreateMul(lhs_v, rhs_v, "a.mul");
-          }
-          case ast::binop_tag::divide: {
-            return this->builder.CreateSDiv(lhs_v, rhs_v, "a.sdiv");
-          }
-          case ast::binop_tag::modulo: {
-            return this->builder.CreateSRem(lhs_v, rhs_v, "a.srem");
-          }
-          case ast::binop_tag::plus: {
-            return this->builder.CreateAdd(lhs_v, rhs_v, "a.add");
-          }
-          case ast::binop_tag::minus: {
-            return this->builder.CreateSub(lhs_v, rhs_v, "a.sub");
-          }
-          case ast::binop_tag::bitshift_right_: {
-            return this->builder.CreateAShr(lhs_v, rhs_v, "bit.ashr");
-          }
-          case ast::binop_tag::bitshift_left_: {
-            return this->builder.CreateShl(lhs_v, rhs_v, "bit.shl");
-          }
-          case ast::binop_tag::bitand_: {
-            return this->builder.CreateAnd(lhs_v, rhs_v, "bit.and");
-          }
-          case ast::binop_tag::bitxor_: {
-            return this->builder.CreateXor(lhs_v, rhs_v, "bit.xor");
-          }
-          case ast::binop_tag::bitor_: {
-            return this->builder.CreateOr(lhs_v, rhs_v, "bit.or");
-          }
-          case ast::binop_tag::booland: {
-            auto lhs_bool =
-                codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
-            if (!lhs_bool) {
-              log_and_throw("Unable to convert LHS type", *lhs_v->getType(), "to i1 (boolean)");
-            }
-            auto rhs_bool =
-                codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
-            if (!rhs_bool) {
-              log_and_throw("Unable to convert RHS type", *rhs_v->getType(), "to i1 (boolean)");
-            }
-
-            return this->builder.CreateLogicalAnd(*lhs_bool, *rhs_bool, "log.and");
-          }
-          case ast::binop_tag::boolor: {
-            auto lhs_bool =
-                codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
-            if (!lhs_bool) {
-              log_and_throw("Unable to convert LHS type", *lhs_v->getType(), "to i1 (boolean)");
-            }
-            auto rhs_bool =
-                codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
-            if (!rhs_bool) {
-              log_and_throw("Unable to convert RHS type", *rhs_v->getType(), "to i1 (boolean)");
-            }
-
-            return this->builder.CreateLogicalOr(*lhs_bool, *rhs_bool, "log.or");
-          }
+    switch (b->op) {
+      case ast::binop_tag::as: {
+        auto target = ast::dyn_cast<ast::variable>(*binop.rhs);
+        if (target == nullptr) {
+          log_and_throw("`as` expression requires type identifier on RHS");
         }
+
+        auto lhs_type = this->environment.lookup(*binop.lhs);
+        if (!lhs_type) {
+          log_and_throw("unknown lhs type");
+        }
+
+        auto rhs_type = this->environment.lookup(target->identifier);
+        if (!rhs_type) {
+          log_and_throw("unknown rhs type");
+        }
+
+        auto subtype_converter =
+            this->environment.try_subtype(*lhs_type.value(), *rhs_type.value());
+        if (!subtype_converter) {
+          log_and_throw("subtype conversion failed");
+        }
+
+        auto subtyper_impl = subtype_converter.value();
+        return subtyper_impl(this->builder, lhs_v, rhs_type.value()->definition(this->context));
+      }
+
+        // Visit and store type of RHS before calling "real" binary operations
+        rhs_v = this->visit(*binop.rhs);
+
+      case ast::binop_tag::pow: {
+        // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
+        // requires powi intrinsics to be brought into scope as prototypes
+        auto pow_intrinsic =
+            this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
+        (void)this->environment.typeify_expression(binop, "f32");
+        return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
+      }
+      case ast::binop_tag::multiply: {
+        return this->builder.CreateMul(lhs_v, rhs_v, "a.mul");
+      }
+      case ast::binop_tag::divide: {
+        return this->builder.CreateSDiv(lhs_v, rhs_v, "a.sdiv");
+      }
+      case ast::binop_tag::modulo: {
+        return this->builder.CreateSRem(lhs_v, rhs_v, "a.srem");
+      }
+      case ast::binop_tag::plus: {
+        return this->builder.CreateAdd(lhs_v, rhs_v, "a.add");
+      }
+      case ast::binop_tag::minus: {
+        return this->builder.CreateSub(lhs_v, rhs_v, "a.sub");
+      }
+      case ast::binop_tag::bitshift_right_: {
+        return this->builder.CreateAShr(lhs_v, rhs_v, "bit.ashr");
+      }
+      case ast::binop_tag::bitshift_left_: {
+        return this->builder.CreateShl(lhs_v, rhs_v, "bit.shl");
+      }
+      case ast::binop_tag::bitand_: {
+        return this->builder.CreateAnd(lhs_v, rhs_v, "bit.and");
+      }
+      case ast::binop_tag::bitxor_: {
+        return this->builder.CreateXor(lhs_v, rhs_v, "bit.xor");
+      }
+      case ast::binop_tag::bitor_: {
+        return this->builder.CreateOr(lhs_v, rhs_v, "bit.or");
+      }
+      case ast::binop_tag::booland: {
+        auto lhs_bool =
+            codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
+        if (!lhs_bool) {
+          log_and_throw("Unable to convert LHS type", *lhs_v->getType(), "to i1 (boolean)");
+        }
+        auto rhs_bool =
+            codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
+        if (!rhs_bool) {
+          log_and_throw("Unable to convert RHS type", *rhs_v->getType(), "to i1 (boolean)");
+        }
+
+        return this->builder.CreateLogicalAnd(*lhs_bool, *rhs_bool, "log.and");
+      }
+      case ast::binop_tag::boolor: {
+        auto lhs_bool =
+            codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
+        if (!lhs_bool) {
+          log_and_throw("Unable to convert LHS type", *lhs_v->getType(), "to i1 (boolean)");
+        }
+        auto rhs_bool =
+            codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
+        if (!rhs_bool) {
+          log_and_throw("Unable to convert RHS type", *rhs_v->getType(), "to i1 (boolean)");
+        }
+
+        return this->builder.CreateLogicalOr(*lhs_bool, *rhs_bool, "log.or");
       }
     }
-
-    llvm_unreachable("Failed to handle all binary operations");
   }
 
   BYTHON_VISITOR_IMPL(call, instance)
@@ -465,6 +504,8 @@ private:
 
   codegen::symbol_lookup symbol_mapping;
   codegen::type_lookup type_mapping;
+
+  type_system::environment environment;
 };  // namespace bython
 
 }  // namespace bython

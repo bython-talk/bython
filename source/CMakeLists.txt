@@ -1,5 +1,6 @@
 add_subdirectory(bython/ast)
+add_subdirectory(bython/backend)
 add_subdirectory(bython/executors)
 add_subdirectory(bython/frontend)
-add_subdirectory(bython/backend)
 add_subdirectory(bython/matching)
+add_subdirectory(bython/type_system)
