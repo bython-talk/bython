@@ -14,6 +14,9 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
 
   SECTION("Builtin Types are Known")
   {
+    // boolean
+    REQUIRE(environment.lookup("bool"));
+
     // signed
     REQUIRE(environment.lookup("i8"));
     REQUIRE(environment.lookup("i16"));
@@ -41,7 +44,7 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
             == ts::subtyping_rule::identity);
   }
 
-  SECTION("Smaller Signed Integers are Subtypes of Larger Signed Integers")
+  SECTION("Signed Integer Promotion")
   {
     REQUIRE(environment.try_subtype(ts::sint {8}, ts::sint {16})
             == ts::subtyping_rule::sint_promotion);
@@ -51,7 +54,7 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
             == ts::subtyping_rule::sint_promotion);
   }
 
-  SECTION("Smaller Unsigned Integers are Subtypes of Larger Unsigned Integers")
+  SECTION("Unsigned Integer Promotion")
   {
     REQUIRE(environment.try_subtype(ts::uint {8}, ts::uint {16})
             == ts::subtyping_rule::uint_promotion);
@@ -121,5 +124,13 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
             == ts::subtyping_rule::sint_to_double);
     REQUIRE(environment.try_subtype(ts::sint {64}, ts::double_fp {})
             == ts::subtyping_rule::sint_to_double);
+  }
+
+  SECTION("Floating Point Promotion")
+  {
+    REQUIRE(environment.try_subtype(ts::single_fp {}, ts::double_fp {})
+            == ts::subtyping_rule::single_to_double);
+    REQUIRE_FALSE(environment.try_subtype(ts::double_fp {}, ts::single_fp {})
+                  == ts::subtyping_rule::single_to_double);
   }
 }

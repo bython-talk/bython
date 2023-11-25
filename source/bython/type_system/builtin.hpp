@@ -4,6 +4,7 @@ namespace bython::type_system
 {
 enum class type_tag
 {
+  boolean,
   uint,
   sint,
   single_fp,
@@ -55,6 +56,13 @@ struct single_fp final : type
 };
 
 struct double_fp final : type
+{
+  auto operator==(type const& other) const -> bool;
+
+  auto tag() const -> type_tag;
+};
+
+struct boolean final : type
 {
   auto operator==(type const& other) const -> bool;
 

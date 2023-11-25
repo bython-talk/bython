@@ -1,6 +1,5 @@
 #include "builtin.hpp"
 
-
 namespace bython::type_system
 {
 auto type::operator!=(type const& other) const -> bool
@@ -34,7 +33,6 @@ auto sint::tag() const -> type_tag
   return type_tag::sint;
 }
 
-
 auto sint::operator==(type const& other) const -> bool
 {
   auto const* other_sint = dynamic_cast<sint const*>(&other);
@@ -61,6 +59,17 @@ auto double_fp::operator==(type const& other) const -> bool
 {
   auto const* other_double_fp = dynamic_cast<double_fp const*>(&other);
   return other_double_fp != nullptr;
+}
+
+auto boolean::tag() const -> type_tag
+{
+  return type_tag::boolean;
+}
+
+auto boolean::operator==(type const& other) const -> bool
+{
+  auto const* other_boolean = dynamic_cast<boolean const*>(&other);
+  return other_boolean != nullptr;
 }
 
 }  // namespace bython::type_system

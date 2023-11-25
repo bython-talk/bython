@@ -34,71 +34,41 @@ struct identity_rule final : subtype_rule
 } const identity;
 
 /**
+ * \eSInt <: \eBiggerSInt
  * \eUInt <: \eBiggerUInt
  */
-struct unsigned_integer_rule final : subtype_rule
+struct integer_promotion_rule final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
       -> std::optional<ts::subtyping_rule>
   {
-    if (tau.tag() != ts::type_tag::uint || alpha.tag() != ts::type_tag::uint) {
-      return std::nullopt;
+    if (tau.tag() == ts::type_tag::sint && alpha.tag() == ts::type_tag::sint) {
+      auto const& tau_sint = dynamic_cast<ts::sint const&>(tau);
+      auto const& alpha_sint = dynamic_cast<ts::sint const&>(alpha);
+
+      if (tau_sint.width < alpha_sint.width) {
+        return ts::subtyping_rule::sint_promotion;
+      }
     }
 
-    auto const& tau_uint = dynamic_cast<ts::uint const&>(tau);
-    auto const& alpha_uint = dynamic_cast<ts::uint const&>(alpha);
+    else if (tau.tag() == ts::type_tag::uint && alpha.tag() == ts::type_tag::uint)
+    {
+      auto const& tau_uint = dynamic_cast<ts::uint const&>(tau);
+      auto const& alpha_uint = dynamic_cast<ts::uint const&>(alpha);
 
-    if (tau_uint.width > alpha_uint.width) {
-      return std::nullopt;
+      if (tau_uint.width < alpha_uint.width) {
+        return ts::subtyping_rule::uint_promotion;
+      }
     }
 
-    return ts::subtyping_rule::uint_promotion;
+    return std::nullopt;
   }
-} const unsigned_integer;
-
-/**
- * \eSInt <: \eBiggerSInt
- */
-struct signed_integer_rule final : subtype_rule
-{
-  auto try_subtype(ts::type const& tau, ts::type const& alpha) const
-      -> std::optional<ts::subtyping_rule>
-  {
-    if (tau.tag() != ts::type_tag::sint || alpha.tag() != ts::type_tag::sint) {
-      return std::nullopt;
-    }
-
-    auto const& tau_sint = dynamic_cast<ts::sint const&>(tau);
-    auto const& alpha_sint = dynamic_cast<ts::sint const&>(alpha);
-
-    if (tau_sint.width > alpha_sint.width) {
-      return std::nullopt;
-    }
-
-    return ts::subtyping_rule::sint_promotion;
-  }
-} const signed_integer;
-
-/*
-struct single2double final : subtype_rule
-{
-  auto try_subtype(ts::type const& tau, ts::type const& alpha) const
-      -> std::optional<ts::subtyping_rule>
-  {
-    if (tau.tag() == ts::type_tag::single_fp || alpha.tag() == ts::type_tag::double_fp) {
-      return std::nullopt;
-    }
-
-    return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest)
-    { return builder.CreateFPExt(expr, dest, "fp.ext"); };
-  }
-} const floating_point;
-*/
+} const integer_promotion;
 
 /**
  * \e{S,U}Int <: \eF{32,64}
  */
-struct integer_to_fp_rule final : subtype_rule
+struct integer_to_floating_point_rule final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
       -> std::optional<ts::subtyping_rule>
@@ -121,14 +91,33 @@ struct integer_to_fp_rule final : subtype_rule
 
     return std::nullopt;
   }
-} const int2float;
+} const integer2floating_point;
+
+/**
+ * \eF32 <: \eF64
+ */
+struct fp_promotion_rule final : subtype_rule
+{
+  auto try_subtype(ts::type const& tau, ts::type const& alpha) const
+      -> std::optional<ts::subtyping_rule>
+  {
+    auto taut = tau.tag();
+    auto alphat = alpha.tag();
+
+    if (taut == ts::type_tag::single_fp && alphat == ts::type_tag::double_fp) {
+      return ts::subtyping_rule::single_to_double;
+    }
+
+    return std::nullopt;
+  }
+} const fp_promotion;
 
 }  // namespace
 
 namespace bython::type_system
 {
 static auto const rules = std::array<subtype_rule const*, 4> {
-    {&identity, &unsigned_integer, &signed_integer, &int2float}};
+    {&identity, &integer_promotion, &fp_promotion, &integer2floating_point}};
 
 auto try_subtype_impl(ts::type const& tau, ts::type const& alpha)
     -> std::optional<ts::subtyping_rule>

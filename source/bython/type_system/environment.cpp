@@ -27,7 +27,9 @@ auto environment::initialise_with_builtins() -> environment
 {
   auto env = environment {};
 
-  env.add("u8", std::make_unique<uint>(8));
+  // boolean
+  env.add("bool", std::unique_ptr<boolean>());
+
   // uint{8, 16, 32, 64}_t
   env.add("u8", std::make_unique<uint>(8));
   env.add("u16", std::make_unique<uint>(16));
