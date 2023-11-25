@@ -74,4 +74,52 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
     REQUIRE_FALSE(environment.try_subtype(ts::uint {32}, ts::uint {16}));
     REQUIRE_FALSE(environment.try_subtype(ts::uint {64}, ts::uint {32}));
   }
+
+  SECTION("Unsigned Integer to Single")
+  {
+    REQUIRE(environment.try_subtype(ts::uint {8}, ts::single_fp {})
+            == ts::subtyping_rule::uint_to_single);
+    REQUIRE(environment.try_subtype(ts::uint {16}, ts::single_fp {})
+            == ts::subtyping_rule::uint_to_single);
+    REQUIRE(environment.try_subtype(ts::uint {32}, ts::single_fp {})
+            == ts::subtyping_rule::uint_to_single);
+    REQUIRE(environment.try_subtype(ts::uint {64}, ts::single_fp {})
+            == ts::subtyping_rule::uint_to_single);
+  }
+
+  SECTION("Unsigned Integer to Double")
+  {
+    REQUIRE(environment.try_subtype(ts::uint {8}, ts::double_fp {})
+            == ts::subtyping_rule::uint_to_double);
+    REQUIRE(environment.try_subtype(ts::uint {16}, ts::double_fp {})
+            == ts::subtyping_rule::uint_to_double);
+    REQUIRE(environment.try_subtype(ts::uint {32}, ts::double_fp {})
+            == ts::subtyping_rule::uint_to_double);
+    REQUIRE(environment.try_subtype(ts::uint {64}, ts::double_fp {})
+            == ts::subtyping_rule::uint_to_double);
+  }
+
+  SECTION("Signed Integer to Single")
+  {
+    REQUIRE(environment.try_subtype(ts::sint {8}, ts::single_fp {})
+            == ts::subtyping_rule::sint_to_single);
+    REQUIRE(environment.try_subtype(ts::sint {16}, ts::single_fp {})
+            == ts::subtyping_rule::sint_to_single);
+    REQUIRE(environment.try_subtype(ts::sint {32}, ts::single_fp {})
+            == ts::subtyping_rule::sint_to_single);
+    REQUIRE(environment.try_subtype(ts::sint {64}, ts::single_fp {})
+            == ts::subtyping_rule::sint_to_single);
+  }
+
+  SECTION("Signed Integer to Double")
+  {
+    REQUIRE(environment.try_subtype(ts::sint {8}, ts::double_fp {})
+            == ts::subtyping_rule::sint_to_double);
+    REQUIRE(environment.try_subtype(ts::sint {16}, ts::double_fp {})
+            == ts::subtyping_rule::sint_to_double);
+    REQUIRE(environment.try_subtype(ts::sint {32}, ts::double_fp {})
+            == ts::subtyping_rule::sint_to_double);
+    REQUIRE(environment.try_subtype(ts::sint {64}, ts::double_fp {})
+            == ts::subtyping_rule::sint_to_double);
+  }
 }

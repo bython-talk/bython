@@ -4,6 +4,8 @@
 
 #include "subtyping.hpp"
 
+#include "bython/type_system/builtin.hpp"
+
 namespace
 {
 namespace ts = bython::type_system;
@@ -91,32 +93,42 @@ struct single2double final : subtype_rule
     { return builder.CreateFPExt(expr, dest, "fp.ext"); };
   }
 } const floating_point;
+*/
 
-struct integer_to_float_rule final : subtype_rule
+/**
+ * \e{S,U}Int <: \eF{32,64}
+ */
+struct integer_to_fp_rule final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
       -> std::optional<ts::subtyping_rule>
   {
-    auto* tau_int = dynamic_cast<ts::uint*>(tau.type.definition(context));
-    auto* alpha_float = dynamic_cast<ts::>(tau.type.definition(context));
+    auto taut = tau.tag();
+    auto alphat = alpha.tag();
 
-    if (tau.type->isIntegerTy() && alpha.type->isFloatingPointTy()) {
-      return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) {
-
-      }
+    if (taut == ts::type_tag::uint && alphat == ts::type_tag::single_fp) {
+      return ts::subtyping_rule::uint_to_single;
+    }
+    if (taut == ts::type_tag::uint && alphat == ts::type_tag::double_fp) {
+      return ts::subtyping_rule::uint_to_double;
+    }
+    if (taut == ts::type_tag::sint && alphat == ts::type_tag::single_fp) {
+      return ts::subtyping_rule::sint_to_single;
+    }
+    if (taut == ts::type_tag::sint && alphat == ts::type_tag::double_fp) {
+      return ts::subtyping_rule::sint_to_double;
     }
 
     return std::nullopt;
   }
 } const int2float;
-*/
 
 }  // namespace
 
 namespace bython::type_system
 {
-static auto const rules =
-    std::array<subtype_rule const*, 3> {{&identity, &unsigned_integer, &signed_integer}};
+static auto const rules = std::array<subtype_rule const*, 4> {
+    {&identity, &unsigned_integer, &signed_integer, &int2float}};
 
 auto try_subtype_impl(ts::type const& tau, ts::type const& alpha)
     -> std::optional<ts::subtyping_rule>
