@@ -7,16 +7,16 @@
 
 #include "llvm.hpp"
 
-#include <llvm-16/llvm/IR/Constant.h>
-#include <llvm-16/llvm/IR/Constants.h>
-#include <llvm-16/llvm/IR/Value.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/InstVisitor.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/raw_ostream.h>
@@ -27,10 +27,11 @@
 #include "bython/ast/operators.hpp"
 #include "bython/ast/visitor.hpp"
 #include "bython/matching.hpp"
+#include "bython/type_system/builtin.hpp"
 #include "bython/type_system/environment.hpp"
 #include "intrinsic.hpp"
 #include "symbols.hpp"
-#include "type_system.hpp"
+#include "typing.hpp"
 
 namespace bython
 {
@@ -127,32 +128,36 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   // TODO: Treat current implementation as signed
   BYTHON_VISITOR_IMPL(integer, instance)
   {
+    auto integer_type = std::optional<ts::type const*> {};
     if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::int8_t>::max())
     {
-      // TODO: Error check deref of ty
-      auto i8_ty = *this->environment.typeify_expression(instance, "i8");
-      return llvm::ConstantInt::getSigned(i8_ty->definition(this->context), instance.value);
+      integer_type = this->environment.typeify_expression(instance, "i8");
     }
 
-    if (std::numeric_limits<std::int16_t>::lowest() <= instance.value
-        && instance.value <= std::numeric_limits<std::int16_t>::max())
+    else if (std::numeric_limits<std::int16_t>::lowest() <= instance.value
+             && instance.value <= std::numeric_limits<std::int16_t>::max())
     {
-      // TODO: Error check deref of ty
-      auto i16_ty = *this->environment.typeify_expression(instance, "i16");
-      return llvm::ConstantInt::getSigned(i16_ty->definition(this->context), instance.value);
+      integer_type = this->environment.typeify_expression(instance, "i16");
     }
 
-    if (std::numeric_limits<std::int32_t>::lowest() <= instance.value
-        && instance.value <= std::numeric_limits<std::int32_t>::max())
+    else if (std::numeric_limits<std::int32_t>::lowest() <= instance.value
+             && instance.value <= std::numeric_limits<std::int32_t>::max())
     {
-      // TODO: Error check deref of ty
-      auto i32_ty = *this->environment.typeify_expression(instance, "i32");
-      return llvm::ConstantInt::getSigned(i32_ty->definition(this->context), instance.value);
+      integer_type = this->environment.typeify_expression(instance, "i32");
     }
 
-    auto i64_ty = *this->environment.typeify_expression(instance, "i64");
-    return llvm::ConstantInt::getSigned(i64_ty->definition(this->context), instance.value);
+    else
+    {
+      integer_type = this->environment.typeify_expression(instance, "i64");
+    }
+
+    if (!integer_type) {
+      log_and_throw("Unknown type for integer");
+    }
+
+    auto llvm_type = codegen::definition(this->context, *integer_type.value());
+    return llvm::ConstantInt::getSigned(llvm_type, instance.value);
   }
 
   BYTHON_VISITOR_IMPL(assignment, assgn)
@@ -173,14 +178,14 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     }
 
     // Account for subtyping
-    auto subtype_converter = this->environment.try_subtype(*lhs_type.value(), *rhs_type.value());
-    if (!subtype_converter) {
+    auto subtype_rule = this->environment.try_subtype(*lhs_type.value(), *rhs_type.value());
+    if (!subtype_rule) {
       log_and_throw("Unknown RHS type");
     }
 
-    auto subtyper_impl = subtype_converter.value();
+    auto subtyper_impl = codegen::subtype_conversion(*subtype_rule);
 
-    auto lhs_llvm_type = lhs_type.value()->definition(this->context);
+    auto lhs_llvm_type = codegen::definition(this->context, *lhs_type.value());
     auto subtyped = subtyper_impl(this->builder, rhs_value, lhs_llvm_type);
 
     // Load type for RHS
@@ -227,8 +232,9 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
           log_and_throw("subtype conversion failed");
         }
 
-        auto subtyper_impl = subtype_converter.value();
-        return subtyper_impl(this->builder, lhs_v, rhs_type.value()->definition(this->context));
+        auto subtyping_rule = subtype_converter.value();
+        auto subtyper_impl = codegen::subtype_conversion(subtyping_rule);
+        return subtyper_impl(this->builder, lhs_v, codegen::definition(context, *rhs_type.value()));
       }
 
         // Visit and store type of RHS before calling "real" binary operations

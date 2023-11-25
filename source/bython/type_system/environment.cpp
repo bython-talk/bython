@@ -5,10 +5,6 @@
 
 #include "environment.hpp"
 
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
-
 #include "builtin.hpp"
 #include "bython/ast.hpp"
 #include "bython/ast/visitor.hpp"
@@ -85,8 +81,8 @@ auto environment::typeify_expression(ast::expression const& expr, std::string_vi
   return std::nullopt;
 }
 
-auto environment::try_subtype(type_system::type const& tau, type_system::type const& alpha)
-    -> std::optional<type_system::subtype_converter>
+auto environment::try_subtype(type_system::type const& tau, type_system::type const& alpha) const
+    -> std::optional<type_system::subtyping_rule>
 {
   return try_subtype_impl(tau, alpha);
 }

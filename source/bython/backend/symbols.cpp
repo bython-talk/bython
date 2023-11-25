@@ -11,8 +11,8 @@ namespace bython::codegen
 auto symbol_lookup::get(std::string_view symbol_name) const
     -> std::optional<std::tuple<llvm::Type*, llvm::Value*>>
 {
-  for (auto it = this->lookup.rbegin(); it != this->lookup.rend(); ++it) {
-    if (auto search = it->find(symbol_name); search != it->end()) {
+  for (const auto& it : std::ranges::reverse_view(this->lookup)) {
+    if (auto search = it.find(symbol_name); search != it.end()) {
       return search->second;
     }
   }

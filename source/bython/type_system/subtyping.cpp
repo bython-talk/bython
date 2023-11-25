@@ -4,10 +4,6 @@
 
 #include "subtyping.hpp"
 
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Value.h>
-
 namespace
 {
 namespace ts = bython::type_system;
@@ -16,7 +12,7 @@ struct subtype_rule
 {
   virtual ~subtype_rule() = default;
   virtual auto try_subtype(ts::type const& tau, ts::type const& alpha) const
-      -> std::optional<ts::subtype_converter> = 0;
+      -> std::optional<ts::subtyping_rule> = 0;
 };
 
 /**
@@ -25,14 +21,13 @@ struct subtype_rule
 struct identity_rule final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
-      -> std::optional<ts::subtype_converter>
+      -> std::optional<ts::subtyping_rule>
   {
     if (tau != alpha) {
       return std::nullopt;
     }
 
-    return [](llvm::IRBuilder<>& /*builder*/, llvm::Value* expr, llvm::Type* /*dest*/)
-    { return expr; };
+    return ts::subtyping_rule::identity;
   }
 } const identity;
 
@@ -42,7 +37,7 @@ struct identity_rule final : subtype_rule
 struct unsigned_integer_rule final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
-      -> std::optional<ts::subtype_converter>
+      -> std::optional<ts::subtyping_rule>
   {
     if (tau.tag() != ts::type_tag::uint || alpha.tag() != ts::type_tag::uint) {
       return std::nullopt;
@@ -55,8 +50,7 @@ struct unsigned_integer_rule final : subtype_rule
       return std::nullopt;
     }
 
-    return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
-    { return builder.CreateIntCast(expr, dest, /*isSigned=*/false, "uint.prom"); };
+    return ts::subtyping_rule::uint_promotion;
   }
 } const unsigned_integer;
 
@@ -66,7 +60,7 @@ struct unsigned_integer_rule final : subtype_rule
 struct signed_integer_rule final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
-      -> std::optional<ts::subtype_converter>
+      -> std::optional<ts::subtyping_rule>
   {
     if (tau.tag() != ts::type_tag::sint || alpha.tag() != ts::type_tag::sint) {
       return std::nullopt;
@@ -79,8 +73,7 @@ struct signed_integer_rule final : subtype_rule
       return std::nullopt;
     }
 
-    return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
-    { return builder.CreateIntCast(expr, dest, /*isSigned=*/true, "sint.prom"); };
+    return ts::subtyping_rule::sint_promotion;
   }
 } const signed_integer;
 
@@ -88,7 +81,7 @@ struct signed_integer_rule final : subtype_rule
 struct single2double final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
-      -> std::optional<ts::subtype_converter>
+      -> std::optional<ts::subtyping_rule>
   {
     if (tau.tag() == ts::type_tag::single_fp || alpha.tag() == ts::type_tag::double_fp) {
       return std::nullopt;
@@ -102,7 +95,7 @@ struct single2double final : subtype_rule
 struct integer_to_float_rule final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
-      -> std::optional<ts::subtype_converter>
+      -> std::optional<ts::subtyping_rule>
   {
     auto* tau_int = dynamic_cast<ts::uint*>(tau.type.definition(context));
     auto* alpha_float = dynamic_cast<ts::>(tau.type.definition(context));
@@ -125,11 +118,12 @@ namespace bython::type_system
 static auto const rules =
     std::array<subtype_rule const*, 3> {{&identity, &unsigned_integer, &signed_integer}};
 
-auto try_subtype_impl(ts::type const& tau, ts::type const& alpha) -> std::optional<ts::subtype_converter>
+auto try_subtype_impl(ts::type const& tau, ts::type const& alpha)
+    -> std::optional<ts::subtyping_rule>
 {
   for (auto&& rule : rules) {
-    if (auto converter = rule->try_subtype(tau, alpha)) {
-      return converter;
+    if (auto matching_rule = rule->try_subtype(tau, alpha); matching_rule) {
+      return matching_rule;
     }
   }
 

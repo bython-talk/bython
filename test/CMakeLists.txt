@@ -16,14 +16,15 @@ find_package(Catch2 3 REQUIRED)
 #target_compile_features(bython_scratchpad_test PRIVATE cxx_std_20)
 
 
-#add_executable(bython_test)
-#target_link_libraries(bython_test PRIVATE
-#        bython_lib
-#        Catch2::Catch2WithMain)
-#target_compile_features(bython_test PRIVATE cxx_std_20)
+add_executable(bython_test_type_system type_system/inference.cpp type_system/subtyping.cpp)
+target_link_libraries(bython_test_type_system PRIVATE
+        bython_type_system
+        Catch2::Catch2WithMain)
+
+target_compile_features(bython_test_type_system PRIVATE cxx_std_20)
 
 include(Catch)
-#catch_discover_tests(bython_test)
+catch_discover_tests(bython_test_type_system)
 
 #add_test(NAME bython_test COMMAND bython_test)
 #set_tests_properties(bython_test PROPERTIES FIXTURES_SETUP bython_frontend)
@@ -32,7 +33,7 @@ include(Catch)
 # -- Lit Testing
 configure_file(lit.site.cfg.py.in lit.cfg.py @ONLY)
 
-foreach(SNAPSHOT_TESTING IN ITEMS frontend typing backend)
+foreach(SNAPSHOT_TESTING IN ITEMS frontend backend)
     add_test(
         NAME bython_test_${SNAPSHOT_TESTING} 
         COMMAND lit -v ${CMAKE_BINARY_DIR}/test/${SNAPSHOT_TESTING}
@@ -43,8 +44,8 @@ endforeach()
 #add_test(NAME bython_frontend_lit COMMAND lit -v ${CMAKE_BINARY_DIR}/test/frontend)
 
 # Don't bother running if frontend tests fail
-set_tests_properties(bython_test_typing PROPERTIES FIXTURES_REQUIRED bython_test_frontend)
-set_tests_properties(bython_test_backend PROPERTIES FIXTURES_REQUIRED bython_test_typing)
+#set_tests_properties(bython_test_typing PROPERTIES FIXTURES_REQUIRED bython_test_frontend)
+set_tests_properties(bython_test_backend PROPERTIES FIXTURES_REQUIRED bython_test_type_system)
 
 
 

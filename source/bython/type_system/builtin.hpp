@@ -1,8 +1,5 @@
 #pragma once
 
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Type.h>
-
 namespace bython::type_system
 {
 enum class type_tag
@@ -24,11 +21,10 @@ struct type
   type(type&&) = delete;
   auto operator=(type&&) -> type& = delete;
 
-  virtual auto operator==(type const& other) const -> bool;
+  virtual auto operator==(type const& other) const -> bool = 0;
   virtual auto operator!=(type const& other) const -> bool final;
 
-  virtual auto tag() const -> type_tag;
-  virtual auto definition(llvm::LLVMContext& context) const -> llvm::Type*;
+  virtual auto tag() const -> type_tag = 0;
 };
 
 struct uint final : type
@@ -39,7 +35,6 @@ struct uint final : type
   auto operator==(type const& other) const -> bool;
 
   auto tag() const -> type_tag;
-  auto definition(llvm::LLVMContext& context) const -> llvm::Type*;
 };
 
 struct sint final : type
@@ -50,7 +45,6 @@ struct sint final : type
   auto operator==(type const& other) const -> bool;
 
   auto tag() const -> type_tag;
-  auto definition(llvm::LLVMContext& context) const -> llvm::Type*;
 };
 
 struct single_fp final : type
@@ -58,7 +52,6 @@ struct single_fp final : type
   auto operator==(type const& other) const -> bool;
 
   auto tag() const -> type_tag;
-  auto definition(llvm::LLVMContext& context) const -> llvm::Type*;
 };
 
 struct double_fp final : type
@@ -66,7 +59,6 @@ struct double_fp final : type
   auto operator==(type const& other) const -> bool;
 
   auto tag() const -> type_tag;
-  auto definition(llvm::LLVMContext& context) const -> llvm::Type*;
 };
 
 }  // namespace bython::type_system

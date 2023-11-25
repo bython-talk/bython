@@ -7,9 +7,6 @@
 #include <vector>
 
 #include <boost/uuid/uuid.hpp>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
 
 #include "builtin.hpp"
 #include "bython/ast/expression.hpp"
@@ -31,10 +28,12 @@ public:
   auto lookup(std::string_view tname) const -> std::optional<type_system::type const*>;
   auto lookup(ast::expression const& expr) const -> std::optional<type_system::type const*>;
 
-  auto typeify_expression(ast::expression const& expr, std::string_view tname) -> std::optional<type_system::type const*>;
+  auto typeify_expression(ast::expression const& expr, std::string_view tname)
+      -> std::optional<type_system::type const*>;
   auto infer(ast::expression const& expr) const -> std::optional<type_system::type const*>;
 
-  auto try_subtype(type_system::type const& tau, type_system::type const& alpha) -> std::optional<type_system::subtype_converter>;
+  auto try_subtype(type_system::type const& tau, type_system::type const& alpha) const
+      -> std::optional<type_system::subtyping_rule>;
 
 private:
 };
