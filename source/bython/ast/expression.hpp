@@ -20,7 +20,7 @@ struct unary_operation final : expression
 {
   unary_operation(unop_tag op_, std::unique_ptr<expression> rhs_);
 
-  std::unique_ptr<node> op;
+  unary_operator op;
   std::unique_ptr<expression> rhs;
 
   auto tag() const -> ast::tag;
@@ -32,8 +32,9 @@ struct binary_operation final : expression
                    binop_tag binop_,
                    std::unique_ptr<expression> rhs_);
 
-  std::unique_ptr<expression> lhs, rhs;
-  std::unique_ptr<node> op;
+  std::unique_ptr<expression> lhs;
+  binary_operator op;
+  std::unique_ptr<expression> rhs;
 
   auto tag() const -> ast::tag;
 };
@@ -60,7 +61,7 @@ struct variable final : expression
   auto tag() const -> ast::tag;
 };
 
-struct argument_list final : node 
+struct argument_list final : node
 {
   explicit argument_list(ast::expressions arguments_);
   ast::expressions arguments;

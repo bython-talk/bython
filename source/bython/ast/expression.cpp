@@ -5,7 +5,7 @@
 namespace bython::ast
 {
 unary_operation::unary_operation(unop_tag op_, std::unique_ptr<expression> rhs_)
-    : op {std::make_unique<unary_operator>(op_)}
+    : op {op_}
     , rhs {std::move(rhs_)}
 {
 }
@@ -19,8 +19,8 @@ binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
                                    binop_tag binop_,
                                    std::unique_ptr<expression> rhs_)
     : lhs {std::move(lhs_)}
+    , op {binop_}
     , rhs {std::move(rhs_)}
-    , op {std::make_unique<binary_operator>(binop_)}
 {
 }
 
@@ -58,8 +58,9 @@ argument_list::argument_list(ast::expressions arguments_)
 {
 }
 
-auto argument_list::tag() const -> ast::tag {
-  return ast::tag{tag::argument_list};
+auto argument_list::tag() const -> ast::tag
+{
+  return ast::tag {tag::argument_list};
 }
 
 call::call(std::string callee_, argument_list arguments_)
