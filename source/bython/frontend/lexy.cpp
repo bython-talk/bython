@@ -617,7 +617,7 @@ private:
     std::string error;
     auto error_handling = lexy_ext::report_error.to(std::back_insert_iterator(error));
 
-    if (auto tree = lexy::parse<Entrypoint>(input, state, error_handling); tree.has_value()) {
+    if (auto tree = lexy::parse<Entrypoint>(input, state, error_handling); tree.is_success()) {
       auto lexy_pr =
           std::make_unique<lexy_parse_result>(std::move(input), std::move(state.span_lookup));
       auto ast = std::move(tree).value();
