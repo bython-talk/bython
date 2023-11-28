@@ -127,55 +127,44 @@ struct lexy_grammar
     {
       static constexpr auto rule = []
       {
+        auto constexpr suffix =  // Hexadecimal: 0x0F
+            LEXY_LIT("0x") >> dsl::integer<T, dsl::hex> |
+            // Explicit Decimal: 0d09
+            LEXY_LIT("0d") >> dsl::integer<T, dsl::decimal> |
+            // Octal: 0o07
+            LEXY_LIT("0o") >> dsl::integer<T, dsl::octal> |
+            // Binary: 0b01
+            LEXY_LIT("0b") >> dsl::integer<T, dsl::binary> |
+            // Decimal
+            dsl::integer<T, dsl::decimal>;
+
         if constexpr (std::is_unsigned_v<T>) {
-          return dsl::peek(dsl::lit_c<'+'> / dsl::digit<dsl::decimal>)
-              >> (dsl::plus_sign
-                  + (
-                      // Hexadecimal: 0x0F
-                      LEXY_LIT("0x") >> dsl::integer<T, dsl::hex> |
-                      // Explicit Decimal: 0d09
-                      LEXY_LIT("0d") >> dsl::integer<T, dsl::decimal> |
-                      // Octal: 0o07
-                      LEXY_LIT("0o") >> dsl::integer<T, dsl::octal> |
-                      // Binary: 0b01
-                      LEXY_LIT("0b") >> dsl::integer<T, dsl::binary> |
-                      // Decimal
-                      dsl::integer<T, dsl::decimal>));
+          auto constexpr preamble = dsl::peek(dsl::lit_c<'+'> / dsl::digit<dsl::decimal>);
+          return preamble >> (dsl::plus_sign + suffix);
         } else {
-          return dsl::peek(dsl::lit_c<'-'>)
-              >> (dsl::minus_sign
-                  + (
-                      // Hexadecimal: 0x0F
-                      LEXY_LIT("0x") >> dsl::integer<T, dsl::hex> |
-                      // Explicit Decimal: 0d09
-                      LEXY_LIT("0d") >> dsl::integer<T, dsl::decimal> |
-                      // Octal: 0o07
-                      LEXY_LIT("0o") >> dsl::integer<T, dsl::octal> |
-                      // Binary: 0b01
-                      LEXY_LIT("0b") >> dsl::integer<T, dsl::binary> |
-                      // Decimal
-                      dsl::integer<T, dsl::decimal>));
+          auto constexpr preamble = dsl::peek(dsl::lit_c<'-'>);
+          return preamble >> (dsl::minus_sign + suffix);
         }
-      };
+      }();
 
       static constexpr auto value = lexy::as_integer<T>;
     };
 
     struct signed_int : lexy::transparent_production
     {
-      static constexpr auto rule = dsl::p<with_span<inner<int64_t>, ast::signed_integer>>;
+      static constexpr auto rule = dsl::p<inner<int64_t>>;
       static constexpr auto value =
           lexy::construct<ast::signed_integer> | new_expression<ast::signed_integer>;
     };
 
     struct unsigned_int : lexy::transparent_production
     {
-      static constexpr auto rule = dsl::p<with_span<inner<uint64_t>, ast::unsigned_integer>>;
+      static constexpr auto rule = dsl::p<inner<uint64_t>>;
       static constexpr auto value =
           lexy::construct<ast::unsigned_integer> | new_expression<ast::unsigned_integer>;
     };
 
-    static constexpr auto rule = dsl::p<signed_int> | dsl::p<signed_int>;
+    static constexpr auto rule = dsl::p<with_span<signed_int, ast::expression_ptr>> | dsl::p<with_span<unsigned_int, ast::expression_ptr>>;
     static constexpr auto value = lexy::forward<ast::expression_ptr>;
   };
 
