@@ -25,7 +25,8 @@ public:
     comparison,
     variable,
     call,
-    integer
+    signed_integer,
+    unsigned_integer,
   };
 
   enum statement : std::uint32_t

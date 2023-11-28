@@ -117,13 +117,13 @@ TEST_CASE("Binary Operations", "[Inference]")
   SECTION("Signed")
   {
     auto i8i64 = ast::binary_operation(
-        std::make_unique<ast::integer>(i8_max), operators, std::make_unique<ast::integer>(i64_max));
+        std::make_unique<ast::signed_integer>(i8_max), operators, std::make_unique<ast::signed_integer>(i64_max));
     auto inferred_i8i64 = env.infer(i8i64);
     REQUIRE(inferred_i8i64);
     REQUIRE(*inferred_i8i64 == *env.lookup("i64"));
 
     auto i64i8 = ast::binary_operation(
-        std::make_unique<ast::integer>(i64_max), operators, std::make_unique<ast::integer>(i8_max));
+        std::make_unique<ast::signed_integer>(i64_max), operators, std::make_unique<ast::signed_integer>(i8_max));
     auto inferred_i64i8 = env.infer(i64i8);
     REQUIRE(inferred_i64i8);
     REQUIRE(*inferred_i64i8 == *env.lookup("i64"));
@@ -132,13 +132,13 @@ TEST_CASE("Binary Operations", "[Inference]")
   SECTION("Unsigned")
   {
     auto u8u64 = ast::binary_operation(
-        std::make_unique<ast::integer>(u8_max), operators, std::make_unique<ast::integer>(u64_max));
+        std::make_unique<ast::signed_integer>(u8_max), operators, std::make_unique<ast::signed_integer>(u64_max));
     auto inferred_u8u64 = env.infer(u8u64);
     REQUIRE(inferred_u8u64);
     REQUIRE(*inferred_u8u64 == *env.lookup("u64"));
 
     auto u64u8 = ast::binary_operation(
-        std::make_unique<ast::integer>(u64_max), operators, std::make_unique<ast::integer>(u8_max));
+        std::make_unique<ast::signed_integer>(u64_max), operators, std::make_unique<ast::signed_integer>(u8_max));
     auto inferred_u64u8 = env.infer(u64u8);
     REQUIRE(inferred_u64u8);
     REQUIRE(*inferred_u64u8 == *env.lookup("u64"));
@@ -147,13 +147,13 @@ TEST_CASE("Binary Operations", "[Inference]")
   SECTION("Mixed different size")
   {
     auto u8u64 = ast::binary_operation(
-        std::make_unique<ast::integer>(u8_max), operators, std::make_unique<ast::integer>(u64_max));
+        std::make_unique<ast::signed_integer>(u8_max), operators, std::make_unique<ast::signed_integer>(u64_max));
     auto inferred_u8u64 = env.infer(u8u64);
     REQUIRE(inferred_u8u64);
     REQUIRE(*inferred_u8u64 == *env.lookup("u64"));
 
     auto u64u8 = ast::binary_operation(
-        std::make_unique<ast::integer>(u64_max), operators, std::make_unique<ast::integer>(u8_max));
+        std::make_unique<ast::signed_integer>(u64_max), operators, std::make_unique<ast::signed_integer>(u8_max));
     auto inferred_u64u8 = env.infer(u64u8);
     REQUIRE(inferred_u64u8);
     REQUIRE(*inferred_u64u8 == *env.lookup("u64"));

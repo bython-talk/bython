@@ -122,25 +122,61 @@ struct lexy_grammar
 
   struct integer : lexy::token_production
   {
+    template<std::integral T>
     struct inner : lexy::transparent_production
     {
-      static constexpr auto rule =
-          // Hexadecimal: 0x0F
-          LEXY_LIT("0x") >> dsl::integer<int64_t, dsl::hex> |
-          // Explicit Decimal: 0d09
-          LEXY_LIT("0d") >> dsl::integer<int64_t, dsl::decimal> |
-          // Explicit Octal: 0o07
-          LEXY_LIT("0o") >> dsl::integer<int64_t, dsl::octal> |
-          // Explicit Binary: 0b01
-          LEXY_LIT("0b") >> dsl::integer<int64_t, dsl::binary> |
-          // Default; standard decimal with an optional sign
-          dsl::peek(dsl::lit_c<'-'> / dsl::lit_c<'+'> / dsl::digit<dsl::decimal>)
-              >> dsl::sign + dsl::integer<int64_t, dsl::decimal>;
-      static constexpr auto value = lexy::as_integer<int64_t> | lexy::construct<ast::integer>;
+      static constexpr auto rule = []
+      {
+        if constexpr (std::is_unsigned_v<T>) {
+          return dsl::peek(dsl::lit_c<'+'> / dsl::digit<dsl::decimal>)
+              >> (dsl::plus_sign
+                  + (
+                      // Hexadecimal: 0x0F
+                      LEXY_LIT("0x") >> dsl::integer<T, dsl::hex> |
+                      // Explicit Decimal: 0d09
+                      LEXY_LIT("0d") >> dsl::integer<T, dsl::decimal> |
+                      // Octal: 0o07
+                      LEXY_LIT("0o") >> dsl::integer<T, dsl::octal> |
+                      // Binary: 0b01
+                      LEXY_LIT("0b") >> dsl::integer<T, dsl::binary> |
+                      // Decimal
+                      dsl::integer<T, dsl::decimal>));
+        } else {
+          return dsl::peek(dsl::lit_c<'-'>)
+              >> (dsl::minus_sign
+                  + (
+                      // Hexadecimal: 0x0F
+                      LEXY_LIT("0x") >> dsl::integer<T, dsl::hex> |
+                      // Explicit Decimal: 0d09
+                      LEXY_LIT("0d") >> dsl::integer<T, dsl::decimal> |
+                      // Octal: 0o07
+                      LEXY_LIT("0o") >> dsl::integer<T, dsl::octal> |
+                      // Binary: 0b01
+                      LEXY_LIT("0b") >> dsl::integer<T, dsl::binary> |
+                      // Decimal
+                      dsl::integer<T, dsl::decimal>));
+        }
+      };
+
+      static constexpr auto value = lexy::as_integer<T>;
     };
 
-    static constexpr auto rule = dsl::p<with_span<inner, ast::integer>>;
-    static constexpr auto value = new_expression<ast::integer>;
+    struct signed_int : lexy::transparent_production
+    {
+      static constexpr auto rule = dsl::p<with_span<inner<int64_t>, ast::signed_integer>>;
+      static constexpr auto value =
+          lexy::construct<ast::signed_integer> | new_expression<ast::signed_integer>;
+    };
+
+    struct unsigned_int : lexy::transparent_production
+    {
+      static constexpr auto rule = dsl::p<with_span<inner<uint64_t>, ast::unsigned_integer>>;
+      static constexpr auto value =
+          lexy::construct<ast::unsigned_integer> | new_expression<ast::unsigned_integer>;
+    };
+
+    static constexpr auto rule = dsl::p<signed_int> | dsl::p<signed_int>;
+    static constexpr auto value = lexy::forward<ast::expression_ptr>;
   };
 
   struct argument_list
@@ -330,7 +366,7 @@ struct lexy_grammar
             { comparison->add_operator(std::move(cmp)); })
         >> lexy::callback(new_expression<ast::call>,
                           new_expression<ast::variable>,
-                          new_expression<ast::integer>,
+                          new_expression<ast::signed_integer>,
                           new_expression<ast::binary_operation>,
                           new_expression<ast::unary_operation>,
                           new_expression<ast::comparison>,

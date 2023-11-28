@@ -126,7 +126,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   // TODO: Implement signed and unsigned parsing for integers so we can differentiate at codegen
   // time.
   // TODO: Treat current implementation as signed
-  BYTHON_VISITOR_IMPL(integer, instance)
+  BYTHON_VISITOR_IMPL(signed_integer, instance)
   {
     auto integer_type = this->environment.infer(instance);
     if (!integer_type) {

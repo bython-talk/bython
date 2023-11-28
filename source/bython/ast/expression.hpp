@@ -79,11 +79,20 @@ struct call final : expression
   auto tag() const -> ast::tag;
 };
 
-struct integer final : expression
+struct signed_integer final : expression
 {
-  explicit integer(int64_t value_);
+  explicit signed_integer(int64_t value_);
 
   int64_t value;
+
+  auto tag() const -> ast::tag;
+};
+
+struct unsigned_integer final : expression
+{
+  explicit unsigned_integer(uint64_t value_);
+
+  uint64_t value;
 
   auto tag() const -> ast::tag;
 };

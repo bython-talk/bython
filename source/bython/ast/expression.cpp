@@ -84,14 +84,24 @@ auto variable::tag() const -> ast::tag
   return ast::tag {tag::variable};
 }
 
-integer::integer(int64_t value_)
+signed_integer::signed_integer(int64_t value_)
     : value {value_}
 {
 }
 
-auto integer::tag() const -> ast::tag
+auto signed_integer::tag() const -> ast::tag
 {
-  return ast::tag {tag::integer};
+  return ast::tag {tag::signed_integer};
+}
+
+unsigned_integer::unsigned_integer(uint64_t value_)
+    : value {value_}
+{
+}
+
+auto unsigned_integer::tag() const -> ast::tag
+{
+  return ast::tag {tag::unsigned_integer};
 }
 
 }  // namespace bython::ast

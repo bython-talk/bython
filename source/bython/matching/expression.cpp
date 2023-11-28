@@ -61,7 +61,7 @@ auto comparison::matches(ast::node const& ast) const -> bool
 
 auto integer::matches(ast::node const& ast) const -> bool
 {
-  if (auto const* int_ = ast::dyn_cast<ast::integer>(&ast)) {
+  if (auto const* int_ = ast::dyn_cast<ast::signed_integer>(&ast)) {
     return this->value == int_->value;
   }
   return false;

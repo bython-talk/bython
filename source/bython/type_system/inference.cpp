@@ -131,7 +131,7 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
     return std::nullopt;
   }
 
-  BYTHON_VISITOR_IMPL(integer, instance)
+  BYTHON_VISITOR_IMPL(signed_integer, instance)
   {
     if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::int8_t>::max())
