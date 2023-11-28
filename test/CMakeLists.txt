@@ -18,7 +18,7 @@ find_package(Catch2 3 REQUIRED)
 
 add_executable(bython_test_type_system type_system/inference.cpp type_system/subtyping.cpp)
 target_link_libraries(bython_test_type_system PRIVATE
-        bython_type_system
+        bython_type_system bython_frontend bython_ast
         Catch2::Catch2WithMain)
 
 target_compile_features(bython_test_type_system PRIVATE cxx_std_20)
