@@ -123,18 +123,26 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     return load;
   }
 
-  // TODO: Implement signed and unsigned parsing for integers so we can differentiate at codegen
-  // time.
-  // TODO: Treat current implementation as signed
   BYTHON_VISITOR_IMPL(signed_integer, instance)
   {
     auto integer_type = this->environment.infer(instance);
     if (!integer_type) {
-      log_and_throw("Unknown type for integer");
+      log_and_throw("Unknown type for signed integer");
     }
 
     auto llvm_type = codegen::definition(this->context, *integer_type.value());
     return llvm::ConstantInt::getSigned(llvm_type, instance.value);
+  }
+
+  BYTHON_VISITOR_IMPL(unsigned_integer, instance)
+  {
+    auto integer_type = this->environment.infer(instance);
+    if (!integer_type) {
+      log_and_throw("Unknown type for unsigned integer");
+    }
+
+    auto llvm_type = codegen::definition(this->context, *integer_type.value());
+    return llvm::ConstantInt::get(llvm_type, instance.value, /*IsSigned=*/false);
   }
 
   BYTHON_VISITOR_IMPL(assignment, assgn)
@@ -149,9 +157,9 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     }
 
     // Load type for RHS
-    auto rhs_type = this->environment.lookup(*assgn.rhs);
+    auto rhs_type = this->environment.infer(*assgn.rhs);
     if (!rhs_type) {
-      log_and_throw("Unknown RHS type");
+      log_and_throw("Unable to infer for RHS");
     }
 
     // Account for subtyping
@@ -179,23 +187,25 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(binary_operation, binop)
   {
-    auto* b = dyn_cast<binary_operator>(*binop.op);
-    if (!b) { /**/
-    }
-
     auto lhs_v = this->visit(*binop.lhs);
-    llvm::Value* rhs_v = nullptr;
 
+    llvm::Value* rhs_v = nullptr;
     std::optional<ts::type*> rhs_type = std::nullopt;
 
-    switch (b->op) {
+    if (binop.op.op != ast::binop_tag::as) {
+      // Visit and store type of RHS before calling "real" binary operations
+      rhs_v = this->visit(*binop.rhs);
+      rhs_type = this->environment.infer(*binop.rhs);
+    }
+
+    switch (binop.op.op) {
       case ast::binop_tag::as: {
         auto target = ast::dyn_cast<ast::variable>(*binop.rhs);
         if (target == nullptr) {
           log_and_throw("`as` expression requires type identifier on RHS");
         }
 
-        auto lhs_type = this->environment.lookup(*binop.lhs);
+        auto lhs_type = this->environment.infer(*binop.lhs);
         if (!lhs_type) {
           log_and_throw("unknown lhs type");
         }
@@ -216,16 +226,11 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
         return subtyper_impl(this->builder, lhs_v, codegen::definition(context, *rhs_type.value()));
       }
 
-        // Visit and store type of RHS before calling "real" binary operations
-        rhs_v = this->visit(*binop.rhs);
-        rhs_type = this->environment.lookup(*binop.rhs);
-
       case ast::binop_tag::pow: {
         // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
         // requires powi intrinsics to be brought into scope as prototypes
         auto pow_intrinsic =
             this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
-        (void)this->environment.typeify_expression(binop, "f32");
         return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
       }
       case ast::binop_tag::multiply: {
@@ -442,7 +447,8 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(node, instance)
   {
-    throw std::runtime_error {"Cannot perform LLVM codegen; Unknown AST Node: " + std::to_string(instance.tag().unwrap())};
+    throw std::runtime_error {"Cannot perform LLVM codegen; Unknown AST Node: "
+                              + std::to_string(instance.tag().unwrap())};
   }
 
 private:
