@@ -17,6 +17,7 @@ auto uint::tag() const -> type_tag
   return type_tag::uint;
 }
 
+
 auto uint::operator==(type const& other) const -> bool
 {
   auto const* other_uint = dynamic_cast<uint const*>(&other);

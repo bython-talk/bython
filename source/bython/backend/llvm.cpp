@@ -128,30 +128,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   // TODO: Treat current implementation as signed
   BYTHON_VISITOR_IMPL(integer, instance)
   {
-    auto integer_type = std::optional<ts::type const*> {};
-    if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
-        && instance.value <= std::numeric_limits<std::int8_t>::max())
-    {
-      integer_type = this->environment.typeify_expression(instance, "i8");
-    }
-
-    else if (std::numeric_limits<std::int16_t>::lowest() <= instance.value
-             && instance.value <= std::numeric_limits<std::int16_t>::max())
-    {
-      integer_type = this->environment.typeify_expression(instance, "i16");
-    }
-
-    else if (std::numeric_limits<std::int32_t>::lowest() <= instance.value
-             && instance.value <= std::numeric_limits<std::int32_t>::max())
-    {
-      integer_type = this->environment.typeify_expression(instance, "i32");
-    }
-
-    else
-    {
-      integer_type = this->environment.typeify_expression(instance, "i64");
-    }
-
+    auto integer_type = this->environment.infer(instance);
     if (!integer_type) {
       log_and_throw("Unknown type for integer");
     }
@@ -209,6 +186,8 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     auto lhs_v = this->visit(*binop.lhs);
     llvm::Value* rhs_v = nullptr;
 
+    std::optional<ts::type*> rhs_type = std::nullopt;
+
     switch (b->op) {
       case ast::binop_tag::as: {
         auto target = ast::dyn_cast<ast::variable>(*binop.rhs);
@@ -221,7 +200,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
           log_and_throw("unknown lhs type");
         }
 
-        auto rhs_type = this->environment.lookup(target->identifier);
+        rhs_type = this->environment.lookup(target->identifier);
         if (!rhs_type) {
           log_and_throw("unknown rhs type");
         }
@@ -239,6 +218,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
         // Visit and store type of RHS before calling "real" binary operations
         rhs_v = this->visit(*binop.rhs);
+        rhs_type = this->environment.lookup(*binop.rhs);
 
       case ast::binop_tag::pow: {
         // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
@@ -462,7 +442,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(node, instance)
   {
-    throw std::runtime_error {"Unknown AST Node: " + std::to_string(instance.tag().unwrap())};
+    throw std::runtime_error {"Cannot perform LLVM codegen; Unknown AST Node: " + std::to_string(instance.tag().unwrap())};
   }
 
 private:

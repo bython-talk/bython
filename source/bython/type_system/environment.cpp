@@ -9,6 +9,7 @@
 #include "bython/ast.hpp"
 #include "bython/ast/visitor.hpp"
 #include "bython/type_system/subtyping.hpp"
+#include "bython/type_system/inference.hpp"
 
 namespace bython
 {
@@ -28,7 +29,7 @@ auto environment::initialise_with_builtins() -> environment
   auto env = environment {};
 
   // boolean
-  env.add("bool", std::unique_ptr<boolean>());
+  env.add("bool", std::make_unique<boolean>());
 
   // uint{8, 16, 32, 64}_t
   env.add("u8", std::make_unique<uint>(8));
@@ -52,33 +53,13 @@ auto environment::initialise_with_builtins() -> environment
 auto environment::add(std::string tname, std::unique_ptr<type> type) -> void
 {
   auto&& inserted = this->m_visible_types.emplace_back(std::move(type));
-  this->m_id_to_ts.emplace(std::move(tname), inserted.get());
+  this->m_typename_to_typeptr.emplace(std::move(tname), inserted.get());
 }
 
-auto environment::lookup(std::string_view tname) const -> std::optional<type_system::type const*>
+auto environment::lookup(std::string_view tname) const -> std::optional<type_system::type*>
 {
-  if (auto it = this->m_id_to_ts.find(tname); it != this->m_id_to_ts.end()) {
+  if (auto it = this->m_typename_to_typeptr.find(tname); it != this->m_typename_to_typeptr.end()) {
     return it->second;
-  }
-  return std::nullopt;
-}
-
-auto environment::lookup(ast::expression const& expr) const
-    -> std::optional<type_system::type const*>
-{
-  if (auto it = this->m_expr_to_ts.find(expr.uuid); it != this->m_expr_to_ts.end()) {
-    return it->second;
-  }
-  return std::nullopt;
-}
-
-auto environment::typeify_expression(ast::expression const& expr, std::string_view tname)
-    -> std::optional<type_system::type const*>
-{
-  if (auto type_reference = this->m_id_to_ts.find(tname); type_reference != this->m_id_to_ts.end())
-  {
-    this->m_expr_to_ts.emplace(expr.uuid, type_reference->second);
-    return type_reference->second;
   }
   return std::nullopt;
 }
@@ -90,9 +71,9 @@ auto environment::try_subtype(type_system::type const& tau, type_system::type co
 }
 
 auto environment::infer(ast::expression const& expr) const
-    -> std::optional<type_system::type const*>
+    -> std::optional<type_system::type*>
 {
-  return std::nullopt;
+  return try_infer_impl(expr, *this);
 }
 
 }  // namespace bython::type_system
