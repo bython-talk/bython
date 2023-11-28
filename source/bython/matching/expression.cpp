@@ -10,7 +10,7 @@ namespace bython::matching
 auto unary_operation::matches(ast::node const& ast) const -> bool
 {
   if (auto const* unary_op = ast::dyn_cast<ast::unary_operation>(&ast)) {
-    return matching::matches(*unary_op->op, *this->op_matcher)
+    return matching::matches(unary_op->op, *this->op_matcher)
         && matching::matches(*unary_op->rhs, *this->rhs_matcher);
   }
   return false;
@@ -19,7 +19,7 @@ auto unary_operation::matches(ast::node const& ast) const -> bool
 auto binary_operation::matches(const ast::node& ast) const -> bool
 {
   if (auto const* binary_op = ast::dyn_cast<ast::binary_operation>(&ast)) {
-    return matching::matches(*binary_op->op, *this->op)
+    return matching::matches(binary_op->op, *this->op)
         && matching::matches(*binary_op->lhs, *this->lhs_matcher)
         && matching::matches(*binary_op->rhs, *this->rhs_matcher);
   }
