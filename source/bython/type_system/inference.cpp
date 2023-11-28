@@ -131,7 +131,30 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
     return std::nullopt;
   }
 
-  BYTHON_VISITOR_IMPL(integer, instance)
+  BYTHON_VISITOR_IMPL(unsigned_integer, instance)
+  {
+    if (std::numeric_limits<std::uint8_t>::lowest() <= instance.value
+        && instance.value <= std::numeric_limits<std::uint8_t>::max())
+    {
+      return this->env.lookup("u8");
+    }
+
+    if (std::numeric_limits<std::uint16_t>::lowest() <= instance.value
+        && instance.value <= std::numeric_limits<std::uint16_t>::max())
+    {
+      return this->env.lookup("u16");
+    }
+
+    if (std::numeric_limits<std::uint32_t>::lowest() <= instance.value
+        && instance.value <= std::numeric_limits<std::uint32_t>::max())
+    {
+      return this->env.lookup("u32");
+    }
+
+    return this->env.lookup("u64");
+  }
+
+  BYTHON_VISITOR_IMPL(signed_integer, instance)
   {
     if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::int8_t>::max())
