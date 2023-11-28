@@ -55,6 +55,7 @@ struct visitor
   BYTHON_MAKE_VISITOR_METHODS(call, expression, inst, return_type)
 
   BYTHON_MAKE_VISITOR_METHODS(signed_integer, expression, inst, return_type)
+  BYTHON_MAKE_VISITOR_METHODS(unsigned_integer, expression, inst, return_type)
 
   BYTHON_VISITOR_DELEGATE(expression, node, inst, return_type)
   virtual auto visit(expression const& inst) -> return_type final
@@ -68,6 +69,7 @@ struct visitor
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(variable, expression, inst)
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(call, expression, inst)
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(signed_integer, expression, inst)
+        BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(unsigned_integer, expression, inst)
     }
   }
 
