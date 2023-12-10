@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cstddef>
+
 #include "builtin.hpp"
 
 namespace bython::type_system
@@ -5,6 +8,16 @@ namespace bython::type_system
 auto type::operator!=(type const& other) const -> bool
 {
   return !(*this == other);
+}
+
+auto void_::operator==(type const& other) const -> bool
+{
+  return other.tag() == type_tag::void_;
+}
+
+auto void_::tag() const -> type_tag
+{
+  return type_tag::void_;
 }
 
 uint::uint(unsigned width_)
@@ -16,7 +29,6 @@ auto uint::tag() const -> type_tag
 {
   return type_tag::uint;
 }
-
 
 auto uint::operator==(type const& other) const -> bool
 {
@@ -71,6 +83,24 @@ auto boolean::operator==(type const& other) const -> bool
 {
   auto const* other_boolean = dynamic_cast<boolean const*>(&other);
   return other_boolean != nullptr;
+}
+
+function::function(std::vector<type*> parameters_, std::optional<type*> rettype_)
+    : parameters {std::move(parameters_)}
+    , rettype {rettype_}
+{
+}
+
+auto function::operator==(type const& other) const -> bool
+{
+  auto const* other_f = dynamic_cast<function const*>(&other);
+  return other_f != nullptr && this->parameters == other_f->parameters
+      && this->rettype == other_f->rettype;
+}
+
+auto function::tag() const -> type_tag
+{
+  return type_tag::function;
 }
 
 }  // namespace bython::type_system

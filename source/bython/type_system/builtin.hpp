@@ -1,14 +1,18 @@
 #pragma once
 
+#include <optional>
+#include <vector>
 namespace bython::type_system
 {
 enum class type_tag
 {
+  void_,
   boolean,
   uint,
   sint,
   single_fp,
   double_fp,
+  function,
 };
 
 struct type
@@ -26,6 +30,13 @@ struct type
   virtual auto operator!=(type const& other) const -> bool final;
 
   virtual auto tag() const -> type_tag = 0;
+};
+
+struct void_ final : type 
+{
+  auto operator==(type const& other) const -> bool;
+
+  auto tag() const -> type_tag;
 };
 
 struct uint final : type
@@ -66,6 +77,17 @@ struct boolean final : type
 {
   auto operator==(type const& other) const -> bool;
 
+  auto tag() const -> type_tag;
+};
+
+struct function final : type 
+{
+  function(std::vector<type*> parameters, std::optional<type*> rettype);
+
+  std::vector<type*> parameters;
+  std::optional<type*> rettype;
+
+  auto operator==(type const& other) const -> bool;
   auto tag() const -> type_tag;
 };
 

@@ -1,7 +1,11 @@
 #include <optional>
+#include <stdexcept>
+#include <vector>
 
 #include "typing.hpp"
 
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
@@ -39,6 +43,19 @@ auto definition_impl(llvm::LLVMContext& context, ts::double_fp const& /*f32*/) -
 {
   return llvm::Type::getDoubleTy(context);
 }
+
+auto definition_impl(llvm::LLVMContext& context, ts::function const& func) -> llvm::FunctionType*
+{
+  auto params = std::vector<llvm::Type*> {};
+  for (auto&& fparam : func.parameters) {
+    params.emplace_back(bython::codegen::definition(context, *fparam));
+  }
+
+  auto rettype = func.rettype ? bython::codegen::definition(context, *func.rettype.value())
+                              : llvm::Type::getVoidTy(context);
+
+  return llvm::FunctionType::get(rettype, params, /*isVarArg=*/false);
+}
 }  // namespace
 
 namespace bython::codegen
@@ -47,6 +64,10 @@ namespace bython::codegen
 auto definition(llvm::LLVMContext& context, ts::type const& type) -> llvm::Type*
 {
   switch (type.tag()) {
+    // TODO: Improve error handling
+    case ts::type_tag::void_:
+      throw std::logic_error {"Cannot convert to void"};
+
     case ts::type_tag::boolean:
       return definition_impl(context, dynamic_cast<ts::boolean const&>(type));
 
@@ -61,6 +82,9 @@ auto definition(llvm::LLVMContext& context, ts::type const& type) -> llvm::Type*
 
     case ts::type_tag::double_fp:
       return definition_impl(context, dynamic_cast<ts::double_fp const&>(type));
+
+    case ts::type_tag::function:
+      return definition_impl(context, dynamic_cast<ts::function const&>(type));
   }
 }
 
@@ -95,6 +119,16 @@ auto subtype_conversion(ts::subtyping_rule rule) -> subtype_converter
     case type_system::subtyping_rule::single_to_double:
       return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
       { return builder.CreateFPExt(expr, dest, "fp.prom"); };
+
+    case type_system::subtyping_rule::boolify:
+      return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* /*dest*/) -> llvm::Value*
+      {
+        auto ety = expr->getType();
+        if (ety->isFloatingPointTy()) {
+          return builder.CreateFCmpUNE(expr, llvm::ConstantFP::get(ety, 0.0));
+        }
+        return builder.CreateICmpNE(expr, llvm::ConstantInt::get(ety, 0, /*IsSigned=*/false));
+      };
   }
 }
 }  // namespace bython::codegen

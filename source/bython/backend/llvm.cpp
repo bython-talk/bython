@@ -25,6 +25,7 @@
 #include "builtin.hpp"
 #include "bython/ast.hpp"
 #include "bython/ast/operators.hpp"
+#include "bython/ast/statement.hpp"
 #include "bython/ast/visitor.hpp"
 #include "bython/matching.hpp"
 #include "bython/type_system/builtin.hpp"
@@ -74,25 +75,20 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(function_def, fdef)
   {
-    auto parameter_types = std::vector<llvm::Type*> {};
-    for (auto&& parameter : fdef.parameters.parameters) {
-      if (auto retrieved = this->type_mapping.get(this->context, parameter.hint); retrieved) {
-        parameter_types.emplace_back(retrieved->type);
-      } else {
-        log_and_throw("Failed to codegen parameters for '",
-                      fdef.name,
-                      "'; undefined type on parameter '",
-                      parameter.name,
-                      "' - '",
-                      parameter.hint,
-                      "'");
-      }
+    auto ts_function_type = this->environment.add_new_function_type(fdef);
+    if (!ts_function_type) {
+      log_and_throw("Unable to convert type system repr to LLVM backend");
     }
 
-    auto function_type =
-        llvm::FunctionType::get(llvm::Type::getVoidTy(this->context), {}, /*isVarArg=*/false);
-    auto function = llvm::Function::Create(
-        function_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, fdef.name, this->module_);
+    auto function_type = ts_function_type.value();
+    this->environment.add_new_symbol(fdef.name, function_type);
+
+    auto llvm_function_type =
+        llvm::cast<llvm::FunctionType>(codegen::definition(this->context, *function_type));
+    auto function = llvm::Function::Create(llvm_function_type,
+                                           llvm::GlobalValue::LinkageTypes::ExternalLinkage,
+                                           fdef.name,
+                                           this->module_);
 
     auto entry_into_function = llvm::BasicBlock::Create(this->context, "entry", function);
     this->builder.SetInsertPoint(entry_into_function);
@@ -102,7 +98,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     }
 
     // Support implicit return
-    if (function_type->getReturnType()->isVoidTy()) {
+    if (llvm_function_type->getReturnType()->isVoidTy()) {
       auto& last_basicblock = function->back();
       if (!last_basicblock.empty() && !llvm::isa<llvm::ReturnInst>(last_basicblock.back())) {
         this->builder.CreateRetVoid();
@@ -188,6 +184,10 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   BYTHON_VISITOR_IMPL(binary_operation, binop)
   {
     auto lhs_v = this->visit(*binop.lhs);
+    auto lhs_type = this->environment.infer(*binop.lhs);
+    if (!lhs_type) {
+      log_and_throw("unknown lhs type");
+    }
 
     llvm::Value* rhs_v = nullptr;
     std::optional<ts::type*> rhs_type = std::nullopt;
@@ -203,11 +203,6 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
         auto target = ast::dyn_cast<ast::variable>(*binop.rhs);
         if (target == nullptr) {
           log_and_throw("`as` expression requires type identifier on RHS");
-        }
-
-        auto lhs_type = this->environment.infer(*binop.lhs);
-        if (!lhs_type) {
-          log_and_throw("unknown lhs type");
         }
 
         rhs_type = this->environment.lookup(target->identifier);
@@ -263,33 +258,33 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       case ast::binop_tag::bitor_: {
         return this->builder.CreateOr(lhs_v, rhs_v, "bit.or");
       }
-      case ast::binop_tag::booland: {
-        auto lhs_bool =
-            codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
-        if (!lhs_bool) {
-          log_and_throw("Unable to convert LHS type", *lhs_v->getType(), "to i1 (boolean)");
-        }
-        auto rhs_bool =
-            codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
-        if (!rhs_bool) {
-          log_and_throw("Unable to convert RHS type", *rhs_v->getType(), "to i1 (boolean)");
-        }
-
-        return this->builder.CreateLogicalAnd(*lhs_bool, *rhs_bool, "log.and");
-      }
+      case ast::binop_tag::booland:
       case ast::binop_tag::boolor: {
-        auto lhs_bool =
-            codegen::convert(this->builder, lhs_v, llvm::Type::getInt1Ty(this->context));
-        if (!lhs_bool) {
-          log_and_throw("Unable to convert LHS type", *lhs_v->getType(), "to i1 (boolean)");
-        }
-        auto rhs_bool =
-            codegen::convert(this->builder, rhs_v, llvm::Type::getInt1Ty(this->context));
-        if (!rhs_bool) {
-          log_and_throw("Unable to convert RHS type", *rhs_v->getType(), "to i1 (boolean)");
+        auto subtype_converter =
+            this->environment.try_subtype(*lhs_type.value(), type_system::boolean {});
+        if (!subtype_converter) {
+          log_and_throw("subtype conversion failed");
         }
 
-        return this->builder.CreateLogicalOr(*lhs_bool, *rhs_bool, "log.or");
+        auto subtyping_rule = subtype_converter.value();
+        auto subtyper_impl = codegen::subtype_conversion(subtyping_rule);
+        lhs_v =
+            subtyper_impl(this->builder, lhs_v, codegen::definition(context, *rhs_type.value()));
+
+        subtype_converter =
+            this->environment.try_subtype(*rhs_type.value(), type_system::boolean {});
+        if (!subtype_converter) {
+          log_and_throw("subtype conversion failed");
+        }
+
+        subtyping_rule = subtype_converter.value();
+        subtyper_impl = codegen::subtype_conversion(subtyping_rule);
+        rhs_v =
+            subtyper_impl(this->builder, rhs_v, codegen::definition(context, *rhs_type.value()));
+
+        return binop.op.op == ast::binop_tag::booland
+            ? this->builder.CreateLogicalAnd(lhs_v, rhs_v, "bool.and")
+            : this->builder.CreateLogicalOr(lhs_v, rhs_v, "bool.or");
       }
     }
   }

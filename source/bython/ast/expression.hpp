@@ -41,13 +41,13 @@ struct binary_operation final : expression
 
 struct comparison final : expression
 {
-  comparison(ast::expressions operands_, std::vector<comparison_operator_tag> ops_);
+  comparison(std::unique_ptr<expression> lhs_,
+             ast::comparison_operator_tag comp_op,
+             std::unique_ptr<expression> rhs_);
 
-  auto add_operator(bython::ast::comparison_operator_tag op) -> void;
-  auto add_operand(std::unique_ptr<expression> expr) -> void;
-
-  ast::expressions operands;
-  std::vector<std::unique_ptr<node>> ops;
+  std::unique_ptr<expression> lhs;
+  ast::comparison_operator op;
+  std::unique_ptr<expression> rhs;
 
   auto tag() const -> ast::tag;
 };

@@ -29,28 +29,18 @@ auto binary_operation::tag() const -> ast::tag
   return ast::tag {tag::binary_operation};
 }
 
-comparison::comparison(ast::expressions operands_, std::vector<comparison_operator_tag> ops_)
-    : operands {std::move(operands_)}
-    , ops {}
+comparison::comparison(std::unique_ptr<expression> lhs_,
+                       ast::comparison_operator_tag comp_op,
+                       std::unique_ptr<expression> rhs_)
+    : lhs{std::move(lhs_)}
+    , op{std::move(comp_op)}
+    , rhs{std::move(rhs_)}
 {
-  for (auto&& op : ops_) {
-    this->add_operator(op);
-  }
 }
 
 auto comparison::tag() const -> ast::tag
 {
   return ast::tag {tag::comparison};
-}
-
-auto comparison::add_operator(bython::ast::comparison_operator_tag op) -> void
-{
-  this->ops.emplace_back(std::make_unique<comparison_operator>(op));
-}
-
-auto comparison::add_operand(std::unique_ptr<expression> expr) -> void
-{
-  this->operands.emplace_back(std::move(expr));
 }
 
 argument_list::argument_list(ast::expressions arguments_)

@@ -112,12 +112,31 @@ struct fp_promotion_rule final : subtype_rule
   }
 } const fp_promotion;
 
+/**
+ * \e{SInt, UInt, F32, F64} <: \ebool
+ */
+struct boolify_rule final : subtype_rule
+{
+  auto try_subtype(ts::type const& tau, ts::type const& alpha) const
+      -> std::optional<ts::subtyping_rule>
+  {
+    auto taut = tau.tag();
+    auto alphat = alpha.tag();
+
+    if (alphat != ts::type_tag::boolean || taut == ts::type_tag::void_) {
+      return std::nullopt;
+    }
+
+    return ts::subtyping_rule::boolify;
+  }
+} const number2bool;
+
 }  // namespace
 
 namespace bython::type_system
 {
-static auto const rules = std::array<subtype_rule const*, 4> {
-    {&identity, &integer_promotion, &fp_promotion, &integer2floating_point}};
+static auto const rules = std::array<subtype_rule const*, 5> {
+    {&identity, &integer_promotion, &fp_promotion, &integer2floating_point, &number2bool}};
 
 auto try_subtype_impl(ts::type const& tau, ts::type const& alpha)
     -> std::optional<ts::subtyping_rule>

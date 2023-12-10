@@ -12,6 +12,7 @@
 #include <lexy/callback/adapter.hpp>
 #include <lexy/callback/object.hpp>
 #include <lexy/dsl.hpp>
+#include <lexy/dsl/expression.hpp>
 #include <lexy/dsl/option.hpp>
 #include <lexy/error.hpp>
 #include <lexy/input/string_input.hpp>
@@ -164,7 +165,8 @@ struct lexy_grammar
           lexy::construct<ast::unsigned_integer> | new_expression<ast::unsigned_integer>;
     };
 
-    static constexpr auto rule = dsl::p<with_span<signed_int, ast::expression_ptr>> | dsl::p<with_span<unsigned_int, ast::expression_ptr>>;
+    static constexpr auto rule = dsl::p<with_span<signed_int, ast::expression_ptr>>
+        | dsl::p<with_span<unsigned_int, ast::expression_ptr>>;
     static constexpr auto value = lexy::forward<ast::expression_ptr>;
   };
 
@@ -331,7 +333,7 @@ struct lexy_grammar
       using operand = logical_and;
     };
 
-    struct comparison : dsl::infix_op_list
+    struct comparison : dsl::infix_op_left
     {
       static constexpr auto op = binary_operators::neq / binary_operators::eq
           / binary_operators::grt / binary_operators::geq / binary_operators::leq
@@ -341,25 +343,13 @@ struct lexy_grammar
 
     using operation = comparison;
 
-    static constexpr auto value =
-        lexy::fold_inplace<std::unique_ptr<ast::comparison>>(
-            []
-            {
-              auto empty_comp = ast::comparison {ast::expressions {},
-                                                 std::vector<ast::comparison_operator_tag> {}};
-              return std::make_unique<ast::comparison>(std::move(empty_comp));
-            },
-            [](std::unique_ptr<ast::comparison>& comparison, ast::expression_ptr expr)
-            { comparison->add_operand(std::move(expr)); },
-            [](std::unique_ptr<ast::comparison>& comparison, ast::comparison_operator_tag cmp)
-            { comparison->add_operator(std::move(cmp)); })
-        >> lexy::callback(new_expression<ast::call>,
-                          new_expression<ast::variable>,
-                          new_expression<ast::signed_integer>,
-                          new_expression<ast::binary_operation>,
-                          new_expression<ast::unary_operation>,
-                          new_expression<ast::comparison>,
-                          lexy::forward<ast::expression_ptr>);
+    static constexpr auto value = lexy::callback(new_expression<ast::call>,
+                                                 new_expression<ast::variable>,
+                                                 new_expression<ast::signed_integer>,
+                                                 new_expression<ast::binary_operation>,
+                                                 new_expression<ast::unary_operation>,
+                                                 new_expression<ast::comparison>,
+                                                 lexy::forward<ast::expression_ptr>);
   };
 
   struct expression
