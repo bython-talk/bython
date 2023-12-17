@@ -4,13 +4,13 @@ target_sources(bython_backend PRIVATE
     builtin.cpp
     intrinsic.cpp
     llvm.cpp
-    symbols.cpp
+    stack.cpp
     typing.cpp
 )
 
 
 llvm_map_components_to_libnames(LLVM_BACKEND_LIBS
-  support core irreader native x86codegen)
+  support core irreader native nativecodegen)
 
 target_include_directories(
     bython_backend ${warning_guard}
