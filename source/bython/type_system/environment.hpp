@@ -33,7 +33,7 @@ public:
       -> std::optional<type_system::function*>;
 
   auto lookup_type(std::string_view tname) const -> std::optional<type_system::type*>;
-  // auto lookup(ast::expression const& expr) const -> std::optional<type_system::type*>;
+  auto lookup_symbol(std::string_view symbol_name) const -> std::optional<type_system::type*>;
 
   auto get_type(ast::expression const& expr) const -> std::optional<type_system::type*>;
 

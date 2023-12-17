@@ -80,7 +80,10 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
       case binop_tag::divide:
       case binop_tag::plus:
       case binop_tag::minus:
-      case binop_tag::modulo: {
+      case binop_tag::modulo:
+      case binop_tag::bitand_:
+      case binop_tag::bitxor_:
+      case binop_tag::bitor_: {
         // Both unsigned; go with larger type
         if (lhs_tag == ts::type_tag::uint && *rhs_tag == ts::type_tag::uint) {
           auto [lhs_uint, rhs_uint] =
@@ -121,12 +124,9 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
         }
         return lhs_type;
       }
-      case binop_tag::bitand_:
-      case binop_tag::bitxor_:
-      case binop_tag::bitor_:
       case binop_tag::booland:
       case binop_tag::boolor:
-        break;
+        return this->env.lookup_type("bool").value();
     }
 
     return std::nullopt;
@@ -194,6 +194,14 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
     }
 
     return this->env.lookup_type("i64");
+  }
+
+  BYTHON_VISITOR_IMPL(call, instance) {
+    auto symbol_type = this->env.lookup_symbol(instance.callee);
+    if (!symbol_type) { return std::nullopt; }
+
+    // TODO: optionally extend with subtype checks for the arguments?
+    return symbol_type;
   }
 
   BYTHON_VISITOR_IMPL(node, instance)

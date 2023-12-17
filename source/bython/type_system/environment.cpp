@@ -97,6 +97,15 @@ auto environment::lookup_type(std::string_view tname) const -> std::optional<typ
   return std::nullopt;
 }
 
+auto environment::lookup_symbol(std::string_view symbol_name) const
+    -> std::optional<type_system::type*>
+{
+  if (auto it = this->m_symbol_to_ts.find(symbol_name); it != this->m_symbol_to_ts.end()) {
+    return it->second;
+  }
+  return std::nullopt;
+}
+
 auto environment::try_subtype(type_system::type const& tau, type_system::type const& alpha) const
     -> std::optional<type_system::subtyping_rule>
 {
