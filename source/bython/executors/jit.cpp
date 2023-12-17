@@ -61,10 +61,10 @@ struct jit_compiler::jit_compiler_pimpl
     auto [metadata, module] = std::move(parsed).value();
     auto context = llvm::LLVMContext {};
 
-    auto codegen = codegen::compile(
+    auto codegen = backend::compile(
         std::string {input_file.filename()}, std::move(module), *metadata, context);
     codegen->setSourceFileName(std::string {input_file});
-    codegen->setTargetTriple("x86_64-pc-linux-gnu");
+    // codegen->setTargetTriple("x86_64-pc-linux-gnu");
 
     codegen->print(llvm::outs(), nullptr);
 
@@ -83,11 +83,12 @@ struct jit_compiler::jit_compiler_pimpl
       return -1;
     }
 
-    for (auto&& builtin : {codegen::builtin_tag::put_i64,
-                           codegen::builtin_tag::putln_i64,
-                           codegen::builtin_tag::put_f32})
+    for (auto&& builtin : {backend::builtin_tag::put_i64,
+                           backend::builtin_tag::putln_i64,
+                           backend::builtin_tag::put_u64,
+                           backend::builtin_tag::put_f32})
     {
-      auto bmetadata = codegen::builtin(context, builtin);
+      auto bmetadata = backend::builtin(context, builtin);
       engine->addGlobalMapping(bmetadata.name, bmetadata.procedure_addr);
     }
 
