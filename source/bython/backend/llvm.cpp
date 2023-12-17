@@ -31,6 +31,7 @@
 #include "bython/ast/operators.hpp"
 #include "bython/ast/statement.hpp"
 #include "bython/ast/visitor.hpp"
+#include "bython/frontend/frontend.hpp"
 #include "bython/matching.hpp"
 #include "bython/type_system/builtin.hpp"
 #include "bython/type_system/environment.hpp"
@@ -61,10 +62,11 @@ template<typename Arg, typename... Args>
 
 struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 {
-  explicit codegen_visitor(llvm::Module& out_module)
+  explicit codegen_visitor(llvm::Module& out_module, parser::parse_metadata const& metadata_)
       : context {out_module.getContext()}
       , builder {out_module.getContext()}
       , module_ {out_module}
+      , metadata {metadata_}
       , environment {ts::environment::initialise_with_builtins()}
   {
   }
@@ -125,7 +127,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(signed_integer, instance)
   {
-    auto integer_type = this->environment.infer(instance);
+    auto integer_type = this->environment.get_type(instance);
     if (!integer_type) {
       log_and_throw("Unknown type for signed integer");
     }
@@ -136,7 +138,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(unsigned_integer, instance)
   {
-    auto integer_type = this->environment.infer(instance);
+    auto integer_type = this->environment.get_type(instance);
     if (!integer_type) {
       log_and_throw("Unknown type for unsigned integer");
     }
@@ -157,21 +159,13 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     }
 
     // Load type for RHS
-    auto rhs_type = this->environment.infer(*assgn.rhs);
+    auto rhs_type = this->environment.get_type(*assgn.rhs);
     if (!rhs_type) {
-      log_and_throw("Unable to infer for RHS");
+      this->metadata.report_error(
+          *assgn.rhs, parser::frontend_error_report {.message = "Unable to infer for RHS"});
     }
 
-    // Account for subtyping
-    auto subtype_rule = this->environment.try_subtype(*lhs_type.value(), *rhs_type.value());
-    if (!subtype_rule) {
-      log_and_throw("Unknown RHS type");
-    }
-
-    auto subtyper_impl = codegen::subtype_conversion(*subtype_rule);
-
-    auto lhs_llvm_type = codegen::definition(this->context, *lhs_type.value());
-    auto subtyped = subtyper_impl(this->builder, rhs_value, lhs_llvm_type);
+    auto subtyped_rhs = this->subtype(*assgn.rhs, rhs_value, *rhs_type, *lhs_type);
 
     // Load type for RHS
     if (auto existing_var = this->symbol_mapping.get(assgn.lhs)) {
@@ -179,16 +173,17 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       return this->builder.CreateStore(rhs_value, memory_location);
     }
 
-    auto allocation = this->builder.CreateAlloca(lhs_llvm_type, /*ArraySize=*/nullptr, assgn.lhs);
-    this->symbol_mapping.put(assgn.lhs, lhs_llvm_type, allocation);
+    auto allocation =
+        this->builder.CreateAlloca(subtyped_rhs->getType(), /*ArraySize=*/nullptr, assgn.lhs);
+    this->symbol_mapping.put(assgn.lhs, subtyped_rhs->getType(), allocation);
 
-    return this->builder.CreateStore(subtyped, allocation);
+    return this->builder.CreateStore(subtyped_rhs, allocation);
   }
 
   BYTHON_VISITOR_IMPL(binary_operation, binop)
   {
     auto lhs_v = this->visit(*binop.lhs);
-    auto lhs_type = this->environment.infer(*binop.lhs);
+    auto lhs_type = this->environment.get_type(*binop.lhs);
     if (!lhs_type) {
       log_and_throw("unknown lhs type");
     }
@@ -199,7 +194,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     if (binop.op.op != ast::binop_tag::as) {
       // Visit and store type of RHS before calling "real" binary operations
       rhs_v = this->visit(*binop.rhs);
-      rhs_type = this->environment.infer(*binop.rhs);
+      rhs_type = this->environment.get_type(*binop.rhs);
     }
 
     switch (binop.op.op) {
@@ -214,15 +209,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
           log_and_throw("unknown rhs type");
         }
 
-        auto subtype_converter =
-            this->environment.try_subtype(*lhs_type.value(), *rhs_type.value());
-        if (!subtype_converter) {
-          log_and_throw("subtype conversion failed");
-        }
-
-        auto subtyping_rule = subtype_converter.value();
-        auto subtyper_impl = codegen::subtype_conversion(subtyping_rule);
-        return subtyper_impl(this->builder, lhs_v, codegen::definition(context, *rhs_type.value()));
+        return this->subtype(binop, lhs_v, lhs_type.value(), rhs_type.value());
       }
 
       case ast::binop_tag::pow: {
@@ -264,27 +251,9 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       }
       case ast::binop_tag::booland:
       case ast::binop_tag::boolor: {
-        auto subtype_converter =
-            this->environment.try_subtype(*lhs_type.value(), type_system::boolean {});
-        if (!subtype_converter) {
-          log_and_throw("subtype conversion failed");
-        }
-
-        auto subtyping_rule = subtype_converter.value();
-        auto subtyper_impl = codegen::subtype_conversion(subtyping_rule);
-        lhs_v =
-            subtyper_impl(this->builder, lhs_v, codegen::definition(context, *rhs_type.value()));
-
-        subtype_converter =
-            this->environment.try_subtype(*rhs_type.value(), type_system::boolean {});
-        if (!subtype_converter) {
-          log_and_throw("subtype conversion failed");
-        }
-
-        subtyping_rule = subtype_converter.value();
-        subtyper_impl = codegen::subtype_conversion(subtyping_rule);
-        rhs_v =
-            subtyper_impl(this->builder, rhs_v, codegen::definition(context, *rhs_type.value()));
+        auto b = this->environment.lookup_type("bool").value();
+        lhs_v = this->subtype(*binop.lhs, lhs_v, lhs_type.value(), b);
+        rhs_v = this->subtype(*binop.rhs, rhs_v, rhs_type.value(), b);
 
         return binop.op.op == ast::binop_tag::booland
             ? this->builder.CreateLogicalAnd(lhs_v, rhs_v, "bool.and")
@@ -295,9 +264,37 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(call, instance)
   {
+    auto ft = this->environment.get_type(instance);
+    if (!ft) {
+      log_and_throw("Failed to infer type for call");
+    }
+
+    auto ft_real = dynamic_cast<ts::function*>(ft.value());
+    if (ft_real == nullptr) {
+      log_and_throw("Failed to infer type for call");
+    }
+
+    if (ft_real->parameters.size() != instance.arguments.arguments.size()) {
+      log_and_throw("Wrong amount of arguments");
+    }
+
     auto load_arguments = std::vector<llvm::Value*> {};
-    for (auto&& argument : instance.arguments.arguments) {
-      load_arguments.emplace_back(this->visit(*argument));
+
+    for (decltype(instance.arguments.arguments)::size_type i = 0;
+         i < instance.arguments.arguments.size();
+         ++i)
+    {
+      auto&& argument = instance.arguments.arguments[i];
+
+      auto loaded = this->visit(*argument);
+      auto argument_type = this->environment.get_type(*argument);
+      if (!argument_type) {
+        log_and_throw("Unable to infer type of parameter");
+      }
+
+      auto subtyped =
+          this->subtype(*argument, loaded, argument_type.value(), ft_real->parameters[i]);
+      load_arguments.emplace_back(subtyped);
     }
 
     if (auto defined = this->module_.getFunction(instance.callee); defined != nullptr) {
@@ -390,12 +387,12 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     auto lhs = this->visit(*instance.lhs);
     auto rhs = this->visit(*instance.rhs);
 
-    auto lhs_t = this->environment.infer(*instance.lhs);
+    auto lhs_t = this->environment.get_type(*instance.lhs);
     if (!lhs_t) {
       log_and_throw("comp lhs infer failed");
     }
 
-    auto rhs_t = this->environment.infer(*instance.rhs);
+    auto rhs_t = this->environment.get_type(*instance.rhs);
     if (!rhs_t) {
       log_and_throw("comp rhs infer failed");
     }
@@ -473,9 +470,25 @@ private:
     return ir_intrinsic;
   }
 
+  auto subtype(ast::node const& node,
+               llvm::Value* source_value,
+               ts::type* source_type,
+               ts::type* target_type) -> llvm::Value*
+  {
+    auto subtyping_rule = this->environment.try_subtype(*source_type, *target_type);
+    if (!subtyping_rule) {
+      this->metadata.report_error(
+          node, parser::frontend_error_report {.message = "Invalid conversion here!"});
+    }
+
+    auto subtype_mapper = codegen::subtype_conversion(subtyping_rule.value());
+    return subtype_mapper(this->builder, source_value, codegen::definition(context, *target_type));
+  }
+
   llvm::LLVMContext& context;
   llvm::IRBuilder<> builder;
   llvm::Module& module_;
+  parser::parse_metadata const& metadata;
 
   codegen::symbol_lookup symbol_mapping;
   codegen::type_lookup type_mapping;
@@ -487,18 +500,22 @@ private:
 
 namespace bython::codegen
 {
-auto compile(std::string_view name, std::unique_ptr<node> ast, llvm::LLVMContext& context)
-    -> std::unique_ptr<llvm::Module>
+auto compile(std::string_view name,
+             std::unique_ptr<node> ast,
+             parser::parse_metadata const& metadata,
+             llvm::LLVMContext& context) -> std::unique_ptr<llvm::Module>
 {
   auto module_ = std::make_unique<llvm::Module>(name, context);
-  compile(std::move(ast), *module_);
+  compile(std::move(ast), metadata, *module_);
 
   return module_;
 }
 
-auto compile(std::unique_ptr<node> ast, llvm::Module& module_) -> void
+auto compile(std::unique_ptr<node> ast,
+             parser::parse_metadata const& metadata,
+             llvm::Module& module_) -> void
 {
-  auto visitor = codegen_visitor {module_};
+  auto visitor = codegen_visitor {module_, metadata};
   visitor.visit(*ast);
 
   llvm::verifyModule(module_, &llvm::errs());
