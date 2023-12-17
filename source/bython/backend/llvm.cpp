@@ -7,6 +7,9 @@
 
 #include "llvm.hpp"
 
+#include <llvm-16/llvm/IR/InstrTypes.h>
+#include <llvm-16/llvm/IR/Instructions.h>
+#include <llvm-16/llvm/IR/Value.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
@@ -14,6 +17,7 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/InstVisitor.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
@@ -147,7 +151,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     auto* rhs_value = this->visit(*assgn.rhs);
 
     // Load type for LHS
-    auto lhs_type = this->environment.lookup(assgn.hint);
+    auto lhs_type = this->environment.lookup_type(assgn.hint);
     if (!lhs_type) {
       log_and_throw("Unknown type", assgn.hint, "used on LHS of assignment");
     }
@@ -205,7 +209,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
           log_and_throw("`as` expression requires type identifier on RHS");
         }
 
-        rhs_type = this->environment.lookup(target->identifier);
+        rhs_type = this->environment.lookup_type(target->identifier);
         if (!rhs_type) {
           log_and_throw("unknown rhs type");
         }
@@ -298,13 +302,14 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
     if (auto defined = this->module_.getFunction(instance.callee); defined != nullptr) {
       return this->builder.CreateCall(defined, load_arguments);
-    } else if (auto intrinsic = this->insert_or_retrieve_intrinsic(instance.callee); intrinsic) {
-      return this->builder.CreateCall(*intrinsic, load_arguments);
-    } else if (auto builtin = this->insert_or_retrieve_builtin("bython." + instance.callee))
-      return this->builder.CreateCall(*builtin, load_arguments);
-    else {
-      log_and_throw("Cannot call function; undefined: ", instance.callee);
     }
+    if (auto intrinsic = this->insert_or_retrieve_intrinsic(instance.callee); intrinsic) {
+      return this->builder.CreateCall(*intrinsic, load_arguments);
+    }
+    if (auto builtin = this->insert_or_retrieve_builtin("bython." + instance.callee)) {
+      return this->builder.CreateCall(*builtin, load_arguments);
+    }
+    log_and_throw("Cannot call function; undefined: ", instance.callee);
   }
 
   BYTHON_VISITOR_IMPL(expression_statement, instance)
@@ -352,92 +357,75 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(comparison, instance)
   {
-    using namespace std::string_view_literals;
+    // Initialise tables in order of comparison operator tags
 
-#define BUILDER_ALIAS(BUILDER_FUNCTION) \
-  [](llvm::IRBuilder<>& builder_, llvm::Value* lhs_, llvm::Value* rhs_, llvm::Twine const& name_) \
-      -> llvm::Value* { return builder_.BUILDER_FUNCTION(lhs_, rhs_, name_); }
+    static constexpr auto uint_comp_table = std::array<llvm::CmpInst::Predicate, 6> {
+        llvm::CmpInst::Predicate::ICMP_ULT,
+        llvm::CmpInst::Predicate::ICMP_ULE,
+        llvm::CmpInst::Predicate::ICMP_UGE,
+        llvm::CmpInst::Predicate::ICMP_UGT,
+        llvm::CmpInst::Predicate::ICMP_EQ,
+        llvm::CmpInst::Predicate::ICMP_NE,
+    };
 
-    using op_table_lookup = std::array<std::tuple<std::string_view,
-                                                  llvm::Value* (*)(llvm::IRBuilder<>& builder,
-                                                                   llvm::Value*,
-                                                                   llvm::Value*,
-                                                                   llvm::Twine const&)>,
-                                       6>;
+    static constexpr auto sint_comp_table = std::array<llvm::CmpInst::Predicate, 6> {
+        llvm::CmpInst::Predicate::ICMP_SLT,
+        llvm::CmpInst::Predicate::ICMP_SLE,
+        llvm::CmpInst::Predicate::ICMP_SGE,
+        llvm::CmpInst::Predicate::ICMP_SGT,
+        llvm::CmpInst::Predicate::ICMP_EQ,
+        llvm::CmpInst::Predicate::ICMP_NE,
+    };
 
-    static constexpr auto signed_integer_op_table =
-        op_table_lookup {std::make_tuple("cmp.slt"sv, BUILDER_ALIAS(CreateICmpSLT)),
-                         std::make_tuple("cmp.sle"sv, BUILDER_ALIAS(CreateICmpSLE)),
-                         std::make_tuple("cmp.sgt"sv, BUILDER_ALIAS(CreateICmpSGE)),
-                         std::make_tuple("cmp.sge"sv, BUILDER_ALIAS(CreateICmpSGT)),
-                         std::make_tuple("cmp.seq"sv, BUILDER_ALIAS(CreateICmpEQ)),
-                         std::make_tuple("cmp.sne"sv, BUILDER_ALIAS(CreateICmpNE))};
+    static constexpr auto fp_comp_table = std::array<llvm::CmpInst::Predicate, 6> {
+        llvm::CmpInst::Predicate::FCMP_ULT,
+        llvm::CmpInst::Predicate::FCMP_ULE,
+        llvm::CmpInst::Predicate::FCMP_UGE,
+        llvm::CmpInst::Predicate::FCMP_UGT,
+        llvm::CmpInst::Predicate::FCMP_UEQ,
+        llvm::CmpInst::Predicate::FCMP_UNE,
+    };
 
-#undef BUILDER_ALIAS
+    // TODO: implement promotion of operands
+    auto lhs = this->visit(*instance.lhs);
+    auto rhs = this->visit(*instance.rhs);
 
-    /*static constexpr auto unsigned_integer_op_table =
-        op_table_lookup {{comparison_operator_tag::lsr, this->builder.CreateICmpULT},
-                         {comparison_operator_tag::leq, this->builder.CreateICmpULE},
-                         {comparison_operator_tag::geq, this->builder.CreateICmpUGE},
-                         {comparison_operator_tag::grt, this->builder.CreateICmpUGT},
-                         {comparison_operator_tag::eq, this->builder.CreateICmpEQ},
-                         {comparison_operator_tag::ne, this->builder.CreateICmpNE}};
-
-    static constexpr auto floating_op_table =
-        op_table_lookup {{comparison_operator_tag::lsr, this->builder.CreateFCmpOLT},
-                         {comparison_operator_tag::leq, this->builder.CreateFCmpOLE},
-                         {comparison_operator_tag::geq, this->builder.CreateFCmpOGE},
-                         {comparison_operator_tag::grt, this->builder.CreateFCmpOGT},
-                         {comparison_operator_tag::eq, this->builder.CreateFCmpOEQ},
-                         {comparison_operator_tag::ne, this->builder.CreateFCmpONE}};*/
-
-    // Load all information, prepend boolean true
-    auto cs = std::vector<llvm::Value*> {};
-    for (auto&& operand : instance.operands) {
-      cs.emplace_back(this->visit(*operand));
+    auto lhs_t = this->environment.infer(*instance.lhs);
+    if (!lhs_t) {
+      log_and_throw("comp lhs infer failed");
     }
 
-    // For now only support Integer and Floating types
-    // NOTE: the length of cs is instance.operands.size() + 1, so this is safe
-    llvm::Value* logical_and_accum =
-        llvm::ConstantInt::getSigned(llvm::Type::getInt1Ty(this->context), 1);
-
-    for (auto operand = 0U; operand < instance.operands.size(); ++operand) {
-      auto lhs = cs[operand + 0];
-      auto rhs = cs[operand + 1];
-
-      // Promote operands to identical types
-      if (auto unified = codegen::unify(this->builder, lhs, rhs); unified) {
-        lhs = std::get<0>(*unified);
-        rhs = std::get<1>(*unified);
-      } else {
-        log_and_throw(
-            "Unable to create comparison between ", *lhs->getType(), " and ", *rhs->getType());
-      }
-
-      auto* op = dyn_cast<comparison_operator>(*instance.ops[operand]);
-      if (!op) {
-        log_and_throw("Unknown operator used in comparison");
-      }
-
-      // TODO: Account for unsigned integers
-      auto [name, builder_function] =
-          signed_integer_op_table[std::underlying_type_t<comparison_operator_tag>(op->op)];
-      auto comp_exec = builder_function(builder, lhs, rhs, name);
-
-      auto comp_as_bool =
-          codegen::convert(builder, comp_exec, llvm::Type::getInt1Ty(this->context));
-      if (!comp_as_bool) {
-        log_and_throw("Unable to convert result of comparison to bool");
-      }
-
-      logical_and_accum =
-          this->builder.CreateLogicalAnd(logical_and_accum,
-                                         *comp_as_bool,
-                                         std::string {"comp.booland."} + std::to_string(operand));
+    auto rhs_t = this->environment.infer(*instance.rhs);
+    if (!rhs_t) {
+      log_and_throw("comp rhs infer failed");
     }
 
-    return logical_and_accum;
+    using cmp_idx = std::underlying_type_t<ast::comparison_operator_tag>;
+    if (lhs_t.value()->tag() == ts::type_tag::sint && rhs_t.value()->tag() == ts::type_tag::sint) {
+      auto predicate = sint_comp_table[static_cast<cmp_idx>(instance.op.op)];
+      return builder.CreateICmp(predicate, lhs, rhs);
+    }
+
+    if (lhs_t.value()->tag() == ts::type_tag::uint && rhs_t.value()->tag() == ts::type_tag::uint) {
+      auto predicate = uint_comp_table[static_cast<cmp_idx>(instance.op.op)];
+      return builder.CreateICmp(predicate, lhs, rhs);
+    }
+
+    if (lhs_t.value()->tag() == ts::type_tag::single_fp
+        && rhs_t.value()->tag() == ts::type_tag::single_fp)
+    {
+      auto predicate = fp_comp_table[static_cast<cmp_idx>(instance.op.op)];
+      return builder.CreateFCmp(predicate, lhs, rhs);
+    }
+
+    if (lhs_t.value()->tag() == ts::type_tag::double_fp
+        && rhs_t.value()->tag() == ts::type_tag::double_fp)
+    {
+      auto predicate = fp_comp_table[static_cast<cmp_idx>(instance.op.op)];
+      return builder.CreateFCmp(predicate, lhs, rhs);
+    }
+
+    log_and_throw("Failed to codegen floating point operation");
   }
 
   BYTHON_VISITOR_IMPL(node, instance)
