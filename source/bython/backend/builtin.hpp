@@ -20,6 +20,7 @@ struct builtin_metadata
 enum class builtin_tag : std::uint8_t
 {
   put_i64,
+  put_u64,
   putln_i64,
 
   put_f32,
