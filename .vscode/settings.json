@@ -78,5 +78,8 @@
     },
     "cmake.configureOnOpen": true,
     "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json",
-    "clangd.arguments": ["--compile-commands-dir='${workspaceFolder}/build/compile_commands.json'"]
+    "clangd.arguments": [
+        "--compile-commands-dir='${workspaceFolder}/build/compile_commands.json'"
+    ],
+    "C_Cpp.autocomplete": "disabled"
 }

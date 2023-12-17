@@ -5,8 +5,9 @@
 			"extensions": [
 				"eamodio.gitlens",
 				"xaver.clang-format",
+				"ms-vscode.cmake-tools",
 				"llvm-vs-code-extensions.vscode-clangd",
-				"ms-vscode.cmake-tools"
+				"ms-vscode.cpptools"
 			]
 		}
 	},
