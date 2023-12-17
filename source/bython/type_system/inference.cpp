@@ -15,12 +15,10 @@
 #include "bython/ast/visitor.hpp"
 #include "bython/type_system/builtin.hpp"
 #include "bython/type_system/environment.hpp"
+#include "bython/type_system/subtyping.hpp"
 
 namespace
 {
-
-using namespace bython::ast;  // This line is required for the visitor macros to function properly
-namespace ts = bython::type_system;
 
 template<typename... Us>
 struct cast
@@ -31,6 +29,9 @@ struct cast
     return std::forward_as_tuple(dynamic_cast<Us&&>(ts)...);
   }
 };
+
+using namespace bython::ast;  // This line is required for the visitor macros to function properly
+namespace ts = bython::type_system;
 
 struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
 {
@@ -66,7 +67,7 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
     switch (binop.op.op) {
       case binop_tag::as: {
         if (auto target = dyn_cast<variable>(*binop.rhs)) {
-          return this->env.lookup(target->identifier);
+          return this->env.lookup_type(target->identifier);
         }
         return std::nullopt;
       }
@@ -131,27 +132,45 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
     return std::nullopt;
   }
 
+  BYTHON_VISITOR_IMPL(comparison, instance)
+  {
+    auto lhs = this->visit(*instance.lhs);
+    if (!lhs) {
+      return std::nullopt;
+    }
+    auto rhs = this->visit(*instance.rhs);
+    if (!rhs) {
+      return std::nullopt;
+    }
+    if (ts::try_subtype_impl(*lhs.value(), *rhs.value())
+        || ts::try_subtype_impl(*rhs.value(), *lhs.value()))
+    {
+      return this->env.lookup_type("bool");
+    }
+    return std::nullopt;
+  }
+
   BYTHON_VISITOR_IMPL(unsigned_integer, instance)
   {
     if (std::numeric_limits<std::uint8_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::uint8_t>::max())
     {
-      return this->env.lookup("u8");
+      return this->env.lookup_type("u8");
     }
 
     if (std::numeric_limits<std::uint16_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::uint16_t>::max())
     {
-      return this->env.lookup("u16");
+      return this->env.lookup_type("u16");
     }
 
     if (std::numeric_limits<std::uint32_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::uint32_t>::max())
     {
-      return this->env.lookup("u32");
+      return this->env.lookup_type("u32");
     }
 
-    return this->env.lookup("u64");
+    return this->env.lookup_type("u64");
   }
 
   BYTHON_VISITOR_IMPL(signed_integer, instance)
@@ -159,22 +178,22 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
     if (std::numeric_limits<std::int8_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::int8_t>::max())
     {
-      return this->env.lookup("i8");
+      return this->env.lookup_type("i8");
     }
 
     if (std::numeric_limits<std::int16_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::int16_t>::max())
     {
-      return this->env.lookup("i16");
+      return this->env.lookup_type("i16");
     }
 
     if (std::numeric_limits<std::int32_t>::lowest() <= instance.value
         && instance.value <= std::numeric_limits<std::int32_t>::max())
     {
-      return this->env.lookup("i32");
+      return this->env.lookup_type("i32");
     }
 
-    return this->env.lookup("i64");
+    return this->env.lookup_type("i64");
   }
 
   BYTHON_VISITOR_IMPL(node, instance)

@@ -15,23 +15,23 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
   SECTION("Builtin Types are Known")
   {
     // boolean
-    REQUIRE(environment.lookup("bool"));
+    REQUIRE(environment.lookup_type("bool"));
 
     // signed
-    REQUIRE(environment.lookup("i8"));
-    REQUIRE(environment.lookup("i16"));
-    REQUIRE(environment.lookup("i32"));
-    REQUIRE(environment.lookup("i64"));
+    REQUIRE(environment.lookup_type("i8"));
+    REQUIRE(environment.lookup_type("i16"));
+    REQUIRE(environment.lookup_type("i32"));
+    REQUIRE(environment.lookup_type("i64"));
 
     // unsigned
-    REQUIRE(environment.lookup("u8"));
-    REQUIRE(environment.lookup("u16"));
-    REQUIRE(environment.lookup("u32"));
-    REQUIRE(environment.lookup("u64"));
+    REQUIRE(environment.lookup_type("u8"));
+    REQUIRE(environment.lookup_type("u16"));
+    REQUIRE(environment.lookup_type("u32"));
+    REQUIRE(environment.lookup_type("u64"));
 
     // floating point
-    REQUIRE(environment.lookup("f32"));
-    REQUIRE(environment.lookup("f64"));
+    REQUIRE(environment.lookup_type("f32"));
+    REQUIRE(environment.lookup_type("f64"));
   }
 
   SECTION("Identical Types correspond to the Identity Rule")
@@ -132,5 +132,21 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
             == ts::subtyping_rule::single_to_double);
     REQUIRE_FALSE(environment.try_subtype(ts::double_fp {}, ts::single_fp {})
                   == ts::subtyping_rule::single_to_double);
+  }
+
+  SECTION("Float to Bool")
+  {
+    REQUIRE(environment.try_subtype(ts::single_fp {}, ts::boolean {})
+            == ts::subtyping_rule::boolify);
+    REQUIRE(environment.try_subtype(ts::double_fp {}, ts::boolean {})
+            == ts::subtyping_rule::boolify);
+  }
+
+  SECTION("Int to Bool")
+  {
+    REQUIRE(environment.try_subtype(ts::sint {8}, ts::boolean {})
+            == ts::subtyping_rule::boolify);
+    REQUIRE(environment.try_subtype(ts::uint {64}, ts::boolean {})
+            == ts::subtyping_rule::boolify);
   }
 }

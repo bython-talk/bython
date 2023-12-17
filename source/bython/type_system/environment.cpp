@@ -56,20 +56,17 @@ auto environment::initialise_with_builtins() -> environment
   return env;
 }
 
+auto environment::add_new_symbol(std::string sname, type_system::type* type) -> void
+{
+  this->m_symbol_to_ts.emplace(sname, type);
+}
+
 auto environment::add_new_named_type(std::string tname, std::unique_ptr<type> type)
     -> type_system::type*
 {
   auto&& [inserted, _] = this->m_visible_types.emplace(std::move(type));
   this->m_typename_to_typeptr.emplace(std::move(tname), inserted->get());
   return inserted->get();
-}
-
-auto environment::lookup(std::string_view tname) const -> std::optional<type_system::type*>
-{
-  if (auto it = this->m_typename_to_typeptr.find(tname); it != this->m_typename_to_typeptr.end()) {
-    return it->second;
-  }
-  return std::nullopt;
 }
 
 auto environment::add_new_function_type(ast::function_def const& function)
@@ -79,7 +76,7 @@ auto environment::add_new_function_type(ast::function_def const& function)
   auto rettype = std::optional<type_system::type*> {};
 
   for (auto&& parameter : function.parameters.parameters) {
-    if (auto ptype = this->lookup(parameter.name); ptype) {
+    if (auto ptype = this->lookup_type(parameter.name); ptype) {
       parameters.emplace_back(*ptype);
     } else {
       return std::nullopt;
@@ -92,13 +89,21 @@ auto environment::add_new_function_type(ast::function_def const& function)
   return std::make_optional(dynamic_cast<type_system::function*>(added_ft));
 }
 
+auto environment::lookup_type(std::string_view tname) const -> std::optional<type_system::type*>
+{
+  if (auto it = this->m_typename_to_typeptr.find(tname); it != this->m_typename_to_typeptr.end()) {
+    return it->second;
+  }
+  return std::nullopt;
+}
+
 auto environment::try_subtype(type_system::type const& tau, type_system::type const& alpha) const
     -> std::optional<type_system::subtyping_rule>
 {
   return try_subtype_impl(tau, alpha);
 }
 
-auto environment::infer(ast::expression const& expr) const -> std::optional<type_system::type*>
+auto environment::get_type(ast::expression const& expr) const -> std::optional<type_system::type*>
 {
   return try_infer_impl(expr, *this);
 }
