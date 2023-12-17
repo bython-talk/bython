@@ -80,12 +80,12 @@ struct boolean final : type
   auto tag() const -> type_tag;
 };
 
-struct function final : type 
+struct func_sig final : type 
 {
-  function(std::vector<type*> parameters, std::optional<type*> rettype);
+  func_sig(std::vector<type*> parameters, type* rettype);
 
   std::vector<type*> parameters;
-  std::optional<type*> rettype;
+  type* rettype;
 
   auto operator==(type const& other) const -> bool;
   auto tag() const -> type_tag;

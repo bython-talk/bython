@@ -85,20 +85,20 @@ auto boolean::operator==(type const& other) const -> bool
   return other_boolean != nullptr;
 }
 
-function::function(std::vector<type*> parameters_, std::optional<type*> rettype_)
+func_sig::func_sig(std::vector<type*> parameters_, type* rettype_)
     : parameters {std::move(parameters_)}
     , rettype {rettype_}
 {
 }
 
-auto function::operator==(type const& other) const -> bool
+auto func_sig::operator==(type const& other) const -> bool
 {
-  auto const* other_f = dynamic_cast<function const*>(&other);
+  auto const* other_f = dynamic_cast<func_sig const*>(&other);
   return other_f != nullptr && this->parameters == other_f->parameters
       && this->rettype == other_f->rettype;
 }
 
-auto function::tag() const -> type_tag
+auto func_sig::tag() const -> type_tag
 {
   return type_tag::function;
 }

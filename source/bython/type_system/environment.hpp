@@ -29,8 +29,8 @@ public:
   auto add_new_symbol(std::string sname, type_system::type* type) -> void;
   auto add_new_named_type(std::string tname, std::unique_ptr<type_system::type> type)
       -> type_system::type*;
-  auto add_new_function_type(ast::function_def const& function)
-      -> std::optional<type_system::function*>;
+  auto add_new_function_type(ast::signature const& signature)
+      -> std::optional<type_system::func_sig*>;
 
   auto lookup_type(std::string_view tname) const -> std::optional<type_system::type*>;
   auto lookup_symbol(std::string_view symbol_name) const -> std::optional<type_system::type*>;

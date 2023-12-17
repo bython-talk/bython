@@ -10,6 +10,7 @@
 
 #include "builtin.hpp"
 #include "bython/ast.hpp"
+#include "bython/ast/statement.hpp"
 #include "bython/ast/visitor.hpp"
 #include "bython/type_system/inference.hpp"
 #include "bython/type_system/subtyping.hpp"
@@ -31,6 +32,7 @@ auto environment::initialise_with_builtins() -> environment
 {
   auto env = environment {};
 
+  /// Types
   // void / unit
   env.add_new_named_type("void", std::make_unique<void_>());
 
@@ -53,12 +55,18 @@ auto environment::initialise_with_builtins() -> environment
   env.add_new_named_type("f32", std::make_unique<single_fp>());
   env.add_new_named_type("f64", std::make_unique<double_fp>());
 
-  return env;
-}
+  /// Functions
+  auto put_i64_sig =
+      ast::signature("put_i64", ast::parameter_list({ast::parameter("value", "i64")}), "void");
+  auto put_i64_ft = env.add_new_function_type(put_i64_sig);
+  env.add_new_symbol(put_i64_sig.name, put_i64_ft.value());
 
-auto environment::add_new_symbol(std::string sname, type_system::type* type) -> void
-{
-  this->m_symbol_to_ts.emplace(sname, type);
+  auto put_u64_sig =
+      ast::signature("put_u64", ast::parameter_list({ast::parameter("value", "u64")}), "void");
+  auto put_u64_ft = env.add_new_function_type(put_u64_sig);
+  env.add_new_symbol(put_u64_sig.name, put_u64_ft.value());
+
+  return env;
 }
 
 auto environment::add_new_named_type(std::string tname, std::unique_ptr<type> type)
@@ -69,24 +77,34 @@ auto environment::add_new_named_type(std::string tname, std::unique_ptr<type> ty
   return inserted->get();
 }
 
-auto environment::add_new_function_type(ast::function_def const& function)
-    -> std::optional<type_system::function*>
+auto environment::add_new_function_type(ast::signature const& signature)
+    -> std::optional<type_system::func_sig*>
 {
   auto parameters = std::vector<type_system::type*> {};
-  auto rettype = std::optional<type_system::type*> {};
+  type_system::type* rettype = nullptr;
 
-  for (auto&& parameter : function.parameters.parameters) {
-    if (auto ptype = this->lookup_type(parameter.name); ptype) {
+  for (auto&& parameter : signature.parameters.parameters) {
+    if (auto ptype = this->lookup_type(parameter.hint); ptype) {
       parameters.emplace_back(*ptype);
     } else {
       return std::nullopt;
     }
   }
 
+  if (signature.rettype) {
+    auto rettype_ts = this->lookup_type(*signature.rettype);
+    if (!rettype_ts) {
+      return std::nullopt;
+    }
+    rettype = *rettype_ts;
+  } else {
+    rettype = this->lookup_type("void").value();
+  }
+
   auto added_ft = this->add_new_named_type(
-      boost::uuids::to_string(function.uuid),
-      std::make_unique<type_system::function>(std::move(parameters), rettype));
-  return std::make_optional(dynamic_cast<type_system::function*>(added_ft));
+      signature.name,  // TODO: This is likely unsound, reconsinder "uniqueness"
+      std::make_unique<type_system::func_sig>(std::move(parameters), rettype));
+  return std::make_optional(dynamic_cast<type_system::func_sig*>(added_ft));
 }
 
 auto environment::lookup_type(std::string_view tname) const -> std::optional<type_system::type*>
@@ -95,6 +113,11 @@ auto environment::lookup_type(std::string_view tname) const -> std::optional<typ
     return it->second;
   }
   return std::nullopt;
+}
+
+auto environment::add_new_symbol(std::string sname, type_system::type* type) -> void
+{
+  this->m_symbol_to_ts.emplace(sname, type);
 }
 
 auto environment::lookup_symbol(std::string_view symbol_name) const
