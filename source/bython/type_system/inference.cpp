@@ -196,12 +196,20 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
     return this->env.lookup_type("i64");
   }
 
-  BYTHON_VISITOR_IMPL(call, instance) {
+  BYTHON_VISITOR_IMPL(call, instance)
+  {
     auto symbol_type = this->env.lookup_symbol(instance.callee);
-    if (!symbol_type) { return std::nullopt; }
+    if (!symbol_type) {
+      return std::nullopt;
+    }
 
-    // TODO: optionally extend with subtype checks for the arguments?
-    return symbol_type;
+    auto function_type = dynamic_cast<ts::func_sig*>(symbol_type.value());
+    return function_type->rettype;
+  }
+
+  BYTHON_VISITOR_IMPL(variable, instance)
+  {
+    return this->env.lookup_symbol(instance.identifier);
   }
 
   BYTHON_VISITOR_IMPL(node, instance)
