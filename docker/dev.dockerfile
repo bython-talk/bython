@@ -3,7 +3,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -q -y update
 RUN apt-get -q -y install --no-install-recommends \
-    ninja-build gdb cppcheck clang-format-16 clangd \
+    ninja-build gdb-multiarch cppcheck clang-format-16 clangd \
     tig git vim openssh-client \
     zsh fzf \
     && apt-get clean all
