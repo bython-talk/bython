@@ -30,7 +30,7 @@ auto putln_i64_impl(int64_t value) -> void
 
 namespace
 {
-using namespace bython::codegen;
+using namespace bython::backend;
 
 using builtin_factory = llvm::FunctionType* (*)(llvm::LLVMContext&);
 
@@ -92,7 +92,7 @@ static auto const builtin_lookup = std::array {
 };
 }  // namespace
 
-namespace bython::codegen
+namespace bython::backend
 {
 
 auto builtin(llvm::LLVMContext& context, builtin_tag btag) -> builtin_metadata
@@ -116,4 +116,4 @@ auto builtin(llvm::LLVMContext& context, std::string_view name) -> std::optional
   return std::nullopt;
 }
 
-}  // namespace bython::codegen
+}  // namespace bython::backend

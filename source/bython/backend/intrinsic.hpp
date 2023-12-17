@@ -7,7 +7,7 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
 
-namespace bython::codegen
+namespace bython::backend
 {
 
 struct intrinsic_metadata
@@ -26,4 +26,4 @@ auto intrinsic(llvm::LLVMContext& context, intrinsic_tag itag) -> intrinsic_meta
 auto intrinsic(llvm::LLVMContext& context, std::string_view itag)
     -> std::optional<intrinsic_metadata>;
 
-}  // namespace bython::codegen
+}  // namespace bython::backend

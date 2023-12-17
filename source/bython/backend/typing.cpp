@@ -4,6 +4,7 @@
 
 #include "typing.hpp"
 
+#include <llvm-16/llvm/IR/Type.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
@@ -18,6 +19,12 @@ namespace ts = bython::type_system;
 
 namespace
 {
+auto definition_impl(llvm::LLVMContext& context, ts::void_ const& /*void*/)
+    -> llvm::Type*
+{
+  return llvm::Type::getVoidTy(context);
+}
+
 auto definition_impl(llvm::LLVMContext& context, ts::boolean const& /*boolean*/)
     -> llvm::IntegerType*
 {
@@ -44,21 +51,19 @@ auto definition_impl(llvm::LLVMContext& context, ts::double_fp const& /*f32*/) -
   return llvm::Type::getDoubleTy(context);
 }
 
-auto definition_impl(llvm::LLVMContext& context, ts::function const& func) -> llvm::FunctionType*
+auto definition_impl(llvm::LLVMContext& context, ts::func_sig const& func) -> llvm::FunctionType*
 {
   auto params = std::vector<llvm::Type*> {};
   for (auto&& fparam : func.parameters) {
-    params.emplace_back(bython::codegen::definition(context, *fparam));
+    params.emplace_back(bython::backend::definition(context, *fparam));
   }
 
-  auto rettype = func.rettype ? bython::codegen::definition(context, *func.rettype.value())
-                              : llvm::Type::getVoidTy(context);
-
+  auto rettype = bython::backend::definition(context, *func.rettype);
   return llvm::FunctionType::get(rettype, params, /*isVarArg=*/false);
 }
 }  // namespace
 
-namespace bython::codegen
+namespace bython::backend
 {
 
 auto definition(llvm::LLVMContext& context, ts::type const& type) -> llvm::Type*
@@ -66,7 +71,7 @@ auto definition(llvm::LLVMContext& context, ts::type const& type) -> llvm::Type*
   switch (type.tag()) {
     // TODO: Improve error handling
     case ts::type_tag::void_:
-      throw std::logic_error {"Cannot convert to void"};
+      return definition_impl(context, dynamic_cast<ts::void_ const&>(type));
 
     case ts::type_tag::boolean:
       return definition_impl(context, dynamic_cast<ts::boolean const&>(type));
@@ -84,7 +89,7 @@ auto definition(llvm::LLVMContext& context, ts::type const& type) -> llvm::Type*
       return definition_impl(context, dynamic_cast<ts::double_fp const&>(type));
 
     case ts::type_tag::function:
-      return definition_impl(context, dynamic_cast<ts::function const&>(type));
+      return definition_impl(context, dynamic_cast<ts::func_sig const&>(type));
   }
 }
 
@@ -131,4 +136,4 @@ auto subtype_conversion(ts::subtyping_rule rule) -> subtype_converter
       };
   }
 }
-}  // namespace bython::codegen
+}  // namespace bython::backend

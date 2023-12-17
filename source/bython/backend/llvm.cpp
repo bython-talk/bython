@@ -7,9 +7,6 @@
 
 #include "llvm.hpp"
 
-#include <llvm-16/llvm/IR/InstrTypes.h>
-#include <llvm-16/llvm/IR/Instructions.h>
-#include <llvm-16/llvm/IR/Value.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
@@ -17,6 +14,7 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/InstVisitor.h>
+#include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
@@ -36,7 +34,7 @@
 #include "bython/type_system/builtin.hpp"
 #include "bython/type_system/environment.hpp"
 #include "intrinsic.hpp"
-#include "symbols.hpp"
+#include "stack.hpp"
 #include "typing.hpp"
 
 namespace bython
@@ -81,19 +79,19 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(function_def, fdef)
   {
-    auto ts_function_type = this->environment.add_new_function_type(fdef);
+    auto ts_function_type = this->environment.add_new_function_type(fdef.sig);
     if (!ts_function_type) {
       log_and_throw("Unable to convert type system repr to LLVM backend");
     }
 
     auto function_type = ts_function_type.value();
-    this->environment.add_new_symbol(fdef.name, function_type);
+    this->environment.add_new_symbol(fdef.sig.name, function_type);
 
     auto llvm_function_type =
-        llvm::cast<llvm::FunctionType>(codegen::definition(this->context, *function_type));
+        llvm::cast<llvm::FunctionType>(backend::definition(this->context, *function_type));
     auto function = llvm::Function::Create(llvm_function_type,
                                            llvm::GlobalValue::LinkageTypes::ExternalLinkage,
-                                           fdef.name,
+                                           fdef.sig.name,
                                            this->module_);
 
     auto entry_into_function = llvm::BasicBlock::Create(this->context, "entry", function);
@@ -118,10 +116,22 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(variable, var)
   {
-    auto lookup = this->symbol_mapping.get(var.identifier);
-    auto [type, mem_loc] = *lookup;
+    auto storage = this->stack.get(var.identifier);
+    if (!storage) {
+      this->metadata.report_error(
+          var,
+          parser::frontend_error_report {.message =
+                                             "Failed to find storage on stack for this variable"});
+    }
 
-    auto* load = this->builder.CreateLoad(type, mem_loc, var.identifier);
+    auto var_type = this->environment.lookup_symbol(var.identifier);
+    if (!var_type) {
+      this->metadata.report_error(
+          var, parser::frontend_error_report {.message = "Failed to find type of this variable"});
+    }
+    auto llvm_type = backend::definition(this->context, *var_type.value());
+
+    auto* load = this->builder.CreateLoad(llvm_type, *storage, var.identifier);
     return load;
   }
 
@@ -132,7 +142,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       log_and_throw("Unknown type for signed integer");
     }
 
-    auto llvm_type = codegen::definition(this->context, *integer_type.value());
+    auto llvm_type = backend::definition(this->context, *integer_type.value());
     return llvm::ConstantInt::getSigned(llvm_type, instance.value);
   }
 
@@ -143,20 +153,14 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       log_and_throw("Unknown type for unsigned integer");
     }
 
-    auto llvm_type = codegen::definition(this->context, *integer_type.value());
+    auto llvm_type = backend::definition(this->context, *integer_type.value());
     return llvm::ConstantInt::get(llvm_type, instance.value, /*IsSigned=*/false);
   }
 
-  BYTHON_VISITOR_IMPL(assignment, assgn)
+  BYTHON_VISITOR_IMPL(let_assignment, assgn)
   {
     // Compute RHS of assignment
     auto* rhs_value = this->visit(*assgn.rhs);
-
-    // Load type for LHS
-    auto lhs_type = this->environment.lookup_type(assgn.hint);
-    if (!lhs_type) {
-      log_and_throw("Unknown type", assgn.hint, "used on LHS of assignment");
-    }
 
     // Load type for RHS
     auto rhs_type = this->environment.get_type(*assgn.rhs);
@@ -165,17 +169,18 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
           *assgn.rhs, parser::frontend_error_report {.message = "Unable to infer for RHS"});
     }
 
-    auto subtyped_rhs = this->subtype(*assgn.rhs, rhs_value, *rhs_type, *lhs_type);
-
-    // Load type for RHS
-    if (auto existing_var = this->symbol_mapping.get(assgn.lhs)) {
-      auto [type, memory_location] = *existing_var;
-      return this->builder.CreateStore(rhs_value, memory_location);
+    // Load type for LHS
+    auto lhs_type = this->environment.lookup_type(assgn.hint);
+    if (!lhs_type) {
+      log_and_throw("Unknown type", assgn.hint, "used on LHS of assignment");
     }
 
+    auto subtyped_rhs = this->subtype(*assgn.rhs, rhs_value, *rhs_type, *lhs_type);
     auto allocation =
         this->builder.CreateAlloca(subtyped_rhs->getType(), /*ArraySize=*/nullptr, assgn.lhs);
-    this->symbol_mapping.put(assgn.lhs, subtyped_rhs->getType(), allocation);
+
+    this->environment.add_new_symbol(assgn.lhs, lhs_type.value());
+    this->stack.put(assgn.lhs, allocation);
 
     return this->builder.CreateStore(subtyped_rhs, allocation);
   }
@@ -216,7 +221,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
         // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
         // requires powi intrinsics to be brought into scope as prototypes
         auto pow_intrinsic =
-            this->insert_or_retrieve_intrinsic(codegen::intrinsic_tag::powi_f32_i32);
+            this->insert_or_retrieve_intrinsic(backend::intrinsic_tag::powi_f32_i32);
         return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
       }
       case ast::binop_tag::multiply: {
@@ -264,12 +269,17 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(call, instance)
   {
-    auto ft = this->environment.get_type(instance);
+    auto rettype = this->environment.get_type(instance);
+    if (!rettype) {
+      log_and_throw("Failed to infer type for call");
+    }
+
+    auto ft = this->environment.lookup_symbol(instance.callee);
     if (!ft) {
       log_and_throw("Failed to infer type for call");
     }
 
-    auto ft_real = dynamic_cast<ts::function*>(ft.value());
+    auto ft_real = dynamic_cast<ts::func_sig*>(ft.value());
     if (ft_real == nullptr) {
       log_and_throw("Failed to infer type for call");
     }
@@ -285,8 +295,8 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
          ++i)
     {
       auto&& argument = instance.arguments.arguments[i];
-
       auto loaded = this->visit(*argument);
+
       auto argument_type = this->environment.get_type(*argument);
       if (!argument_type) {
         log_and_throw("Unable to infer type of parameter");
@@ -427,14 +437,16 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(node, instance)
   {
-    throw std::runtime_error {"Cannot perform LLVM codegen; Unknown AST Node: "
-                              + std::to_string(instance.tag().unwrap())};
+    this->metadata.report_error(instance,
+                                parser::frontend_error_report {
+                                    .message = "Cannot perform LLVM codegen; Unknown AST Node: "});
+    return nullptr;
   }
 
 private:
-  auto insert_or_retrieve_intrinsic(codegen::intrinsic_tag itag) -> llvm::FunctionCallee
+  auto insert_or_retrieve_intrinsic(backend::intrinsic_tag itag) -> llvm::FunctionCallee
   {
-    auto imetadata = codegen::intrinsic(this->context, itag);
+    auto imetadata = backend::intrinsic(this->context, itag);
     auto ir_intrinsic = this->module_.getOrInsertFunction(imetadata.name, imetadata.signature);
 
     return ir_intrinsic;
@@ -442,7 +454,7 @@ private:
 
   auto insert_or_retrieve_intrinsic(std::string_view name) -> std::optional<llvm::FunctionCallee>
   {
-    auto imetadata = codegen::intrinsic(this->context, name);
+    auto imetadata = backend::intrinsic(this->context, name);
     if (!imetadata) {
       return std::nullopt;
     }
@@ -451,9 +463,9 @@ private:
     return ir_intrinsic;
   }
 
-  auto insert_or_retrieve_builtin(codegen::builtin_tag btag) -> llvm::FunctionCallee
+  auto insert_or_retrieve_builtin(backend::builtin_tag btag) -> llvm::FunctionCallee
   {
-    auto bmetadata = codegen::builtin(this->context, btag);
+    auto bmetadata = backend::builtin(this->context, btag);
     auto ir_intrinsic = this->module_.getOrInsertFunction(bmetadata.name, bmetadata.signature);
 
     return ir_intrinsic;
@@ -461,7 +473,7 @@ private:
 
   auto insert_or_retrieve_builtin(std::string_view name) -> std::optional<llvm::FunctionCallee>
   {
-    auto bmetadata = codegen::builtin(this->context, name);
+    auto bmetadata = backend::builtin(this->context, name);
     if (!bmetadata) {
       return std::nullopt;
     }
@@ -481,24 +493,23 @@ private:
           node, parser::frontend_error_report {.message = "Invalid conversion here!"});
     }
 
-    auto subtype_mapper = codegen::subtype_conversion(subtyping_rule.value());
-    return subtype_mapper(this->builder, source_value, codegen::definition(context, *target_type));
+    auto subtype_mapper = backend::subtype_conversion(subtyping_rule.value());
+    return subtype_mapper(this->builder, source_value, backend::definition(context, *target_type));
   }
 
   llvm::LLVMContext& context;
   llvm::IRBuilder<> builder;
   llvm::Module& module_;
+
   parser::parse_metadata const& metadata;
-
-  codegen::symbol_lookup symbol_mapping;
-  codegen::type_lookup type_mapping;
-
   type_system::environment environment;
+  backend::stack stack;
+
 };  // namespace bython
 
 }  // namespace bython
 
-namespace bython::codegen
+namespace bython::backend
 {
 auto compile(std::string_view name,
              std::unique_ptr<node> ast,
@@ -520,4 +531,4 @@ auto compile(std::unique_ptr<node> ast,
 
   llvm::verifyModule(module_, &llvm::errs());
 }
-}  // namespace bython::codegen
+}  // namespace bython::backend

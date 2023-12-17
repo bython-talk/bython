@@ -7,7 +7,7 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
 
-namespace bython::codegen
+namespace bython::backend
 {
 
 struct builtin_metadata
@@ -29,4 +29,4 @@ enum class builtin_tag : std::uint8_t
 auto builtin(llvm::LLVMContext& context, builtin_tag btag) -> builtin_metadata;
 auto builtin(llvm::LLVMContext& context, std::string_view btag) -> std::optional<builtin_metadata>;
 
-}  // namespace bython::codegen
+}  // namespace bython::backend

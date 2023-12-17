@@ -8,7 +8,7 @@
 
 namespace
 {
-using namespace bython::codegen;
+using namespace bython::backend;
 
 using intrinsic_factory = llvm::FunctionType* (*)(llvm::LLVMContext&);
 struct table_entry
@@ -32,7 +32,7 @@ static auto const intrinsic_lookup = std::array {
         }}};
 }  // namespace
 
-namespace bython::codegen
+namespace bython::backend
 {
 
 auto intrinsic(llvm::LLVMContext& context, intrinsic_tag itag) -> intrinsic_metadata
@@ -53,4 +53,4 @@ auto intrinsic(llvm::LLVMContext& context, std::string_view name)
   return std::nullopt;
 }
 
-}  // namespace bython::codegen
+}  // namespace bython::backend

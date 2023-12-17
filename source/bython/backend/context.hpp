@@ -7,7 +7,7 @@
 #include "symbols.hpp"
 #include "type_system.hpp"
 
-namespace bython::codegen
+namespace bython::backend
 {
 struct codegen_context
 {
@@ -18,4 +18,4 @@ struct codegen_context
   codegen::symbol_lookup symbol_mapping;
   codegen::type_lookup type_mapping;
 };
-}  // namespace bython::codegen
+}  // namespace bython::backend
