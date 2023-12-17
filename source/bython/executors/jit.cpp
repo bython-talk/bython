@@ -25,7 +25,7 @@ namespace bython::executor
 {
 struct jit_compiler::jit_compiler_pimpl
 {
-  /* 
+  /*
    * LLVM details go here, e.g. llvm::ExecutionEngine, llvm::ExecutionSession
    * This helps us keep LLVM linkage private between bython_lib and consumers thereof,
    * for example, the bython tests
@@ -59,10 +59,10 @@ struct jit_compiler::jit_compiler_pimpl
     }
 
     auto [metadata, module] = std::move(parsed).value();
-    auto context = llvm::LLVMContext{};
+    auto context = llvm::LLVMContext {};
 
-    auto codegen =
-        codegen::compile(std::string {input_file.filename()}, std::move(module), context);
+    auto codegen = codegen::compile(
+        std::string {input_file.filename()}, std::move(module), *metadata, context);
     codegen->setSourceFileName(std::string {input_file});
     codegen->setTargetTriple("x86_64-pc-linux-gnu");
 
@@ -78,7 +78,7 @@ struct jit_compiler::jit_compiler_pimpl
 
     auto engine = std::unique_ptr<llvm::ExecutionEngine>(engine_builder.create());
 
-    if (!engine || error.size()) {
+    if (!engine || !error.empty()) {
       std::cerr << "JIT Error: " << error << "\n";
       return -1;
     }
