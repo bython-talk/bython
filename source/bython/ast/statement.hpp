@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -38,9 +39,9 @@ struct type_definition final : statement
   auto tag() const -> ast::tag;
 };
 
-struct assignment final : statement
+struct let_assignment final : statement
 {
-  assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_);
+  let_assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_);
 
   std::string lhs;
   std::string hint;
@@ -119,13 +120,19 @@ struct parameter_list final : node
   auto tag() const -> ast::tag;
 };
 
-struct function_def final : statement
-{
-  function_def(std::string name_, parameter_list parameters_, statements body_);
+struct signature {
+  signature(std::string name, parameter_list parameters, std::optional<std::string> rettype);
 
   std::string name;
   parameter_list parameters;
+  std::optional<std::string> rettype;
+};
 
+struct function_def final : statement
+{
+  function_def(signature sig, statements body_);
+
+  signature sig;
   statements body;
 
   auto tag() const -> ast::tag;

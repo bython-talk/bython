@@ -2,16 +2,16 @@
 
 namespace bython::ast
 {
-assignment::assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_)
+let_assignment::let_assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_)
     : lhs {std::move(lhs_)}
     , hint {std::move(hint_)}
     , rhs {std::move(rhs_)}
 {
 }
 
-auto assignment::tag() const -> ast::tag
+auto let_assignment::tag() const -> ast::tag
 {
-  return ast::tag {tag::assignment};
+  return ast::tag {tag::let_assignment};
 }
 
 type_definition::type_definition(std::string identifier_, bython::ast::type_definition_stmts body_)
@@ -107,9 +107,17 @@ auto parameter_list::tag() const -> ast::tag
   return ast::tag {tag::parameter_list};
 }
 
-function_def::function_def(std::string name_, parameter_list parameters_, statements body_)
-    : name(std::move(name_))
-    , parameters(std::move(parameters_))
+signature::signature(std::string name_,
+                     parameter_list parameters_,
+                     std::optional<std::string> rettype_)
+    : name {std::move(name_)}
+    , parameters {std::move(parameters_)}
+    , rettype {std::move(rettype_)}
+{
+}
+
+function_def::function_def(signature sig, statements body_)
+    : sig(std::move(sig))
     , body(std::move(body_))
 {
 }

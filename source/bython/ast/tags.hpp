@@ -32,7 +32,7 @@ public:
   enum statement : std::uint32_t
   {
     type_definition = std::underlying_type_t<ranges>(ranges::statement) + 1,
-    assignment,
+    let_assignment,
     expression_statement,
 
     for_,

@@ -76,7 +76,7 @@ struct visitor
   // Statement classes
   BYTHON_MAKE_VISITOR_METHODS(type_definition, statement, inst, return_type)
 
-  BYTHON_MAKE_VISITOR_METHODS(assignment, statement, inst, return_type)
+  BYTHON_MAKE_VISITOR_METHODS(let_assignment, statement, inst, return_type)
 
   BYTHON_MAKE_VISITOR_METHODS(expression_statement, statement, inst, return_type)
 
@@ -99,7 +99,7 @@ struct visitor
       default:
         throw std::logic_error("Unrecognised statement tag");
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(type_definition, statement, inst)
-        BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(assignment, statement, inst)
+        BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(let_assignment, statement, inst)
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(expression_statement, statement, inst)
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(for_, statement, inst)
         BYTHON_VISITOR_DOWNCAST_AND_DISPATCH(while_, statement, inst)
