@@ -18,10 +18,6 @@ struct lexy_code_frontend final : frontend
   virtual auto parse(std::string_view code) -> frontend_parse_result;
   virtual auto parse_expression(std::string_view code) -> frontend_parse_result;
   virtual auto parse_statement(std::string_view code) -> frontend_parse_result;
-
-  virtual auto report_error(parser::parse_metadata const& tree,
-                            ast::node const& node,
-                            frontend_error_report report) const -> void;
 };
 
 /*

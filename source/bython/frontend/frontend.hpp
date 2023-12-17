@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <ostream>
 #include <variant>
 
 #include "bython/ast.hpp"
@@ -27,6 +28,10 @@ struct frontend_error_reporter
 struct parse_metadata
 {
   virtual ~parse_metadata() = default;
+  auto report_error(ast::node const& node, frontend_error_report report) const -> std::ostream&;
+  virtual auto report_error(std::ostream& os,
+                            ast::node const& node,
+                            frontend_error_report report) const -> std::ostream& = 0;
 };
 
 struct frontend_parse_result
@@ -40,7 +45,7 @@ struct frontend_parse_result
   auto has_error() const -> bool;
 
   using value_type = std::tuple<std::unique_ptr<parse_metadata>, std::unique_ptr<ast::node>>;
-  
+
   auto value() && -> value_type;
   auto error() && -> std::string;
 
@@ -59,8 +64,6 @@ struct frontend
   virtual auto parse(std::string_view) -> frontend_parse_result = 0;
   virtual auto parse_expression(std::string_view) -> frontend_parse_result = 0;
   virtual auto parse_statement(std::string_view) -> frontend_parse_result = 0;
-
-  virtual auto report_error(parser::parse_metadata const& tree, ast::node const& node, frontend_error_report report) const -> void = 0;
 };
 
 }  // namespace bython::parser

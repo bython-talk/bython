@@ -1,6 +1,7 @@
 #include <concepts>
 #include <iostream>
 #include <iterator>
+#include <ostream>
 #include <type_traits>
 
 #include "lexy.hpp"
@@ -20,8 +21,8 @@
 #include <lexy_ext/report_error.hpp>
 
 #include "bython/ast.hpp"
+#include "bython/ast/expression.hpp"
 #include "bython/ast/statement.hpp"
-#include "lexy/top_level_grammar.hpp"
 
 namespace dsl = lexy::dsl;
 
@@ -556,14 +557,39 @@ struct lexy_frontend
 
   struct lexy_parse_result final : p::parse_metadata
   {
-    lexy_parse_result(Input input_, span_map span_lookup_)
-        : input {std::move(input_)}
-        , span_lookup {std::move(span_lookup_)}
+    lexy_parse_result(Input input, span_map span_lookup)
+        : m_input {std::move(input)}
+        , m_span_lookup {std::move(span_lookup)}
     {
     }
 
-    Input input;
-    span_map span_lookup;
+    auto report_error(std::ostream& os,
+                      ast::node const& node,
+                      p::frontend_error_report report) const -> std::ostream&
+    {
+      auto span_search = this->m_span_lookup.find(node.uuid);
+      if (span_search == this->m_span_lookup.end()) {
+        os << "Unable to report error with span! AST Node is does not have an associated span\n";
+        os << "Message: " << report.message << "\n";
+      } else {
+        auto const& span = span_search->second;
+        static constexpr auto opts = lexy::visualization_options {} | lexy::visualize_fancy;
+
+        lexy_ext::diagnostic_writer(this->m_input, opts)
+            .write_annotation(std::ostream_iterator<std::string_view::value_type>(os),
+                              lexy_ext::annotation_kind::primary,
+                              span.begin,
+                              span.end.position(),
+                              [&](auto& out, lexy::visualization_options)
+                              { return lexy::_detail::write_str(out, report.message.c_str()); });
+      }
+
+      return os;
+    }
+
+  private:
+    Input m_input;
+    span_map m_span_lookup;
   };
 
   struct lexy_state
@@ -593,33 +619,6 @@ struct lexy_frontend
   {
     using entrypoint = top_level<typename lexy_grammar<Input>::inner_stmt>;
     return lexy_frontend<Input>::parse_entrypoint<entrypoint>(code);
-  }
-
-  static auto report_error(p::parse_metadata const& tree,
-                           ast::node const& node,
-                           p::frontend_error_report report) -> void
-  {
-    auto lexy_parse_tree = dynamic_cast<lexy_parse_result const*>(&tree);
-    if (!lexy_parse_tree) {
-      std::cerr << "Cannot report lexy error without lexy's input\n";
-      return;
-    }
-
-    auto span_search = lexy_parse_tree->span_lookup.find(node.uuid);
-    if (span_search == lexy_parse_tree->span_lookup.end()) {
-      std::cerr << "Unable to report error! AST Node is known\n";
-      return;
-    }
-    auto const& span = span_search->second;
-
-    static constexpr auto opts = lexy::visualization_options {} | lexy::visualize_fancy;
-    lexy_ext::diagnostic_writer(lexy_parse_tree->input, opts)
-        .write_annotation(std::ostream_iterator<std::string_view::value_type>(std::cerr),
-                          lexy_ext::annotation_kind::primary,
-                          span.begin,
-                          span.end.position(),
-                          [&](auto& out, lexy::visualization_options)
-                          { return lexy::_detail::write_str(out, report.message.c_str()); });
   }
 
 private:
@@ -663,13 +662,5 @@ auto lexy_code_frontend::parse_statement(std::string_view code) -> frontend_pars
 {
   using parser = lexy_frontend<lexy::string_input<>>;
   return parser::parse_statement(code);
-}
-
-auto lexy_code_frontend::report_error(p::parse_metadata const& tree,
-                                      ast::node const& node,
-                                      p::frontend_error_report report) const -> void
-{
-  using parser = lexy_frontend<lexy::string_input<>>;
-  parser::report_error(tree, node, std::move(report));
 }
 }  // namespace bython::parser
