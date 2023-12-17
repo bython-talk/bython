@@ -1,6 +1,7 @@
 #include <concepts>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <ostream>
 #include <type_traits>
 
@@ -14,6 +15,7 @@
 #include <lexy/callback/object.hpp>
 #include <lexy/dsl.hpp>
 #include <lexy/dsl/expression.hpp>
+#include <lexy/dsl/literal.hpp>
 #include <lexy/dsl/option.hpp>
 #include <lexy/error.hpp>
 #include <lexy/input/string_input.hpp>
@@ -404,7 +406,7 @@ struct lexy_grammar
         | new_statement<ast::conditional_branch>;
   };
 
-  struct assignment
+  struct let_assignment
   {
     static constexpr auto rule = []
     {
@@ -413,7 +415,7 @@ struct lexy_grammar
       return keyword::variable_ >> introduced;
     }();
 
-    static constexpr auto value = lexy::construct<ast::assignment> | new_statement<ast::assignment>;
+    static constexpr auto value = lexy::construct<ast::let_assignment> | new_statement<ast::let_assignment>;
   };
 
   struct expression_statement
@@ -436,13 +438,13 @@ struct lexy_grammar
     struct missing_statement
     {
       static constexpr auto name =
-          R"(Expected `val` for an assignment, `if` for branching, `discard` for expression statements;)";
+          R"(Expected `val` for an let_assignment, `if` for branching, `discard` for expression statements;)";
     };
 
     static constexpr auto rule = []
     {
       auto terminator = dsl::terminator(dsl::semicolon).limit(dsl::lit_c<'}'>);
-      return terminator(dsl::p<assignment> | dsl::p<conditional_branch>
+      return terminator(dsl::p<let_assignment> | dsl::p<conditional_branch>
                         | dsl::p<expression_statement> | dsl::p<return_stmt>
                         | dsl::error<missing_statement>);
     }();
@@ -488,12 +490,20 @@ struct lexy_grammar
 
     static constexpr auto rule = []
     {
-      auto introduced =
-          dsl::p<symbol_identifier> + dsl::p<parameters> + dsl::p<outer_compound_body>;
+      auto introduced = dsl::p<symbol_identifier> + dsl::p<parameters>
+          + dsl::opt(LEXY_LIT("->") >> dsl::p<type_identifier>) + dsl::p<outer_compound_body>;
       return keyword::funcdef_ >> introduced;
     }();
 
-    static constexpr auto value = lexy::construct<ast::function_def>;
+    static constexpr auto value = lexy::callback<ast::function_def>(
+        [](std::string name,
+           ast::parameter_list params,
+           std::optional<std::string> rettype,
+           ast::statements body)
+        {
+          auto signature = ast::signature(std::move(name), std::move(params), std::move(rettype));
+          return ast::function_def(std::move(signature), std::move(body));
+        });
   };
 
   struct type_def
