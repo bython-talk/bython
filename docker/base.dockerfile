@@ -12,23 +12,6 @@ RUN wget https://apt.llvm.org/llvm.sh
 RUN chmod +x /llvm.sh
 RUN /llvm.sh 16 && apt-get clean all
 
-RUN update-alternatives \
-    --install /usr/bin/clang          clang         /usr/bin/clang-16 160 \
-    --slave   /usr/bin/clang++        clang++       /usr/bin/clang++-16 \
-    --slave   /usr/bin/clang-format   clang-format  /usr/bin/clang-format-16 \
-    --slave   /usr/bin/lldb           lldb          /usr/bin/lldb-16  \
-    --slave   /usr/bin/FileCheck      FileCheck     /usr/bin/FileCheck-16
-
-RUN update-alternatives \
-    --install /usr/bin/c++      c++       /usr/bin/clang++  160
-RUN update-alternatives \
-    --install /usr/bin/cc       cc        /usr/bin/clang    160
-
-RUN update-alternatives \
---install /usr/bin/c++      c++       /usr/bin/clang++    100
-RUN update-alternatives \
-    --install /usr/bin/cc       cc        /usr/bin/clang    100
-
 
 FROM llvm16 AS llvm16-cmake-deps
 ENV DEBIAN_FRONTEND=noninteractive

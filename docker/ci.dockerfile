@@ -7,3 +7,7 @@ RUN apt-get -q -y install --no-install-recommends \
     git \
     && apt-get clean all
 
+RUN update-alternatives \
+    --install /usr/bin/c++      c++       /usr/bin/g++  160
+RUN update-alternatives \
+    --install /usr/bin/cc       cc        /usr/bin/gcc    160
