@@ -49,29 +49,20 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
 
   BYTHON_VISITOR_IMPL(binary_operation, binop)
   {
-    auto lhs_type = this->visit(*binop.lhs);
-    if (!lhs_type) {
+    auto lhs_type_o = this->visit(*binop.lhs);
+    auto rhs_type_o = this->visit(*binop.rhs);
+
+    if (!lhs_type_o || !rhs_type_o) {
       return std::nullopt;
     }
-    auto lhs_tag = lhs_type.value()->tag();
 
-    std::optional<ts::type*> rhs_type = std::nullopt;
-    std::optional<ts::type_tag> rhs_tag = std::nullopt;
-    if (binop.op.op != binop_tag::as) {
-      if (rhs_type = this->visit(*binop.rhs); !rhs_type) {
-        return std::nullopt;
-      }
-      rhs_tag = rhs_type.value()->tag();
-    }
+    ts::type* lhs_type = *lhs_type_o;
+    ts::type* rhs_type = *rhs_type_o;
+
+    auto lhs_tag = lhs_type->tag();
+    auto rhs_tag = rhs_type->tag();
 
     switch (binop.op.op) {
-      case binop_tag::as: {
-        if (auto target = dyn_cast<variable>(*binop.rhs)) {
-          return this->env.lookup_type(target->identifier);
-        }
-        return std::nullopt;
-      }
-
       case binop_tag::pow: {
         // Implemented using llvm.pow.f32; return type is known to be f32
         return this->env.lookup_type("f32");
@@ -85,31 +76,27 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
       case binop_tag::bitxor_:
       case binop_tag::bitor_: {
         // Both unsigned; go with larger type
-        if (lhs_tag == ts::type_tag::uint && *rhs_tag == ts::type_tag::uint) {
-          auto [lhs_uint, rhs_uint] =
-              cast<ts::uint, ts::uint>::multi(*lhs_type.value(), *rhs_type.value());
+        if (lhs_tag == ts::type_tag::uint && rhs_tag == ts::type_tag::uint) {
+          auto [lhs_uint, rhs_uint] = cast<ts::uint, ts::uint>::multi(*lhs_type, *rhs_type);
           return std::addressof(lhs_uint.width >= rhs_uint.width ? lhs_uint : rhs_uint);
         }
 
         // Both signed; go with larger type
-        if (lhs_tag == ts::type_tag::sint && *rhs_tag == ts::type_tag::sint) {
-          auto [lhs_sint, rhs_sint] =
-              cast<ts::sint, ts::sint>::multi(*lhs_type.value(), *rhs_type.value());
+        if (lhs_tag == ts::type_tag::sint && rhs_tag == ts::type_tag::sint) {
+          auto [lhs_sint, rhs_sint] = cast<ts::sint, ts::sint>::multi(*lhs_type, *rhs_type);
           return std::addressof(lhs_sint.width >= rhs_sint.width ? lhs_sint : rhs_sint);
         }
 
         // If both are the same size, then promote to the unsigned one, otherwise promote to the
         // larger one
-        if (lhs_tag == ts::type_tag::uint && *rhs_tag == ts::type_tag::sint) {
-          auto [lhs_uint, rhs_sint] =
-              cast<ts::uint, ts::sint>::multi(*lhs_type.value(), *rhs_type.value());
+        if (lhs_tag == ts::type_tag::uint && rhs_tag == ts::type_tag::sint) {
+          auto [lhs_uint, rhs_sint] = cast<ts::uint, ts::sint>::multi(*lhs_type, *rhs_type);
           return lhs_uint.width >= rhs_sint.width ? static_cast<ts::type*>(&lhs_uint)
                                                   : static_cast<ts::type*>(&rhs_sint);
         }
 
-        if (lhs_tag == ts::type_tag::sint && *rhs_tag == ts::type_tag::uint) {
-          auto [lhs_sint, rhs_uint] =
-              cast<ts::sint, ts::uint>::multi(*lhs_type.value(), *rhs_type.value());
+        if (lhs_tag == ts::type_tag::sint && rhs_tag == ts::type_tag::uint) {
+          auto [lhs_sint, rhs_uint] = cast<ts::sint, ts::uint>::multi(*lhs_type, *rhs_type);
           return rhs_uint.width >= lhs_sint.width ? static_cast<ts::type*>(&rhs_uint)
                                                   : static_cast<ts::type*>(&lhs_sint);
         }

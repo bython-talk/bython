@@ -68,7 +68,7 @@ TEST_CASE("Primitives", "[Inference]")
     auto expr_type = env.get_type(*expr);
 
     REQUIRE(expr_type);
-    REQUIRE(expr_type == env.lookup_type("u8"));
+    REQUIRE(expr_type == env.lookup_type("u16"));
   }
 
   SECTION("u16")

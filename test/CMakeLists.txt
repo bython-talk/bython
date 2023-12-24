@@ -15,12 +15,15 @@ find_package(Catch2 3 REQUIRED)
 #        Catch2::Catch2WithMain)
 #target_compile_features(bython_scratchpad_test PRIVATE cxx_std_20)
 
+add_subdirectory(utils)
 
 add_executable(bython_test_type_system type_system/inference.cpp type_system/subtyping.cpp)
 target_link_libraries(bython_test_type_system PRIVATE
         bython_type_system bython_frontend bython_ast
+        bython_test_stringmaker
         Catch2::Catch2WithMain)
 target_compile_features(bython_test_type_system PRIVATE cxx_std_20)
+target_include_directories(bython_test_type_system PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>/utils")
 
 include(Catch)
 catch_discover_tests(bython_test_type_system)
@@ -39,6 +42,7 @@ foreach(SNAPSHOT_TESTING IN ITEMS backend)
         NAME bython_test_${SNAPSHOT_TESTING} 
         COMMAND lit -v ${CMAKE_BINARY_DIR}/test/${SNAPSHOT_TESTING}
     )
+    
 endforeach()
 
 #add_test(NAME bython_frontend_lit COMMAND lit -v ${CMAKE_BINARY_DIR}/test/frontend)

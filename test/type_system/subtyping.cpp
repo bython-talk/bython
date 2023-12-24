@@ -6,6 +6,8 @@
 #include "bython/type_system/builtin.hpp"
 #include "bython/type_system/environment.hpp"
 
+#include "stringmaker/all.hpp"
+
 namespace ts = bython::type_system;
 
 TEST_CASE("Subtyping of Builtins", "[Type System]")

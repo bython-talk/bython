@@ -24,9 +24,6 @@ struct unary_operator final : node
 
 enum class binop_tag : std::uint8_t
 {
-  // 1
-  as,
-
   // 2
   pow,
 

@@ -215,8 +215,6 @@ struct lexy_grammar
 
   struct binary_operators
   {
-    static constexpr auto as = dsl::op<ast::binop_tag::as>(keyword::as_);
-
     static constexpr auto pow = dsl::op<ast::binop_tag::pow>(LEXY_LIT("**"));
 
     static constexpr auto unary_plus = dsl::op<ast::unop_tag::plus>(dsl::lit_c<'+'>);
@@ -268,16 +266,10 @@ struct lexy_grammar
     static constexpr auto atom = dsl::p<var_or_call> | dsl::p<parenthesized> | dsl::p<integer>
         | dsl::error<expression_error>;
 
-    struct as_conversion : dsl::infix_op_left
-    {
-      static constexpr auto op = binary_operators::as;
-      using operand = dsl::atom;
-    };
-
     struct math_power : dsl::infix_op_right
     {
       static constexpr auto op = binary_operators::pow;
-      using operand = as_conversion;
+      using operand = dsl::atom;
     };
 
     struct unary_operation : dsl::prefix_op

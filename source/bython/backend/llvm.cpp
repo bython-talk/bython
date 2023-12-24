@@ -190,41 +190,31 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
   BYTHON_VISITOR_IMPL(binary_operation, binop)
   {
-    auto lhs_v = this->visit(*binop.lhs);
-    auto lhs_type = this->environment.get_type(*binop.lhs);
-    if (!lhs_type) {
+    auto lhs_type_o = this->environment.get_type(*binop.lhs);
+    if (!lhs_type_o) {
       log_and_throw("unknown lhs type");
     }
 
-    llvm::Value* rhs_v = nullptr;
-    std::optional<ts::type*> rhs_type = std::nullopt;
-
-    if (binop.op.op != ast::binop_tag::as) {
-      // Visit and store type of RHS before calling "real" binary operations
-      rhs_v = this->visit(*binop.rhs);
-      rhs_type = this->environment.get_type(*binop.rhs);
+    auto rhs_type_o = this->environment.get_type(*binop.rhs);
+    if (!rhs_type_o) {
+      log_and_throw("unknown rhs type");
     }
 
+    auto lhs_type = *lhs_type_o;
+    auto rhs_type = *rhs_type_o;
+
+    auto lhs_tag = lhs_type->tag();
+    auto rhs_tag = rhs_type->tag();
+
+    auto lhs_v = this->visit(*binop.lhs);
+    auto rhs_v = this->visit(*binop.rhs);
+
     switch (binop.op.op) {
-      case ast::binop_tag::as: {
-        auto target = ast::dyn_cast<ast::variable>(*binop.rhs);
-        if (target == nullptr) {
-          log_and_throw("`as` expression requires type identifier on RHS");
-        }
-
-        rhs_type = this->environment.lookup_type(target->identifier);
-        if (!rhs_type) {
-          log_and_throw("unknown rhs type");
-        }
-
-        return this->subtype(binop, lhs_v, lhs_type.value(), rhs_type.value());
-      }
-
       case ast::binop_tag::pow: {
         // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
         // requires pow.* intrinsics to be brought into scope as prototypes
-        if (lhs_type.value()->tag() == type_system::type_tag::single_fp
-            && rhs_type.value()->tag() == type_system::type_tag::single_fp)
+        if (lhs_tag == type_system::type_tag::single_fp
+            && rhs_tag == type_system::type_tag::single_fp)
         {
           auto powf32_intrinsic = this->module_.getOrInsertFunction(
               "llvm.pow.f32",
@@ -235,14 +225,14 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
           return this->builder.CreateCall(powf32_intrinsic, {lhs_v, rhs_v});
         }
 
-        if (lhs_type.value()->tag() == type_system::type_tag::double_fp
-            && rhs_type.value()->tag() == type_system::type_tag::double_fp)
+        if (lhs_tag == type_system::type_tag::double_fp
+            && rhs_tag == type_system::type_tag::double_fp)
         {
           auto powf64_intrinsic = this->module_.getOrInsertFunction(
               "llvm.pow.f64",
               llvm::FunctionType::get(
-                  llvm::Type::getFloatTy(this->context),
-                  {llvm::Type::getFloatTy(this->context), llvm::Type::getFloatTy(this->context)},
+                  llvm::Type::getDoubleTy(this->context),
+                  {llvm::Type::getDoubleTy(this->context), llvm::Type::getDoubleTy(this->context)},
                   false));
           return this->builder.CreateCall(powf64_intrinsic, {lhs_v, rhs_v});
         }
@@ -286,8 +276,8 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       case ast::binop_tag::booland:
       case ast::binop_tag::boolor: {
         auto b = this->environment.lookup_type("bool").value();
-        lhs_v = this->subtype(*binop.lhs, lhs_v, lhs_type.value(), b);
-        rhs_v = this->subtype(*binop.rhs, rhs_v, rhs_type.value(), b);
+        lhs_v = this->subtype(*binop.lhs, lhs_v,  lhs_type, b);
+        rhs_v = this->subtype(*binop.rhs, rhs_v, rhs_type, b);
 
         return binop.op.op == ast::binop_tag::booland
             ? this->builder.CreateLogicalAnd(lhs_v, rhs_v, "bool.and")
