@@ -1,4 +1,5 @@
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <optional>
 
@@ -115,7 +116,7 @@ struct fp_promotion_rule final : subtype_rule
 /**
  * \e{SInt, UInt, F32, F64} <: \ebool
  */
-struct boolify_rule final : subtype_rule
+struct numeric_to_bool_rule final : subtype_rule
 {
   auto try_subtype(ts::type const& tau, ts::type const& alpha) const
       -> std::optional<ts::subtyping_rule>
@@ -127,16 +128,63 @@ struct boolify_rule final : subtype_rule
       return std::nullopt;
     }
 
-    return ts::subtyping_rule::boolify;
+    return ts::subtyping_rule::numeric_to_bool;
   }
 } const number2bool;
+
+/**
+ * \ebool <: \e{SInt, UInt}
+ */
+struct bool_to_int_rule final : subtype_rule
+{
+  auto try_subtype(ts::type const& tau, ts::type const& alpha) const
+      -> std::optional<ts::subtyping_rule>
+  {
+    auto taut = tau.tag();
+    auto alphat = alpha.tag();
+
+    if (taut == ts::type_tag::boolean
+        && (alphat == ts::type_tag::sint || alphat == ts::type_tag::uint))
+    {
+      return ts::subtyping_rule::bool_int_prom;
+    }
+
+    return std::nullopt;
+  }
+} const bool2int;
+
+/**
+ * \ebool <: \e{F32, F64}
+ */
+struct bool_to_fp_rule final : subtype_rule
+{
+  auto try_subtype(ts::type const& tau, ts::type const& alpha) const
+      -> std::optional<ts::subtyping_rule>
+  {
+    auto taut = tau.tag();
+    auto alphat = alpha.tag();
+
+    if (taut == ts::type_tag::boolean
+        && (alphat == ts::type_tag::single_fp || alphat == ts::type_tag::double_fp))
+    {
+      return ts::subtyping_rule::bool_fp_prom;
+    }
+
+    return std::nullopt;
+  }
+} const bool2fp;
 
 }  // namespace
 
 namespace bython::type_system
 {
-static auto const rules = std::array<subtype_rule const*, 5> {
-    {&identity, &integer_promotion, &fp_promotion, &integer2floating_point, &number2bool}};
+static auto const rules = std::array<subtype_rule const*, 7> {{&identity,
+                                                               &integer_promotion,
+                                                               &fp_promotion,
+                                                               &integer2floating_point,
+                                                               &number2bool,
+                                                               &bool2int,
+                                                               &bool2fp}};
 
 auto try_subtype_impl(ts::type const& tau, ts::type const& alpha)
     -> std::optional<ts::subtyping_rule>

@@ -20,11 +20,12 @@ add_executable(bython_test_type_system type_system/inference.cpp type_system/sub
 target_link_libraries(bython_test_type_system PRIVATE
         bython_type_system bython_frontend bython_ast
         Catch2::Catch2WithMain)
-
 target_compile_features(bython_test_type_system PRIVATE cxx_std_20)
 
 include(Catch)
 catch_discover_tests(bython_test_type_system)
+
+add_test(NAME bython_test_type_system COMMAND bython_test_type_system)
 
 #add_test(NAME bython_test COMMAND bython_test)
 #set_tests_properties(bython_test PROPERTIES FIXTURES_SETUP bython_frontend)
@@ -39,7 +40,6 @@ foreach(SNAPSHOT_TESTING IN ITEMS frontend backend)
         COMMAND lit -v ${CMAKE_BINARY_DIR}/test/${SNAPSHOT_TESTING}
     )
 endforeach()
-
 
 #add_test(NAME bython_frontend_lit COMMAND lit -v ${CMAKE_BINARY_DIR}/test/frontend)
 

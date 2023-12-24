@@ -137,16 +137,30 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
   SECTION("Float to Bool")
   {
     REQUIRE(environment.try_subtype(ts::single_fp {}, ts::boolean {})
-            == ts::subtyping_rule::boolify);
+            == ts::subtyping_rule::numeric_to_bool);
     REQUIRE(environment.try_subtype(ts::double_fp {}, ts::boolean {})
-            == ts::subtyping_rule::boolify);
+            == ts::subtyping_rule::numeric_to_bool);
+  }
+
+  SECTION("Bool to Float")
+  {
+    REQUIRE(environment.try_subtype(ts::boolean {}, ts::single_fp {})
+            == ts::subtyping_rule::bool_fp_prom);
+    REQUIRE(environment.try_subtype(ts::boolean {}, ts::double_fp {})
+            == ts::subtyping_rule::bool_fp_prom);
   }
 
   SECTION("Int to Bool")
   {
-    REQUIRE(environment.try_subtype(ts::sint {8}, ts::boolean {})
-            == ts::subtyping_rule::boolify);
-    REQUIRE(environment.try_subtype(ts::uint {64}, ts::boolean {})
-            == ts::subtyping_rule::boolify);
+    REQUIRE(environment.try_subtype(ts::sint {8}, ts::boolean {}) == ts::subtyping_rule::numeric_to_bool);
+    REQUIRE(environment.try_subtype(ts::uint {64}, ts::boolean {}) == ts::subtyping_rule::numeric_to_bool);
+  }
+
+  SECTION("Bool to Int")
+  {
+    REQUIRE(environment.try_subtype(ts::boolean {}, ts::uint {8})
+            == ts::subtyping_rule::bool_int_prom);
+    REQUIRE(environment.try_subtype(ts::boolean {}, ts::sint {16})
+            == ts::subtyping_rule::bool_int_prom);
   }
 }

@@ -18,7 +18,9 @@ enum class subtyping_rule
   sint_to_single,
   sint_to_double,
   single_to_double,
-  boolify,
+  numeric_to_bool,
+  bool_fp_prom,
+  bool_int_prom,
 };
 
 auto try_subtype_impl(type const& tau, type const& alpha) -> std::optional<subtyping_rule>;

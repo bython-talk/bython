@@ -4,7 +4,8 @@
 
 #include "typing.hpp"
 
-#include <llvm-16/llvm/IR/Type.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
@@ -19,8 +20,7 @@ namespace ts = bython::type_system;
 
 namespace
 {
-auto definition_impl(llvm::LLVMContext& context, ts::void_ const& /*void*/)
-    -> llvm::Type*
+auto definition_impl(llvm::LLVMContext& context, ts::void_ const& /*void*/) -> llvm::Type*
 {
   return llvm::Type::getVoidTy(context);
 }
@@ -101,7 +101,7 @@ auto subtype_conversion(ts::subtyping_rule rule) -> subtype_converter
                 llvm::Value* expr,
                 llvm::Type* /*dest*/) -> llvm::Value* { return expr; };
     }
-
+    case type_system::subtyping_rule::bool_int_prom:
     case type_system::subtyping_rule::uint_promotion: {
       return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
       { return builder.CreateIntCast(expr, dest, /*isSigned=*/false, "uint.prom"); };
@@ -111,21 +111,23 @@ auto subtype_conversion(ts::subtyping_rule rule) -> subtype_converter
       return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
       { return builder.CreateIntCast(expr, dest, /*isSigned=*/true, "sint.prom"); };
     }
+
+    case type_system::subtyping_rule::bool_fp_prom:
     case type_system::subtyping_rule::uint_to_single:
     case type_system::subtyping_rule::uint_to_double: {
       return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
-      { return builder.CreateUIToFP(expr, dest, "ui2fp"); };
+      { return builder.CreateUIToFP(expr, dest, "ui2fp.prom"); };
     }
     case type_system::subtyping_rule::sint_to_single:
     case type_system::subtyping_rule::sint_to_double:
       return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
-      { return builder.CreateSIToFP(expr, dest, "si2fp"); };
+      { return builder.CreateSIToFP(expr, dest, "si2fp.prom"); };
 
-    case type_system::subtyping_rule::single_to_double:
+    case type_system::subtyping_rule::single_to_double: {
       return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
       { return builder.CreateFPExt(expr, dest, "fp.prom"); };
-
-    case type_system::subtyping_rule::boolify:
+    }
+    case type_system::subtyping_rule::numeric_to_bool: {
       return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* /*dest*/) -> llvm::Value*
       {
         auto ety = expr->getType();
@@ -134,6 +136,10 @@ auto subtype_conversion(ts::subtyping_rule rule) -> subtype_converter
         }
         return builder.CreateICmpNE(expr, llvm::ConstantInt::get(ety, 0, /*IsSigned=*/false));
       };
+      return [](llvm::IRBuilder<>& builder, llvm::Value* expr, llvm::Type* dest) -> llvm::Value*
+      { return builder.CreateFPExt(expr, dest, "bool.fp.prom"); };
+    }
   }
 }
+
 }  // namespace bython::backend
