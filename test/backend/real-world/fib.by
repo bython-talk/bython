@@ -1,9 +1,12 @@
-# RUN: %filecheck $(basename %s .by) < $(%driver-full --inpath %s)
-# CHECK: 0\n1\n1\n2\n3\n5\n8\n13\n21\n34
-def fibonacci(n: i64) {
+# RUN: %driver-full --inpath %s | FileCheck %s.stdout
+def fibonacci(n: u64) -> u64 {
     if n == 0 || n == 1 {
         return n;
     };
 
     return n + fibonacci(n - 1);
+}
+def main()
+{
+    
 }

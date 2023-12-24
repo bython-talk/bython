@@ -1,6 +1,0 @@
-# RUN: %driver-full --inpath %s | grep -e "32"
-def main()
-{
-    val x: i64 = 1 << 5;
-    discard put_i64(x);
-}

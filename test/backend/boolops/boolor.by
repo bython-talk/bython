@@ -1,0 +1,6 @@
+# RUN: %driver-full --inpath %s | FileCheck %s.stdout
+def main()
+{
+    val x: bool = 1 || 0;
+    discard put_u64(x);
+}

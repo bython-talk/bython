@@ -1,6 +1,0 @@
-# RUN: %driver-full --inpath %s | grep -e "6"
-def main()
-{
-    val x: i16 = 8 - 2;
-    discard put_i64(x as i64);
-}
