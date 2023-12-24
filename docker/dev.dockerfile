@@ -8,7 +8,7 @@ RUN apt-get -q -y install --no-install-recommends \
     zsh fzf \
     && apt-get clean all
 
-# Uses "Spaceship" theme with some customization. Uses some bundled plugins and installs some more from github
+# Uses "robbyrussell" theme with some customization. Uses some bundled plugins and installs some more from github
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)" -- \
     -t robbyrussell \
     -p git \
@@ -20,7 +20,8 @@ RUN update-alternatives \
     --install /usr/bin/clang          clang         /usr/bin/clang-16 160 \
     --slave   /usr/bin/clang++        clang++       /usr/bin/clang++-16 \
     --slave   /usr/bin/clang-format   clang-format  /usr/bin/clang-format-16 \
-    --slave   /usr/bin/lldb           lldb          /usr/bin/lldb-16
+    --slave   /usr/bin/lldb           lldb          /usr/bin/lldb-16  \
+    --slave   /usr/bin/FileCheck      FileCheck     /usr/bin/FileCheck-16
 
 RUN update-alternatives \
     --install /usr/bin/c++      c++       /usr/bin/clang++  160

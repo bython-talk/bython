@@ -12,5 +12,4 @@ config.substitutions.extend([
     (r"%driver-parse", os.path.join(config.binary_dir, r"bython-driver -m=parse")),
     (r"%driver-tcheck", os.path.join(config.binary_dir, r"bython-driver -m=tcheck")),
     (r"%driver-full", os.path.join(config.binary_dir, r"bython-driver -m=full")),
-    #(r"%filecheck", "FileCheck-16"),
 ])
