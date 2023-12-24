@@ -5,6 +5,7 @@ RUN apt-get -q -y update
 RUN apt-get -q -y install --no-install-recommends \
     lcov ninja-build clang-format-16 \
     git \
+    libcapture-tiny-perl libdatetime-perl \
     && apt-get clean all
 
 RUN update-alternatives \
