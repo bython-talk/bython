@@ -1,0 +1,12 @@
+# RUN: %driver-full --inpath %s | FileCheck %s.stdout
+def fibonacci(n: u64) -> u64 {
+    if n == 0 || n == 1 {
+        return n;
+    };
+
+    return n + fibonacci(n - 1);
+}
+def main()
+{
+    
+}

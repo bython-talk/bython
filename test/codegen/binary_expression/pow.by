@@ -1,6 +1,0 @@
-# RUN: %jit --inpath %s | grep -e "4"
-def main()
-{
-    val powed: f32 = 2 as f32 ** 2 as i32;
-    discard put_f32(powed);
-}

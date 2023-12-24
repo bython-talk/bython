@@ -1,18 +1,14 @@
 include(cmake/folders.cmake)
 
 include(CTest)
+
 if(BUILD_TESTING)
+  message(STATUS BUILD_TESTING: ${BUILD_TESTING})
   add_subdirectory(test)
 endif()
 
-add_custom_target(run-repl COMMAND bython-repl VERBATIM)
-add_dependencies(run-repl bython_repl)
-
-add_custom_target(run-compiler COMMAND bython-compiler VERBATIM)
-add_dependencies(run-compiler bython_compiler)
-
-add_custom_target(run-jit COMMAND bython-jit VERBATIM)
-add_dependencies(run-jit bython_jit)
+add_custom_target(run-driver COMMAND bython-driver VERBATIM)
+add_dependencies(run-driver bython_driver)
 
 option(BUILD_MCSS_DOCS "Build documentation using Doxygen and m.css" OFF)
 if(BUILD_MCSS_DOCS)

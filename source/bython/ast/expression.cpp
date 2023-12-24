@@ -5,7 +5,7 @@
 namespace bython::ast
 {
 unary_operation::unary_operation(unop_tag op_, std::unique_ptr<expression> rhs_)
-    : op {std::make_unique<unary_operator>(op_)}
+    : op {op_}
     , rhs {std::move(rhs_)}
 {
 }
@@ -19,8 +19,8 @@ binary_operation::binary_operation(std::unique_ptr<expression> lhs_,
                                    binop_tag binop_,
                                    std::unique_ptr<expression> rhs_)
     : lhs {std::move(lhs_)}
+    , op {binop_}
     , rhs {std::move(rhs_)}
-    , op {std::make_unique<binary_operator>(binop_)}
 {
 }
 
@@ -29,13 +29,13 @@ auto binary_operation::tag() const -> ast::tag
   return ast::tag {tag::binary_operation};
 }
 
-comparison::comparison(ast::expressions operands_, std::vector<comparison_operator_tag> ops_)
-    : operands {std::move(operands_)}
-    , ops {}
+comparison::comparison(std::unique_ptr<expression> lhs_,
+                       ast::comparison_operator_tag comp_op,
+                       std::unique_ptr<expression> rhs_)
+    : lhs {std::move(lhs_)}
+    , op {std::move(comp_op)}
+    , rhs {std::move(rhs_)}
 {
-  for (auto&& op : ops_) {
-    this->add_operator(op);
-  }
 }
 
 auto comparison::tag() const -> ast::tag
@@ -43,17 +43,17 @@ auto comparison::tag() const -> ast::tag
   return ast::tag {tag::comparison};
 }
 
-auto comparison::add_operator(bython::ast::comparison_operator_tag op) -> void
+argument_list::argument_list(ast::expressions arguments_)
+    : arguments {std::move(arguments_)}
 {
-  this->ops.emplace_back(std::make_unique<comparison_operator>(op));
 }
 
-auto comparison::add_operand(std::unique_ptr<expression> expr) -> void
+auto argument_list::tag() const -> ast::tag
 {
-  this->operands.emplace_back(std::move(expr));
+  return ast::tag {tag::argument_list};
 }
 
-call::call(std::string callee_, std::vector<std::unique_ptr<expression>> arguments_)
+call::call(std::string callee_, argument_list arguments_)
     : callee {std::move(callee_)}
     , arguments {std::move(arguments_)}
 {
@@ -74,14 +74,24 @@ auto variable::tag() const -> ast::tag
   return ast::tag {tag::variable};
 }
 
-integer::integer(int64_t value_)
+signed_integer::signed_integer(int64_t value_)
     : value {value_}
 {
 }
 
-auto integer::tag() const -> ast::tag
+auto signed_integer::tag() const -> ast::tag
 {
-  return ast::tag {tag::integer};
+  return ast::tag {tag::signed_integer};
+}
+
+unsigned_integer::unsigned_integer(uint64_t value_)
+    : value {value_}
+{
+}
+
+auto unsigned_integer::tag() const -> ast::tag
+{
+  return ast::tag {tag::unsigned_integer};
 }
 
 }  // namespace bython::ast

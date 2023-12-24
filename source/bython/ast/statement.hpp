@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -38,9 +39,9 @@ struct type_definition final : statement
   auto tag() const -> ast::tag;
 };
 
-struct assignment final : statement
+struct let_assignment final : statement
 {
-  assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_);
+  let_assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_);
 
   std::string lhs;
   std::string hint;
@@ -83,8 +84,8 @@ struct conditional_branch final : statement
                      statements body_,
                      std::unique_ptr<statement> orelse_);
 
-  std::unique_ptr<node> condition;
-  std::unique_ptr<node> orelse;
+  std::unique_ptr<expression> condition;
+  std::unique_ptr<statement> orelse;
 
   statements body;
 
@@ -100,21 +101,49 @@ struct unconditional_branch final : statement
   auto tag() const -> ast::tag;
 };
 
-struct parameter
+struct parameter final : node
 {
+  parameter(std::string name_, std::string hint_);
+
   std::string name;
+  std::string hint;
+
+  auto tag() const -> ast::tag;
 };
 
-using parameters = std::vector<parameter>;
+struct parameter_list final : node
+{
+  explicit parameter_list(std::vector<parameter> parameters_);
+
+  std::vector<parameter> parameters;
+
+  auto tag() const -> ast::tag;
+};
+
+struct signature
+{
+  signature(std::string name, parameter_list parameters, std::optional<std::string> rettype);
+
+  std::string name;
+  parameter_list parameters;
+  std::optional<std::string> rettype;
+};
 
 struct function_def final : statement
 {
-  function_def(std::string name_, std::vector<parameter> parameters_, statements body_);
+  function_def(signature sig, statements body_);
 
-  std::string name;
-  std::vector<parameter> parameters;
-
+  signature sig;
   statements body;
+
+  auto tag() const -> ast::tag;
+};
+
+struct return_ final : statement
+{
+  explicit return_(std::unique_ptr<expression> expr_);
+
+  std::unique_ptr<expression> expr;
 
   auto tag() const -> ast::tag;
 };

@@ -6,9 +6,9 @@
 
 namespace bython::matching
 {
-auto assignment::matches(ast::node const& ast) const -> bool
+auto let_assignment::matches(ast::node const& ast) const -> bool
 {
-  if (auto const* assgn = ast::dyn_cast<ast::assignment>(&ast)) {
+  if (auto const* assgn = ast::dyn_cast<ast::let_assignment>(&ast)) {
     return this->lhs == assgn->lhs && matching::matches(*assgn->rhs, *this->rhs);
   }
 

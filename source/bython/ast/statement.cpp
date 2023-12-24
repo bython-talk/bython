@@ -2,16 +2,18 @@
 
 namespace bython::ast
 {
-assignment::assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_)
+let_assignment::let_assignment(std::string lhs_,
+                               std::string hint_,
+                               std::unique_ptr<expression> rhs_)
     : lhs {std::move(lhs_)}
     , hint {std::move(hint_)}
     , rhs {std::move(rhs_)}
 {
 }
 
-auto assignment::tag() const -> ast::tag
+auto let_assignment::tag() const -> ast::tag
 {
-  return ast::tag {tag::assignment};
+  return ast::tag {tag::let_assignment};
 }
 
 type_definition::type_definition(std::string identifier_, bython::ast::type_definition_stmts body_)
@@ -86,9 +88,38 @@ auto unconditional_branch::tag() const -> ast::tag
   return ast::tag {tag::unconditional_branch};
 }
 
-function_def::function_def(std::string name_, std::vector<parameter> parameters_, statements body_)
-    : name(std::move(name_))
-    , parameters(std::move(parameters_))
+parameter::parameter(std::string name_, std::string hint_)
+    : name {std::move(name_)}
+    , hint {std::move(hint_)}
+{
+}
+
+auto parameter::tag() const -> ast::tag
+{
+  return ast::tag {tag::parameter};
+}
+
+parameter_list::parameter_list(std::vector<parameter> parameters_)
+    : parameters {std::move(parameters_)}
+{
+}
+
+auto parameter_list::tag() const -> ast::tag
+{
+  return ast::tag {tag::parameter_list};
+}
+
+signature::signature(std::string name_,
+                     parameter_list parameters_,
+                     std::optional<std::string> rettype_)
+    : name {std::move(name_)}
+    , parameters {std::move(parameters_)}
+    , rettype {std::move(rettype_)}
+{
+}
+
+function_def::function_def(signature sig, statements body_)
+    : sig(std::move(sig))
     , body(std::move(body_))
 {
 }
@@ -96,6 +127,16 @@ function_def::function_def(std::string name_, std::vector<parameter> parameters_
 auto function_def::tag() const -> ast::tag
 {
   return ast::tag {tag::function_def};
+}
+
+return_::return_(std::unique_ptr<expression> expr_)
+    : expr {std::move(expr_)}
+{
+}
+
+auto return_::tag() const -> ast::tag
+{
+  return ast::tag {tag::return_};
 }
 
 }  // namespace bython::ast

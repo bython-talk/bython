@@ -6,7 +6,7 @@
 namespace bython::ast
 {
 
-enum class unop_tag
+enum class unop_tag : std::uint8_t
 {
   plus,
   minus,
@@ -22,7 +22,7 @@ struct unary_operator final : node
   auto tag() const -> ast::tag;
 };
 
-enum class binop_tag
+enum class binop_tag : std::uint8_t
 {
   // 1
   as,
@@ -71,7 +71,7 @@ struct binary_operator final : node
   auto tag() const -> ast::tag;
 };
 
-enum class comparison_operator_tag
+enum class comparison_operator_tag : std::uint8_t
 {
   // 6
   lsr,

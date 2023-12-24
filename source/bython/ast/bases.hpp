@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <boost/uuid/uuid.hpp>
+
 #include "tags.hpp"
 
 namespace bython::ast
@@ -9,9 +11,13 @@ namespace bython::ast
 
 struct node
 {
+  node();
+
   virtual ~node() = default;
 
   virtual auto tag() const -> ast::tag = 0;
+
+  boost::uuids::uuid uuid;
 };
 
 template<typename T>

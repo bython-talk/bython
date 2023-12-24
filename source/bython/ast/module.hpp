@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "bases.hpp"
+#include "expression.hpp"
 #include "statement.hpp"
 
 namespace bython::ast
@@ -15,4 +16,14 @@ struct mod final : node
 
   auto tag() const -> ast::tag;
 };
+
+struct expr_mod final : node
+{
+  explicit expr_mod(std::vector<std::unique_ptr<ast::expression>> body_);
+
+  std::vector<std::unique_ptr<ast::expression>> body;
+
+  auto tag() const -> ast::tag;
+};
+
 }  // namespace bython::ast

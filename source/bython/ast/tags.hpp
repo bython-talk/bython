@@ -25,20 +25,22 @@ public:
     comparison,
     variable,
     call,
-    integer
+    signed_integer,
+    unsigned_integer,
   };
 
   enum statement : std::uint32_t
   {
     type_definition = std::underlying_type_t<ranges>(ranges::statement) + 1,
-    assignment,
+    let_assignment,
     expression_statement,
 
     for_,
     while_,
     conditional_branch,
     unconditional_branch,
-    function_def
+    function_def,
+    return_
   };
 
   enum misc : std::uint32_t
@@ -46,7 +48,10 @@ public:
     unary_operator = std::underlying_type_t<ranges>(ranges::misc) + 1,
     binary_operator,
     comparison_operator,
-    mod
+    mod,
+    argument_list,
+    parameter,
+    parameter_list
   };
 
   tag(tag::expression expression_tag)
