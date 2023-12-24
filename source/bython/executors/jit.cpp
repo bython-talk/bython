@@ -20,6 +20,7 @@
 #include "bython/backend/builtin.hpp"
 #include "bython/backend/llvm.hpp"
 #include "bython/frontend/lexy.hpp"
+#include "bython/type_system/builtin.hpp"
 
 namespace bython::executor
 {
@@ -83,12 +84,12 @@ struct jit_compiler::jit_compiler_pimpl
       return -1;
     }
 
-    for (auto&& builtin : {backend::builtin_tag::put_i64,
-                           backend::builtin_tag::putln_i64,
-                           backend::builtin_tag::put_u64,
-                           backend::builtin_tag::put_f32})
+    for (auto&& builtin : {type_system::function_tag::put_i64,
+                           type_system::function_tag::put_u64,
+                           type_system::function_tag::put_f32,
+                           type_system::function_tag::put_f64})
     {
-      auto bmetadata = backend::builtin(context, builtin);
+      auto bmetadata = backend::builtin_function(context, builtin);
       engine->addGlobalMapping(bmetadata.name, bmetadata.procedure_addr);
     }
 
