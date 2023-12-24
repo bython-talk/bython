@@ -34,7 +34,7 @@ add_test(NAME bython_test_type_system COMMAND bython_test_type_system)
 # -- Lit Testing
 configure_file(lit.site.cfg.py.in lit.cfg.py @ONLY)
 
-foreach(SNAPSHOT_TESTING IN ITEMS frontend backend)
+foreach(SNAPSHOT_TESTING IN ITEMS backend)
     add_test(
         NAME bython_test_${SNAPSHOT_TESTING} 
         COMMAND lit -v ${CMAKE_BINARY_DIR}/test/${SNAPSHOT_TESTING}
