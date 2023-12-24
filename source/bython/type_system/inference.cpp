@@ -73,8 +73,8 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
       }
 
       case binop_tag::pow: {
-        // TODO: Solve using parameter to function rule?
-        break;
+        // Implemented using llvm.pow.f32; return type is known to be f32
+        return this->env.lookup_type("f32");
       }
       case binop_tag::multiply:
       case binop_tag::divide:
@@ -203,7 +203,7 @@ struct inference_visitor : visitor<inference_visitor, std::optional<ts::type*>>
       return std::nullopt;
     }
 
-    auto function_type = dynamic_cast<ts::func_sig*>(symbol_type.value());
+    auto function_type = dynamic_cast<ts::function_signature*>(symbol_type.value());
     return function_type->rettype;
   }
 

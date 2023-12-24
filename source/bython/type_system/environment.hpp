@@ -30,7 +30,7 @@ public:
   auto add_new_named_type(std::string tname, std::unique_ptr<type_system::type> type)
       -> type_system::type*;
   auto add_new_function_type(ast::signature const& signature)
-      -> std::optional<type_system::func_sig*>;
+      -> std::optional<type_system::function_signature*>;
 
   auto lookup_type(std::string_view tname) const -> std::optional<type_system::type*>;
   auto lookup_symbol(std::string_view symbol_name) const -> std::optional<type_system::type*>;
@@ -39,5 +39,8 @@ public:
 
   auto try_subtype(type_system::type const& tau, type_system::type const& alpha) const
       -> std::optional<type_system::subtyping_rule>;
+
+  private:
+    auto add_unnamed_type(std::unique_ptr<type_system::type> type) -> type_system::type*;
 };
 }  // namespace bython::type_system

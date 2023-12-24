@@ -1,7 +1,10 @@
+#include <cstddef>
 #include <iomanip>
 #include <limits>
 #include <map>
+#include <optional>
 #include <sstream>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 
@@ -26,6 +29,7 @@
 
 #include "builtin.hpp"
 #include "bython/ast.hpp"
+#include "bython/ast/expression.hpp"
 #include "bython/ast/operators.hpp"
 #include "bython/ast/statement.hpp"
 #include "bython/ast/visitor.hpp"
@@ -33,7 +37,6 @@
 #include "bython/matching.hpp"
 #include "bython/type_system/builtin.hpp"
 #include "bython/type_system/environment.hpp"
-#include "intrinsic.hpp"
 #include "stack.hpp"
 #include "typing.hpp"
 
@@ -88,7 +91,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
     this->environment.add_new_symbol(fdef.sig.name, function_type);
 
     auto llvm_function_type =
-        llvm::cast<llvm::FunctionType>(backend::definition(this->context, *function_type));
+        llvm::cast<llvm::FunctionType>(backend::type(this->context, *function_type));
     auto function = llvm::Function::Create(llvm_function_type,
                                            llvm::GlobalValue::LinkageTypes::ExternalLinkage,
                                            fdef.sig.name,
@@ -129,7 +132,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       this->metadata.report_error(
           var, parser::frontend_error_report {.message = "Failed to find type of this variable"});
     }
-    auto llvm_type = backend::definition(this->context, *var_type.value());
+    auto llvm_type = backend::type(this->context, *var_type.value());
 
     auto* load = this->builder.CreateLoad(llvm_type, *storage, var.identifier);
     return load;
@@ -142,7 +145,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       log_and_throw("Unknown type for signed integer");
     }
 
-    auto llvm_type = backend::definition(this->context, *integer_type.value());
+    auto llvm_type = backend::type(this->context, *integer_type.value());
     return llvm::ConstantInt::getSigned(llvm_type, instance.value);
   }
 
@@ -153,7 +156,7 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       log_and_throw("Unknown type for unsigned integer");
     }
 
-    auto llvm_type = backend::definition(this->context, *integer_type.value());
+    auto llvm_type = backend::type(this->context, *integer_type.value());
     return llvm::ConstantInt::get(llvm_type, instance.value, /*IsSigned=*/false);
   }
 
@@ -219,10 +222,36 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
 
       case ast::binop_tag::pow: {
         // https://llvm.org/docs/LangRef.html#llvm-powi-intrinsic
-        // requires powi intrinsics to be brought into scope as prototypes
-        auto pow_intrinsic =
-            this->insert_or_retrieve_intrinsic(backend::intrinsic_tag::powi_f32_i32);
-        return this->builder.CreateCall(pow_intrinsic, {lhs_v, rhs_v});
+        // requires pow.* intrinsics to be brought into scope as prototypes
+        if (lhs_type.value()->tag() == type_system::type_tag::single_fp
+            && rhs_type.value()->tag() == type_system::type_tag::single_fp)
+        {
+          auto powf32_intrinsic = this->module_.getOrInsertFunction(
+              "llvm.pow.f32",
+              llvm::FunctionType::get(
+                  llvm::Type::getFloatTy(this->context),
+                  {llvm::Type::getFloatTy(this->context), llvm::Type::getFloatTy(this->context)},
+                  false));
+          return this->builder.CreateCall(powf32_intrinsic, {lhs_v, rhs_v});
+        }
+
+        if (lhs_type.value()->tag() == type_system::type_tag::double_fp
+            && rhs_type.value()->tag() == type_system::type_tag::double_fp)
+        {
+          auto powf64_intrinsic = this->module_.getOrInsertFunction(
+              "llvm.pow.f64",
+              llvm::FunctionType::get(
+                  llvm::Type::getFloatTy(this->context),
+                  {llvm::Type::getFloatTy(this->context), llvm::Type::getFloatTy(this->context)},
+                  false));
+          return this->builder.CreateCall(powf64_intrinsic, {lhs_v, rhs_v});
+        }
+
+        this->metadata.report_error(
+            binop,
+            parser::frontend_error_report {.message = "Could not codegen pow intrinsic in LLVM due "
+                                                      "to differing typeage of the operands"});
+        return nullptr;
       }
       case ast::binop_tag::multiply: {
         return this->builder.CreateMul(lhs_v, rhs_v, "a.mul");
@@ -271,17 +300,17 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   {
     auto rettype = this->environment.get_type(instance);
     if (!rettype) {
-      log_and_throw("Failed to infer type for call");
+      log_and_throw("Failed to infer type for call", instance.callee);
     }
 
     auto ft = this->environment.lookup_symbol(instance.callee);
     if (!ft) {
-      log_and_throw("Failed to infer type for call");
+      log_and_throw("Could not lookup", instance.callee);
     }
 
-    auto ft_real = dynamic_cast<ts::func_sig*>(ft.value());
+    auto ft_real = dynamic_cast<ts::function_signature*>(ft.value());
     if (ft_real == nullptr) {
-      log_and_throw("Failed to infer type for call");
+      log_and_throw("Signature of", instance.callee, "is unknown");
     }
 
     if (ft_real->parameters.size() != instance.arguments.arguments.size()) {
@@ -307,15 +336,14 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
       load_arguments.emplace_back(subtyped);
     }
 
+    if (auto builtin = this->insert_or_retrieve_builtin(instance.callee)) {
+      return this->builder.CreateCall(*builtin, load_arguments);
+    }
+
     if (auto defined = this->module_.getFunction(instance.callee); defined != nullptr) {
       return this->builder.CreateCall(defined, load_arguments);
     }
-    if (auto intrinsic = this->insert_or_retrieve_intrinsic(instance.callee); intrinsic) {
-      return this->builder.CreateCall(*intrinsic, load_arguments);
-    }
-    if (auto builtin = this->insert_or_retrieve_builtin("bython." + instance.callee)) {
-      return this->builder.CreateCall(*builtin, load_arguments);
-    }
+
     log_and_throw("Cannot call function; undefined: ", instance.callee);
   }
 
@@ -444,42 +472,30 @@ struct codegen_visitor final : visitor<codegen_visitor, llvm::Value*>
   }
 
 private:
-  auto insert_or_retrieve_intrinsic(backend::intrinsic_tag itag) -> llvm::FunctionCallee
+  auto insert_or_retrieve_builtin(std::string_view builtin_name)
+      -> std::optional<llvm::FunctionCallee>
   {
-    auto imetadata = backend::intrinsic(this->context, itag);
-    auto ir_intrinsic = this->module_.getOrInsertFunction(imetadata.name, imetadata.signature);
-
-    return ir_intrinsic;
-  }
-
-  auto insert_or_retrieve_intrinsic(std::string_view name) -> std::optional<llvm::FunctionCallee>
-  {
-    auto imetadata = backend::intrinsic(this->context, name);
-    if (!imetadata) {
-      return std::nullopt;
+    if (builtin_name == "put_i64") {
+      auto put_i64 = backend::builtin_function(this->context, ts::function_tag::put_i64);
+      return this->module_.getOrInsertFunction(put_i64.name, put_i64.signature);
     }
 
-    auto ir_intrinsic = this->module_.getOrInsertFunction(imetadata->name, imetadata->signature);
-    return ir_intrinsic;
-  }
-
-  auto insert_or_retrieve_builtin(backend::builtin_tag btag) -> llvm::FunctionCallee
-  {
-    auto bmetadata = backend::builtin(this->context, btag);
-    auto ir_intrinsic = this->module_.getOrInsertFunction(bmetadata.name, bmetadata.signature);
-
-    return ir_intrinsic;
-  }
-
-  auto insert_or_retrieve_builtin(std::string_view name) -> std::optional<llvm::FunctionCallee>
-  {
-    auto bmetadata = backend::builtin(this->context, name);
-    if (!bmetadata) {
-      return std::nullopt;
+    if (builtin_name == "put_u64") {
+      auto put_u64 = backend::builtin_function(this->context, ts::function_tag::put_u64);
+      return this->module_.getOrInsertFunction(put_u64.name, put_u64.signature);
     }
 
-    auto ir_intrinsic = this->module_.getOrInsertFunction(bmetadata->name, bmetadata->signature);
-    return ir_intrinsic;
+    if (builtin_name == "put_f32") {
+      auto put_f32 = backend::builtin_function(this->context, ts::function_tag::put_f32);
+      return this->module_.getOrInsertFunction(put_f32.name, put_f32.signature);
+    }
+
+    if (builtin_name == "put_f64") {
+      auto put_f64 = backend::builtin_function(this->context, ts::function_tag::put_f64);
+      return this->module_.getOrInsertFunction(put_f64.name, put_f64.signature);
+    }
+
+    return std::nullopt;
   }
 
   auto subtype(ast::node const& node,
@@ -494,7 +510,7 @@ private:
     }
 
     auto subtype_mapper = backend::subtype_conversion(subtyping_rule.value());
-    return subtype_mapper(this->builder, source_value, backend::definition(context, *target_type));
+    return subtype_mapper(this->builder, source_value, backend::type(context, *target_type));
   }
 
   llvm::LLVMContext& context;

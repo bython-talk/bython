@@ -1,6 +1,6 @@
 # RUN: %driver-full --inpath %s | FileCheck %s.stdout
 def main()
 {
-    val powed: f32 = 2 as f32 ** 2 as i32;
+    val powed: f32 = 2 as f32 ** 2 as f32;
     discard put_f32(powed);
 }

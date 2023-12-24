@@ -85,22 +85,53 @@ auto boolean::operator==(type const& other) const -> bool
   return other_boolean != nullptr;
 }
 
-func_sig::func_sig(std::vector<type*> parameters_, type* rettype_)
+function_signature::function_signature(std::vector<type*> parameters_, type* rettype_)
     : parameters {std::move(parameters_)}
     , rettype {rettype_}
 {
 }
 
-auto func_sig::operator==(type const& other) const -> bool
+auto function_signature::operator==(type const& other) const -> bool
 {
-  auto const* other_f = dynamic_cast<func_sig const*>(&other);
+  auto const* other_f = dynamic_cast<function_signature const*>(&other);
   return other_f != nullptr && this->parameters == other_f->parameters
       && this->rettype == other_f->rettype;
 }
 
-auto func_sig::tag() const -> type_tag
+auto function_signature::tag() const -> type_tag
 {
   return type_tag::function;
+}
+
+/// Builtin functions
+function::function(function_signature signature_)
+    : signature {std::move(signature_)}
+{
+}
+
+auto function::operator==(function const& other) const -> bool
+{
+  return this->tag() == other.tag();
+}
+
+auto function::operator!=(function const& other) const -> bool
+{
+  return this->tag() != other.tag();
+}
+
+auto put_i64::tag() const -> function_tag
+{
+  return function_tag::put_i64;
+}
+
+auto put_u64::tag() const -> function_tag
+{
+  return function_tag::put_u64;
+}
+
+auto put_f32::tag() const -> function_tag
+{
+  return function_tag::put_f32;
 }
 
 }  // namespace bython::type_system

@@ -17,80 +17,10 @@
 
 namespace ts = bython::type_system;
 
-namespace
-{
-auto definition_impl(llvm::LLVMContext& context, ts::void_ const& /*void*/) -> llvm::Type*
-{
-  return llvm::Type::getVoidTy(context);
-}
 
-auto definition_impl(llvm::LLVMContext& context, ts::boolean const& /*boolean*/)
-    -> llvm::IntegerType*
-{
-  return llvm::Type::getInt1Ty(context);
-}
-
-auto definition_impl(llvm::LLVMContext& context, ts::uint const& unsigned_int) -> llvm::IntegerType*
-{
-  return llvm::Type::getIntNTy(context, unsigned_int.width);
-}
-
-auto definition_impl(llvm::LLVMContext& context, ts::sint const& signed_int) -> llvm::IntegerType*
-{
-  return llvm::Type::getIntNTy(context, signed_int.width);
-}
-
-auto definition_impl(llvm::LLVMContext& context, ts::single_fp const& /*f32*/) -> llvm::Type*
-{
-  return llvm::Type::getFloatTy(context);
-}
-
-auto definition_impl(llvm::LLVMContext& context, ts::double_fp const& /*f32*/) -> llvm::Type*
-{
-  return llvm::Type::getDoubleTy(context);
-}
-
-auto definition_impl(llvm::LLVMContext& context, ts::func_sig const& func) -> llvm::FunctionType*
-{
-  auto params = std::vector<llvm::Type*> {};
-  for (auto&& fparam : func.parameters) {
-    params.emplace_back(bython::backend::definition(context, *fparam));
-  }
-
-  auto rettype = bython::backend::definition(context, *func.rettype);
-  return llvm::FunctionType::get(rettype, params, /*isVarArg=*/false);
-}
-}  // namespace
 
 namespace bython::backend
 {
-
-auto definition(llvm::LLVMContext& context, ts::type const& type) -> llvm::Type*
-{
-  switch (type.tag()) {
-    // TODO: Improve error handling
-    case ts::type_tag::void_:
-      return definition_impl(context, dynamic_cast<ts::void_ const&>(type));
-
-    case ts::type_tag::boolean:
-      return definition_impl(context, dynamic_cast<ts::boolean const&>(type));
-
-    case ts::type_tag::uint:
-      return definition_impl(context, dynamic_cast<ts::uint const&>(type));
-
-    case ts::type_tag::sint:
-      return definition_impl(context, dynamic_cast<ts::sint const&>(type));
-
-    case ts::type_tag::single_fp:
-      return definition_impl(context, dynamic_cast<ts::single_fp const&>(type));
-
-    case ts::type_tag::double_fp:
-      return definition_impl(context, dynamic_cast<ts::double_fp const&>(type));
-
-    case ts::type_tag::function:
-      return definition_impl(context, dynamic_cast<ts::func_sig const&>(type));
-  }
-}
 
 auto subtype_conversion(ts::subtyping_rule rule) -> subtype_converter
 {

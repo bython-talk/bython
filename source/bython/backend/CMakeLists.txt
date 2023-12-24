@@ -2,7 +2,6 @@ add_library(bython_backend)
 
 target_sources(bython_backend PRIVATE
     builtin.cpp
-    intrinsic.cpp
     llvm.cpp
     stack.cpp
     typing.cpp

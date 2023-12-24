@@ -10,8 +10,6 @@
 
 namespace bython::backend
 {
-auto definition(llvm::LLVMContext& context, type_system::type const& type) -> llvm::Type*;
-
 using subtype_converter = llvm::Value* (*)(llvm::IRBuilder<>& builder,
                                            llvm::Value* expr,
                                            llvm::Type* dest);
