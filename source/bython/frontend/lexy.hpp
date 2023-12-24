@@ -9,7 +9,6 @@
 
 #include "frontend.hpp"
 
-
 namespace bython::parser
 {
 

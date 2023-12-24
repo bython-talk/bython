@@ -120,7 +120,8 @@ struct parameter_list final : node
   auto tag() const -> ast::tag;
 };
 
-struct signature {
+struct signature
+{
   signature(std::string name, parameter_list parameters, std::optional<std::string> rettype);
 
   std::string name;

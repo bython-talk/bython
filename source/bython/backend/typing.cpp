@@ -4,14 +4,13 @@
 
 #include "typing.hpp"
 
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 
 #include "bython/type_system/builtin.hpp"
 #include "bython/type_system/subtyping.hpp"

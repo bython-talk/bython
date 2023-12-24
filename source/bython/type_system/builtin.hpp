@@ -32,7 +32,7 @@ struct type
   virtual auto tag() const -> type_tag = 0;
 };
 
-struct void_ final : type 
+struct void_ final : type
 {
   auto operator==(type const& other) const -> bool;
 
@@ -80,7 +80,7 @@ struct boolean final : type
   auto tag() const -> type_tag;
 };
 
-struct func_sig final : type 
+struct func_sig final : type
 {
   func_sig(std::vector<type*> parameters, type* rettype);
 

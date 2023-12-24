@@ -50,8 +50,7 @@ auto parse_expression(std::string_view code)
   auto expr_as_sp = std::dynamic_pointer_cast<ast::expression>(node_as_sp);
   if (!expr_as_sp) {
     metadata->report_error(
-        *node_as_sp,
-        p::frontend_error_report {.message = "Code must be parsed as an expression"});
+        *node_as_sp, p::frontend_error_report {.message = "Code must be parsed as an expression"});
     FAIL();
   }
 

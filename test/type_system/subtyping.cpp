@@ -152,8 +152,10 @@ TEST_CASE("Subtyping of Builtins", "[Type System]")
 
   SECTION("Int to Bool")
   {
-    REQUIRE(environment.try_subtype(ts::sint {8}, ts::boolean {}) == ts::subtyping_rule::numeric_to_bool);
-    REQUIRE(environment.try_subtype(ts::uint {64}, ts::boolean {}) == ts::subtyping_rule::numeric_to_bool);
+    REQUIRE(environment.try_subtype(ts::sint {8}, ts::boolean {})
+            == ts::subtyping_rule::numeric_to_bool);
+    REQUIRE(environment.try_subtype(ts::uint {64}, ts::boolean {})
+            == ts::subtyping_rule::numeric_to_bool);
   }
 
   SECTION("Bool to Int")

@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "bases.hpp"
-#include "statement.hpp"
 #include "expression.hpp"
+#include "statement.hpp"
 
 namespace bython::ast
 {
@@ -25,6 +25,5 @@ struct expr_mod final : node
 
   auto tag() const -> ast::tag;
 };
-
 
 }  // namespace bython::ast

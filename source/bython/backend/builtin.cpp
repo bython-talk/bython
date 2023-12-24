@@ -10,7 +10,6 @@ auto put_u64_impl(uint64_t value) -> void
   std::cout << value;
 }
 
-
 auto put_i64_impl(int64_t value) -> void
 {
   std::cout << value;
@@ -55,7 +54,7 @@ static auto const builtin_lookup = std::array {
                  },
                  .procedure_addr = std::uint64_t(builtin::put_i64_impl)},
 
-                 table_entry {.tag = builtin_tag::put_u64,
+    table_entry {.tag = builtin_tag::put_u64,
                  .name = "bython.put_u64",
                  .factory = [](llvm::LLVMContext& context) -> llvm::FunctionType*
                  {

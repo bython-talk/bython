@@ -415,7 +415,8 @@ struct lexy_grammar
       return keyword::variable_ >> introduced;
     }();
 
-    static constexpr auto value = lexy::construct<ast::let_assignment> | new_statement<ast::let_assignment>;
+    static constexpr auto value =
+        lexy::construct<ast::let_assignment> | new_statement<ast::let_assignment>;
   };
 
   struct expression_statement

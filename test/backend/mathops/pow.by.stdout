@@ -1,6 +1,1 @@
-# RUN: 4.0
-def main()
-{
-    val powed: f32 = 2 as f32 ** 2 as i32;
-    discard put_f32(powed);
-}
+# CHECK: 4.0

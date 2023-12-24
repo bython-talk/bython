@@ -1,8 +1,8 @@
 #pragma once
 
-#include <boost/uuid/uuid.hpp>
-
 #include <memory>
+
+#include <boost/uuid/uuid.hpp>
 
 #include "tags.hpp"
 
@@ -19,7 +19,6 @@ struct node
 
   boost::uuids::uuid uuid;
 };
-
 
 template<typename T>
 auto isa(node const* ast) -> bool

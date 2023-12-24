@@ -2,7 +2,9 @@
 
 namespace bython::ast
 {
-let_assignment::let_assignment(std::string lhs_, std::string hint_, std::unique_ptr<expression> rhs_)
+let_assignment::let_assignment(std::string lhs_,
+                               std::string hint_,
+                               std::unique_ptr<expression> rhs_)
     : lhs {std::move(lhs_)}
     , hint {std::move(hint_)}
     , rhs {std::move(rhs_)}

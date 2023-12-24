@@ -32,9 +32,9 @@ auto binary_operation::tag() const -> ast::tag
 comparison::comparison(std::unique_ptr<expression> lhs_,
                        ast::comparison_operator_tag comp_op,
                        std::unique_ptr<expression> rhs_)
-    : lhs{std::move(lhs_)}
-    , op{std::move(comp_op)}
-    , rhs{std::move(rhs_)}
+    : lhs {std::move(lhs_)}
+    , op {std::move(comp_op)}
+    , rhs {std::move(rhs_)}
 {
 }
 

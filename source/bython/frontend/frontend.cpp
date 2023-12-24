@@ -48,7 +48,9 @@ auto frontend_error_reporter::build() const -> frontend_error_report
   return frontend_error_report {.message = this->msg};
 }
 
-auto parse_metadata::report_error(ast::node const& node, frontend_error_report report) const -> std::ostream& {
+auto parse_metadata::report_error(ast::node const& node, frontend_error_report report) const
+    -> std::ostream&
+{
   return this->report_error(std::cerr, node, std::move(report));
 }
 
