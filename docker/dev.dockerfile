@@ -17,18 +17,6 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 RUN chsh -s /usr/bin/zsh
 
 RUN update-alternatives \
-    --install /usr/bin/clang          clang         /usr/bin/clang-16 160 \
-    --slave   /usr/bin/clang++        clang++       /usr/bin/clang++-16 \
-    --slave   /usr/bin/clang-format   clang-format  /usr/bin/clang-format-16 \
-    --slave   /usr/bin/lldb           lldb          /usr/bin/lldb-16  \
-    --slave   /usr/bin/FileCheck      FileCheck     /usr/bin/FileCheck-16
-
-RUN update-alternatives \
-    --install /usr/bin/c++      c++       /usr/bin/clang++  160
-RUN update-alternatives \
-    --install /usr/bin/cc       cc        /usr/bin/clang    160
-
-RUN update-alternatives \
     --install /usr/bin/editor   editor    /usr/bin/vim      100
 RUN git config --global commit.verbose true
 
